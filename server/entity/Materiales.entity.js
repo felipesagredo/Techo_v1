@@ -14,6 +14,9 @@ const MaterialesSchema = new EntitySchema({
             type: String,
             length: 30
         },
+        cantidad: {
+            type: Number
+        },
         categoria: {
             type: String,
             length:40
