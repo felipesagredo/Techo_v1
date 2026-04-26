@@ -41,12 +41,12 @@ export async function updateHerramientasService(id, body) {
         const herramientasRepository = AppDataSource.getRepository(Herramientas);
         let herramienta = await herramientasRepository.findOneBy({ id });
         if (!herramienta) {
-            throw new Error("Comentario no encontrado");
+            throw new Error("Herramienta no encontrada");
     }
     herramienta = { ...herramienta, ...body };
     return await herramientasRepository.save(herramienta);
     }catch (error){
-        throw new Error("Error, no se ha podido actualizar el comentario");
+        throw new Error("Error, no se ha podido actualizar la herramienta");
     }
 }
 
