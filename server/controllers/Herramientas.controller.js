@@ -8,6 +8,12 @@ import {
 }from "../services/Herramientas.services.js";
 
 import {
+    herramientaBodyValidation,
+    herramientaIdValidation,
+    herramientaqueryValidation
+}from "../validations/Herramientas.validations.js";
+
+import {
     handleErrorClient,
     handleErrorServer,
     handleSuccess
