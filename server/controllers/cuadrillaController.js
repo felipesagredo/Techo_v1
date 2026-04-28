@@ -1,5 +1,23 @@
 const cuadrillaService = require('../services/cuadrillaService');
 
+exports.getAll = async (req, res) => {
+    try {
+        const cuadrillas = await cuadrillaService.getAllCuadrillas();
+        res.json(cuadrillas);
+    } catch (err) {
+        res.status(500).json({ error: 'Error al obtener cuadrillas' });
+    }
+};
+
+exports.getRoles = async (req, res) => {
+    try {
+        const roles = await cuadrillaService.getRolesCuadrilla();
+        res.json(roles);
+    } catch (err) {
+        res.status(500).json({ error: 'Error al obtener roles de cuadrilla' });
+    }
+};
+
 exports.create = async (req, res) => {
     try {
         const { nombre, zona } = req.body;
