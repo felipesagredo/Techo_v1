@@ -3,11 +3,16 @@ const cors = require('cors');
 require('dotenv').config();
 const initDB = require('./initDB');
 
+
 // Importar Rutas
 const authRoutes = require('./routes/authRoutes');
+const cuadrillaRoutes = require('./routes/cuadrillaRoutes');
+const userRoutes = require('./routes/userRoutes');
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use('/api/cuadrillas', cuadrillaRoutes);
+app.use('/api/users', userRoutes);
 
 // Inicializar Base de Datos
 initDB();

@@ -21,4 +21,9 @@ const createUser = async (userData) => {
     return result.rows[0];
 };
 
-module.exports = { createUser };
+const getAllUsers = async () => {
+    const result = await pool.query('SELECT id, name, email, role_id FROM users ORDER BY name ASC');
+    return result.rows;
+};
+
+module.exports = { createUser, getAllUsers };
