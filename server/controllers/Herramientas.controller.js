@@ -71,13 +71,16 @@ export async function getHerramientasById(req, res) {
 export async function updateHerramientas(req, res) {
     try {
         const { id } = req.params;
-        const { body, user } = req;
-        await herramientaBodyValidation.validateAsync({ id });
+        const { body } = req;
+        await herramientaIdValidation.validateAsync({ id });
 
         const updatedHerramienta = await updateHerramientasService(id, body);
+        if (!updatedHerramienta) {
+            return handleErrorClient(res, 404, "Herramienta no encontrada");
+        }
         handleSuccess(res, 200, "Herramienta actualizada exitosamente", updatedHerramienta);
     } catch (error) {
-        handleErrorClient(res, 500, "Error actualizando la herramienta", error);
+        handleErrorClient(res, 500, "Error al actualizar la herramienta", error);
     }
 };
 
@@ -85,9 +88,12 @@ export async function deleteHerramientas(req, res) {
     try {
         const { id } = req.params;
         await herramientaIdValidation.validateAsync({ id });
-        const deletedHerramienta = await deleteHerramientasService(id);
-        handleSuccess(res, 200, "Herramienta eliminada exitosamente", deletedHerramienta);
+        const deleted = await deleteHerramientasService(id);
+        if (!deleted) {
+            return handleErrorClient(res, 404, "Herramienta no encontrada");
+        }
+        handleSuccess(res, 200, "Herramienta eliminada exitosamente", deleted);
     } catch (error) {
         handleErrorClient(res, 500, "Error eliminando la herramienta", error);
-    }
+    }   
 };

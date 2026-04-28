@@ -49,7 +49,7 @@ export async function getMaterialesById(req, res) {
     try{
         const { id } = req.params;
         await materialIdValidation.validateAsync({ id });
-
+        
         const material = await getMaterialesByIdService(id);
         if (!material) {
             return handleErrorClient(res, 404, "Material no encontrado");
@@ -76,3 +76,16 @@ export async function updateMateriales(req, res) {
     }
 };
 
+export async function deleteMaterial(req, res) {
+    try {
+        const { id } = req.params;
+        await materialIdValidation.validateAsync({ id });   
+        const deletedMaterial = await deleteMaterialService(id);
+        if (!deletedMaterial) {
+            return handleErrorClient(res, 404, "Material no encontrado");
+        }   
+        handleSuccess(res, 200, "Material eliminado correctamente", deletedMaterial);
+    } catch (error) {
+        handleErrorClient(res, 500, "Error al eliminar el material");
+    }
+};
