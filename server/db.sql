@@ -9,5 +9,19 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS roles (
+  id SERIAL PRIMARY KEY,
+  nombre VARCHAR(50) UNIQUE NOT NULL,
+  descripcion VARCHAR(255)
+);
+
+-- Insertar roles básicos de TECHO
+INSERT INTO roles (nombre, descripcion) VALUES 
+('admin', 'Administrador total del sistema'),
+('voluntario', 'Voluntario de campo'),
+('cocinero', 'Cocinero');
+
+-- Añadir columna roleId a users
+ALTER TABLE users ADD COLUMN roleId INTEGER REFERENCES roles(id);
 -- Insertar un usuario de prueba (la contraseña será 'admin123' encriptada por el backend después, 
 -- pero por ahora esto es solo la estructura)

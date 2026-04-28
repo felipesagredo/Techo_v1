@@ -3,15 +3,17 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 exports.register = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, role_id } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
+    const finalRoleId = role_id || 2; // Por defecto voluntario
     const result = await pool.query(
-      'INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, email, role',
-      [name, email, hashedPassword]
+      'INSERT INTO users (name, email, password, role_id) VALUES ($1, $2, $3, $4) RETURNING id, email, role_id',
+      [name, email, hashedPassword, finalRoleId]
     );
     res.status(201).json({ message: 'Usuario registrado', user: result.rows[0] });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Error en el registro' });
   }
 };
@@ -26,9 +28,10 @@ exports.login = async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) return res.status(400).json({ error: 'Contraseña incorrecta' });
 
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.json({ token, user: { id: user.id, name: user.name, role: user.role } });
+    const token = jwt.sign({ id: user.id, email: user.email, role_id: user.role_id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token, user: { id: user.id, name: user.name, role_id: user.role_id } });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Error en el login' });
   }
 };
