@@ -6,6 +6,7 @@ import {
   ArrowRight,
   Home
 } from 'lucide-react'
+import MapPage from './MapPage'
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -18,6 +19,7 @@ function App() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showMap, setShowMap] = useState(false)
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -69,6 +71,7 @@ function App() {
 
   // Si el usuario está logueado, mostrar Dashboard
   if (user) {
+    if (showMap) return <MapPage onBack={() => setShowMap(false)} />
     return (
       <div className="dashboard-container">
         <aside className="sidebar">
@@ -78,12 +81,12 @@ function App() {
             </div>
             <span>TECHO GESTIÓN</span>
           </div>
-          <nav className="sidebar-nav">
-            <a href="#" className="active"><Home size={18} /> Inicio</a>
-            <a href="#"><Users size={18} /> Voluntarios</a>
-            <a href="#"><ArrowRight size={18} /> Proyectos</a>
-            <a href="#"><Lock size={18} /> Herramientas</a>
-          </nav>
+            <nav className="sidebar-nav">
+              <a href="#" className="active"><Home size={18} /> Inicio</a>
+              <a href="#" onClick={(e)=>{e.preventDefault(); setShowMap(true)}}><Users size={18} /> Mapa</a>
+              <a href="#"><ArrowRight size={18} /> Proyectos</a>
+              <a href="#"><Lock size={18} /> Herramientas</a>
+            </nav>
           <button className="logout-btn" onClick={handleLogout}>
             Cerrar Sesión
           </button>

@@ -35,3 +35,26 @@ exports.login = async (req, res) => {
     res.status(500).json({ error: 'Error en el login' });
   }
 };
+
+exports.updateUserRole = async (req, res) => {
+  const { userId, roleId } = req.body;
+  try {
+    if (!userId || !roleId) {
+      return res.status(400).json({ error: 'userId y roleId son requeridos' });
+    }
+
+    const result = await pool.query(
+      'UPDATE users SET role_id = $1 WHERE id = $2 RETURNING id, name, email, role_id',
+      [roleId, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    res.json({ message: 'Rol actualizado correctamente', user: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al actualizar el rol' });
+  }
+};

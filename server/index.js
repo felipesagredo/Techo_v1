@@ -6,11 +6,13 @@ const initDB = require('./initDB');
 
 // Importar Rutas
 const authRoutes = require('./routes/authRoutes');
+const addressRoutes = require('./routes/addressRoutes');
 const app = express();
 const cuadrillaRoutes = require('./routes/cuadrillaRoutes');
 app.use(express.json());
 app.use(cors());
 app.use('/api/cuadrillas', cuadrillaRoutes);
+app.use('/api/addresses', addressRoutes);
 
 // Inicializar Base de Datos
 initDB();
