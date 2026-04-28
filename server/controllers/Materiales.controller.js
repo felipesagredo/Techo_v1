@@ -45,3 +45,34 @@ export async function getMateriales(req, res) {
     }
 };
 
+export async function getMaterialesById(req, res) {
+    try{
+        const { id } = req.params;
+        await materialIdValidation.validateAsync({ id });
+
+        const material = await getMaterialesByIdService(id);
+        if (!material) {
+            return handleErrorClient(res, 404, "Material no encontrado");
+        }
+        handleSuccess(res, 200, "Material obtenido correctamente", material);
+    } catch (error) {
+        handleErrorClient(res, 500, "Error al obtener el material");
+    }
+};
+
+export async function updateMateriales(req, res) {
+    try {
+        const { id } = req.params;
+        const { body } = req;
+        await materialIdValidation.validateAsync({ id });
+
+        const updatedMaterial = await updateMaterialesService(id, body);
+        if (!updatedMaterial) {
+            return handleErrorClient(res, 404, "Material no encontrado");
+        }
+        handleSuccess(res, 200, "Material actualizado correctamente", updatedMaterial);
+    } catch (error) {
+        handleErrorClient(res, 500, "Error al actualizar el material");
+    }
+};
+

@@ -5,8 +5,6 @@ const initDB = require('./initDB');
 
 // Importar Rutas
 const authRoutes = require('./routes/authRoutes');
-// const toolRoutes = require('./routes/toolRoutes'); // Ejemplo para el compañero
-
 const app = express();
 app.use(express.json());
 app.use(cors());

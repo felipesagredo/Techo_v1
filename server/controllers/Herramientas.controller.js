@@ -54,13 +54,17 @@ export async function getHerramientas(req, res) {
 };    
 
 export async function getHerramientasById(req, res) {
-    try{
+    try {
         const { id } = req.params;
         await herramientaIdValidation.validateAsync({ id });
+
         const herramienta = await getHerramientasByIdService(id);
-        handleSuccess(res, 200, "Herramienta encontrada correctamente"); 
+        if (!herramienta) {
+            return handleErrorClient(res, 404, "Herramienta no encontrada");
+        }
+        handleSuccess(res, 200, "Herramienta obtenida exitosamente", herramienta);
     } catch (error) {
-        handleErrorClient(500, "Error obteniendo la herramienta")
+        handleErrorClient(res, 500, "Error al obtener la herramienta", error);
     }
 };
 
