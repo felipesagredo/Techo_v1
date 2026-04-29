@@ -51,6 +51,19 @@ function App() {
   // View Members Modal state
   const [showViewMembersModal, setShowViewMembersModal] = useState(false)
 
+  // Herramientas & Materiales state
+  const [herramientasList, setHerramientasList] = useState([])
+  const [materialesList, setMaterialesList] = useState([])
+  const [loadingInventario, setLoadingInventario] = useState(false)
+  
+  // Herramientas/Materiales Modals
+  const [showCreateItemModal, setShowCreateItemModal] = useState(false)
+  const [showEditItemModal, setShowEditItemModal] = useState(false)
+  const [itemType, setItemType] = useState('herramienta') // 'herramienta' | 'material'
+  const [selectedItem, setSelectedItem] = useState(null)
+  const [formData, setFormData] = useState({ nombre: '', descripcion: '', cantidad: '', estado: 'bueno', responsable: '' })
+  const [submitting, setSubmitting] = useState(false)
+
   useEffect(() => {
     if (user && currentView === 'cuadrillas') {
       setLoadingCuadrillas(true)
@@ -67,6 +80,29 @@ function App() {
         .catch(err => {
           console.error(err)
           setLoadingCuadrillas(false)
+        })
+    }
+  }, [user, currentView])
+
+  useEffect(() => {
+    if (user && currentView === 'herramientas') {
+      setLoadingInventario(true)
+      Promise.all([
+        fetch('http://localhost:5000/api/herramientas', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        }).then(res => res.json()),
+        fetch('http://localhost:5000/api/materiales', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        }).then(res => res.json())
+      ])
+        .then(([herramientas, materiales]) => {
+          setHerramientasList(herramientas)
+          setMaterialesList(materiales)
+          setLoadingInventario(false)
+        })
+        .catch(err => {
+          console.error(err)
+          setLoadingInventario(false)
         })
     }
   }, [user, currentView])
@@ -182,6 +218,130 @@ function App() {
     const data = await fetchRes.json();
     setCuadrillasList(data);
   };
+
+  // Handlers for Herramientas/Materiales CRUD
+  const handleOpenCreateModal = (type) => {
+    setItemType(type)
+    setFormData({ nombre: '', descripcion: '', cantidad: '', estado: 'bueno', responsable: '' })
+    setSelectedItem(null)
+    setShowCreateItemModal(true)
+  }
+
+  const handleOpenEditModal = (item, type) => {
+    setItemType(type)
+    setSelectedItem(item)
+    setFormData({
+      nombre: item.nombre,
+      descripcion: item.descripcion || '',
+      cantidad: item.cantidad || '',
+      estado: item.estado || 'bueno',
+      responsable: item.responsable || ''
+    })
+    setShowEditItemModal(true)
+  }
+
+  const handleCreateItem = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    const endpoint = itemType === 'herramienta' ? '/api/herramientas' : '/api/materiales'
+    
+    try {
+      const response = await fetch(`http://localhost:5000${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(formData)
+      })
+      
+      if (response.ok) {
+        alert(`${itemType === 'herramienta' ? 'Herramienta' : 'Material'} creado exitosamente`)
+        setShowCreateItemModal(false)
+        // Reload inventory
+        const [herramientas, materiales] = await Promise.all([
+          fetch('http://localhost:5000/api/herramientas').then(r => r.json()),
+          fetch('http://localhost:5000/api/materiales').then(r => r.json())
+        ])
+        setHerramientasList(herramientas)
+        setMaterialesList(materiales)
+      } else {
+        alert('Error al crear item')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Error de conexión')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleEditItem = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    const endpoint = itemType === 'herramienta' ? `/api/herramientas/${selectedItem.id}` : `/api/materiales/${selectedItem.id}`
+    
+    try {
+      const response = await fetch(`http://localhost:5000${endpoint}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(formData)
+      })
+      
+      if (response.ok) {
+        alert(`${itemType === 'herramienta' ? 'Herramienta' : 'Material'} actualizado exitosamente`)
+        setShowEditItemModal(false)
+        // Reload inventory
+        const [herramientas, materiales] = await Promise.all([
+          fetch('http://localhost:5000/api/herramientas').then(r => r.json()),
+          fetch('http://localhost:5000/api/materiales').then(r => r.json())
+        ])
+        setHerramientasList(herramientas)
+        setMaterialesList(materiales)
+      } else {
+        alert('Error al actualizar item')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Error de conexión')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDeleteItem = async (id, type) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar este ${type === 'herramienta' ? 'herramienta' : 'material'}?`)) return
+    
+    const endpoint = type === 'herramienta' ? `/api/herramientas/${id}` : `/api/materiales/${id}`
+    
+    try {
+      const response = await fetch(`http://localhost:5000${endpoint}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      
+      if (response.ok) {
+        alert(`${type === 'herramienta' ? 'Herramienta' : 'Material'} eliminado exitosamente`)
+        // Reload inventory
+        const [herramientas, materiales] = await Promise.all([
+          fetch('http://localhost:5000/api/herramientas').then(r => r.json()),
+          fetch('http://localhost:5000/api/materiales').then(r => r.json())
+        ])
+        setHerramientasList(herramientas)
+        setMaterialesList(materiales)
+      } else {
+        alert('Error al eliminar item')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Error de conexión')
+    }
+  }
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -619,6 +779,132 @@ function App() {
                 </div>
               </div>
             )}
+
+            {/* HERRAMIENTAS & MATERIALES VIEW */}
+            {currentView === 'herramientas' && (
+              <div className="inventario-view-container">
+                <div className="inventario-header">
+                  <div>
+                    <h1>Gestión de Herramientas y Materiales</h1>
+                    <p>Administra el inventario de construcción y asigna recursos a cuadrillas.</p>
+                  </div>
+                  <div className="header-buttons">
+                    <button className="btn-primary" onClick={() => handleOpenCreateModal('herramienta')}>
+                      <Plus size={16} /> Nueva Herramienta
+                    </button>
+                    <button className="btn-secondary" onClick={() => handleOpenCreateModal('material')}>
+                      <Plus size={16} /> Nuevo Material
+                    </button>
+                  </div>
+                </div>
+
+                {loadingInventario ? (
+                  <div className="loading-container">
+                    <p>Cargando inventario...</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Herramientas Section */}
+                    <div className="inventario-section">
+                      <div className="section-title">
+                        <h2><Wrench size={24} /> Herramientas ({herramientasList.length})</h2>
+                        <p>Herramientas técnicas de construcción en inventario</p>
+                      </div>
+                      <div className="items-grid">
+                        {herramientasList.length === 0 ? (
+                          <div className="empty-state">
+                            <Wrench size={48} />
+                            <p>No hay herramientas registradas</p>
+                          </div>
+                        ) : (
+                          herramientasList.map(herr => (
+                            <div key={herr.id} className="item-card">
+                              <div className="item-header">
+                                <div className="item-icon herramienta-icon">
+                                  <Wrench size={24} />
+                                </div>
+                                <div className={`item-status status-${herr.estado || 'bueno'}`}>
+                                  {herr.estado || 'bueno'}
+                                </div>
+                              </div>
+                              <h3>{herr.nombre}</h3>
+                              <p className="item-desc">{herr.descripcion || 'Sin descripción'}</p>
+                              <div className="item-meta">
+                                <div className="meta-item">
+                                  <span className="meta-label">Cantidad:</span>
+                                  <span className="meta-value">{herr.cantidad || 0}</span>
+                                </div>
+                                <div className="meta-item">
+                                  <span className="meta-label">Responsable:</span>
+                                  <span className="meta-value">{herr.responsable || 'N/A'}</span>
+                                </div>
+                              </div>
+                              <div className="item-actions">
+                                <button className="btn-edit" onClick={() => handleOpenEditModal(herr, 'herramienta')}>
+                                  <Edit2 size={16} /> Editar
+                                </button>
+                                <button className="btn-delete" onClick={() => handleDeleteItem(herr.id, 'herramienta')}>
+                                  X Eliminar
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Materiales Section */}
+                    <div className="inventario-section">
+                      <div className="section-title">
+                        <h2><Package size={24} /> Materiales ({materialesList.length})</h2>
+                        <p>Materiales de construcción en inventario</p>
+                      </div>
+                      <div className="items-grid">
+                        {materialesList.length === 0 ? (
+                          <div className="empty-state">
+                            <Package size={48} />
+                            <p>No hay materiales registrados</p>
+                          </div>
+                        ) : (
+                          materialesList.map(mat => (
+                            <div key={mat.id} className="item-card">
+                              <div className="item-header">
+                                <div className="item-icon material-icon">
+                                  <Package size={24} />
+                                </div>
+                                <div className={`item-status status-${mat.estado || 'bueno'}`}>
+                                  {mat.estado || 'bueno'}
+                                </div>
+                              </div>
+                              <h3>{mat.nombre}</h3>
+                              <p className="item-desc">{mat.descripcion || 'Sin descripción'}</p>
+                              <div className="item-meta">
+                                <div className="meta-item">
+                                  <span className="meta-label">Cantidad:</span>
+                                  <span className="meta-value">{mat.cantidad || 0}</span>
+                                </div>
+                                <div className="meta-item">
+                                  <span className="meta-label">Responsable:</span>
+                                  <span className="meta-value">{mat.responsable || 'N/A'}</span>
+                                </div>
+                              </div>
+                              <div className="item-actions">
+                                <button className="btn-edit" onClick={() => handleOpenEditModal(mat, 'material')}>
+                                  <Edit2 size={16} /> Editar
+                                </button>
+                                <button className="btn-delete" onClick={() => handleDeleteItem(mat.id, 'material')}>
+                                  X Eliminar
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
             
             {/* Modal Nueva Cuadrilla */}
             {showNewCuadrillaModal && (
@@ -767,6 +1053,163 @@ function App() {
                 </div>
               </div>
             )}
+
+            {/* Modal Crear Herramienta/Material */}
+            {showCreateItemModal && (
+              <div className="modal-overlay">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h2>Crear {itemType === 'herramienta' ? 'Herramienta' : 'Material'}</h2>
+                    <button className="icon-btn" onClick={() => setShowCreateItemModal(false)}>
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <form onSubmit={handleCreateItem}>
+                    <div className="form-group">
+                      <label>Nombre</label>
+                      <input 
+                        type="text" 
+                        placeholder={itemType === 'herramienta' ? 'Ej. Martillo' : 'Ej. Cemento'}
+                        value={formData.nombre}
+                        onChange={e => setFormData({...formData, nombre: e.target.value})}
+                        required
+                        className="modal-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Descripción</label>
+                      <textarea 
+                        placeholder="Descripción del item"
+                        value={formData.descripcion}
+                        onChange={e => setFormData({...formData, descripcion: e.target.value})}
+                        className="modal-input"
+                        rows="3"
+                      />
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Cantidad</label>
+                        <input 
+                          type="number" 
+                          placeholder="0"
+                          value={formData.cantidad}
+                          onChange={e => setFormData({...formData, cantidad: e.target.value})}
+                          className="modal-input"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Estado</label>
+                        <select 
+                          value={formData.estado}
+                          onChange={e => setFormData({...formData, estado: e.target.value})}
+                          className="modal-input"
+                        >
+                          <option value="bueno">Bueno</option>
+                          <option value="regular">Regular</option>
+                          <option value="malo">Malo</option>
+                          <option value="mantencion">En Mantención</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>Responsable</label>
+                      <input 
+                        type="text" 
+                        placeholder="Nombre del responsable"
+                        value={formData.responsable}
+                        onChange={e => setFormData({...formData, responsable: e.target.value})}
+                        className="modal-input"
+                      />
+                    </div>
+                    <div className="modal-footer">
+                      <button type="button" className="btn-outline" onClick={() => setShowCreateItemModal(false)}>
+                        Cancelar
+                      </button>
+                      <button type="submit" className="btn-primary" disabled={submitting}>
+                        {submitting ? 'Creando...' : 'Crear'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Editar Herramienta/Material */}
+            {showEditItemModal && selectedItem && (
+              <div className="modal-overlay">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h2>Editar {itemType === 'herramienta' ? 'Herramienta' : 'Material'}</h2>
+                    <button className="icon-btn" onClick={() => setShowEditItemModal(false)}>
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <form onSubmit={handleEditItem}>
+                    <div className="form-group">
+                      <label>Nombre</label>
+                      <input 
+                        type="text" 
+                        value={formData.nombre}
+                        onChange={e => setFormData({...formData, nombre: e.target.value})}
+                        required
+                        className="modal-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Descripción</label>
+                      <textarea 
+                        value={formData.descripcion}
+                        onChange={e => setFormData({...formData, descripcion: e.target.value})}
+                        className="modal-input"
+                        rows="3"
+                      />
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Cantidad</label>
+                        <input 
+                          type="number" 
+                          value={formData.cantidad}
+                          onChange={e => setFormData({...formData, cantidad: e.target.value})}
+                          className="modal-input"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Estado</label>
+                        <select 
+                          value={formData.estado}
+                          onChange={e => setFormData({...formData, estado: e.target.value})}
+                          className="modal-input"
+                        >
+                          <option value="bueno">Bueno</option>
+                          <option value="regular">Regular</option>
+                          <option value="malo">Malo</option>
+                          <option value="mantencion">En Mantención</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>Responsable</label>
+                      <input 
+                        type="text" 
+                        value={formData.responsable}
+                        onChange={e => setFormData({...formData, responsable: e.target.value})}
+                        className="modal-input"
+                      />
+                    </div>
+                    <div className="modal-footer">
+                      <button type="button" className="btn-outline" onClick={() => setShowEditItemModal(false)}>
+                        Cancelar
+                      </button>
+                      <button type="submit" className="btn-primary" disabled={submitting}>
+                        {submitting ? 'Guardando...' : 'Guardar'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
           </main>
         </div>
       </div>
