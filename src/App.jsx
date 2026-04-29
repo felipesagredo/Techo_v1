@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   Mail,
   Lock,
   Users,
   ArrowRight,
-  Home,
   LayoutDashboard,
   Package,
   Wrench,
@@ -17,12 +16,11 @@ import {
   MapPin,
   Calendar,
   ClipboardList,
-  Utensils,
-  Eye,
-  Edit2,
-  Plus,
-  X
+  Utensils
 } from 'lucide-react'
+
+// Features
+import CuadrillasView from './features/cuadrillas/components/CuadrillasView'
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -31,157 +29,6 @@ function App() {
   });
   const [mode, setMode] = useState('login')
   const [currentView, setCurrentView] = useState('dashboard')
-  const [cuadrillasList, setCuadrillasList] = useState([])
-  const [loadingCuadrillas, setLoadingCuadrillas] = useState(false)
-
-  // Modals state
-  const [showNewCuadrillaModal, setShowNewCuadrillaModal] = useState(false)
-  const [newCuadrillaData, setNewCuadrillaData] = useState({ nombre: '', zona: '' })
-  const [creatingCuadrilla, setCreatingCuadrilla] = useState(false)
-
-  // Assign Modal state
-  const [showAssignModal, setShowAssignModal] = useState(false)
-  const [selectedCuadrilla, setSelectedCuadrilla] = useState(null)
-  const [usersList, setUsersList] = useState([])
-  const [rolesList, setRolesList] = useState([])
-  const [currentMembers, setCurrentMembers] = useState([])
-  const [assignData, setAssignData] = useState({ userId: '', rolCuadrillaId: '' })
-  const [assigningMember, setAssigningMember] = useState(false)
-
-  // View Members Modal state
-  const [showViewMembersModal, setShowViewMembersModal] = useState(false)
-
-  useEffect(() => {
-    if (user && currentView === 'cuadrillas') {
-      setLoadingCuadrillas(true)
-      fetch('http://localhost:5000/api/cuadrillas', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      })
-        .then(res => res.json())
-        .then(data => {
-          setCuadrillasList(data)
-          setLoadingCuadrillas(false)
-        })
-        .catch(err => {
-          console.error(err)
-          setLoadingCuadrillas(false)
-        })
-    }
-  }, [user, currentView])
-
-  const handleCreateCuadrilla = async (e) => {
-    e.preventDefault();
-    setCreatingCuadrilla(true);
-    try {
-      const response = await fetch('http://localhost:5000/api/cuadrillas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(newCuadrillaData)
-      });
-      if (response.ok) {
-        // Fetch again to get updated list with count 0 and no capataz
-        const fetchRes = await fetch('http://localhost:5000/api/cuadrillas');
-        const data = await fetchRes.json();
-        setCuadrillasList(data);
-        setShowNewCuadrillaModal(false);
-        setNewCuadrillaData({ nombre: '', zona: '' });
-      } else {
-        alert('Error al crear cuadrilla');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Error de red al crear cuadrilla');
-    } finally {
-      setCreatingCuadrilla(false);
-    }
-  };
-
-  const handleOpenAssignModal = async (cuadrilla) => {
-    setSelectedCuadrilla(cuadrilla);
-    setShowAssignModal(true);
-    
-    try {
-      const [membersRes, usersRes, rolesRes] = await Promise.all([
-        fetch(`http://localhost:5000/api/cuadrillas/${cuadrilla.id}/miembros`),
-        fetch(`http://localhost:5000/api/users`),
-        fetch(`http://localhost:5000/api/cuadrillas/roles`)
-      ]);
-      
-      const membersData = await membersRes.json();
-      const usersData = await usersRes.json();
-      const rolesData = await rolesRes.json();
-      
-      setCurrentMembers(membersData);
-      setUsersList(usersData);
-      setRolesList(rolesData);
-      if (usersData.length > 0 && rolesData.length > 0) {
-        setAssignData({ userId: usersData[0].id, rolCuadrillaId: rolesData[0].id });
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Error cargando datos de asignación');
-    }
-  };
-
-  const handleOpenViewMembersModal = async (cuadrilla) => {
-    setSelectedCuadrilla(cuadrilla);
-    setShowViewMembersModal(true);
-    
-    try {
-      const membersRes = await fetch(`http://localhost:5000/api/cuadrillas/${cuadrilla.id}/miembros`);
-      const membersData = await membersRes.json();
-      setCurrentMembers(membersData);
-    } catch (err) {
-      console.error(err);
-      alert('Error cargando miembros');
-    }
-  };
-
-  const handleAssignMember = async (e) => {
-    e.preventDefault();
-    if (!assignData.userId || !assignData.rolCuadrillaId) return;
-    
-    setAssigningMember(true);
-    try {
-      const response = await fetch('http://localhost:5000/api/cuadrillas/add-member', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId: Number(assignData.userId),
-          cuadrillaId: selectedCuadrilla.id,
-          rolCuadrillaId: Number(assignData.rolCuadrillaId)
-        })
-      });
-      
-      if (response.ok) {
-        const membersRes = await fetch(`http://localhost:5000/api/cuadrillas/${selectedCuadrilla.id}/miembros`);
-        setCurrentMembers(await membersRes.json());
-      } else {
-        const errorData = await response.json().catch(() => null);
-        alert(errorData?.error || 'El voluntario ya está asignado a esta cuadrilla o hubo un error.');
-      }
-    } catch(err) {
-       console.error(err);
-       alert('Error de conexión al asignar voluntario.');
-    } finally {
-       setAssigningMember(false);
-    }
-  };
-
-  const handleCloseAssignModal = async () => {
-    setShowAssignModal(false);
-    setSelectedCuadrilla(null);
-    const fetchRes = await fetch('http://localhost:5000/api/cuadrillas');
-    const data = await fetchRes.json();
-    setCuadrillasList(data);
-  };
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -279,7 +126,7 @@ function App() {
                 <ClipboardList size={18} /> Registro
               </a>
               <a href="#" className={currentView === 'cuadrillas' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('cuadrillas'); }}>
-                <Users size={18} /> Grupos
+                <Users size={18} /> Cuadrillas
               </a>
               <a href="#" className={currentView === 'herramientas' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('herramientas'); }}>
                 <Wrench size={18} /> Herramientas
@@ -526,246 +373,7 @@ function App() {
             )}
 
             {currentView === 'cuadrillas' && (
-              <div className="cuadrillas-view-container">
-                <div className="cv-header">
-                  <div>
-                    <h1>Gestión de Cuadrillas</h1>
-                    <p>Supervisa y organiza los equipos de construcción en terreno. Asegura que cada cuadrilla tenga un liderazgo sólido para el cumplimiento de metas habitacionales.</p>
-                  </div>
-                  <button className="btn-primary" onClick={() => setShowNewCuadrillaModal(true)}>
-                    <Plus size={16} /> Nueva Cuadrilla
-                  </button>
-                </div>
-
-                <div className="cv-kpis">
-                  <div className="cv-kpi-card">
-                    <p>TOTAL EQUIPOS</p>
-                    <h2>{cuadrillasList.length}</h2>
-                  </div>
-                  <div className="cv-kpi-card cv-kpi-red">
-                    <p>SIN CAPATACES</p>
-                    <h2>{cuadrillasList.filter(c => !c.capataz_nombre).length < 10 ? `0${cuadrillasList.filter(c => !c.capataz_nombre).length}` : cuadrillasList.filter(c => !c.capataz_nombre).length} <AlertTriangle size={18} /></h2>
-                  </div>
-                  <div className="cv-kpi-card cv-kpi-wide">
-                    <div className="cv-kpi-text">
-                      <p>META SEMANAL</p>
-                      <h3>12 Viviendas en proceso</h3>
-                    </div>
-                    <div className="cv-progress-bar">
-                      <div className="cv-progress-fill"></div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="cv-table-container">
-                  <div className="cv-table-header">
-                    <div className="col-equipo">EQUIPO / UBICACIÓN</div>
-                    <div className="col-capataz">CAPATAZ ASIGNADO</div>
-                    <div className="col-miembros">MIEMBROS</div>
-                    <div className="col-estado">ESTADO</div>
-                    <div className="col-acciones">ACCIONES</div>
-                  </div>
-
-                  <div className="cv-table-body">
-                    {loadingCuadrillas ? <p className="loading-text">Cargando...</p> : cuadrillasList.map(cuadrilla => {
-                      const noCapataz = !cuadrilla.capataz_nombre;
-                      return (
-                        <div key={cuadrilla.id} className={`cv-table-row ${noCapataz ? 'row-alert' : ''}`}>
-                          <div className="col-equipo">
-                            <div className={`cv-icon ${noCapataz ? 'icon-alert' : 'icon-normal'}`}>
-                              <Home size={18} />
-                            </div>
-                            <div>
-                              <h4>{cuadrilla.nombre}</h4>
-                              <p>{cuadrilla.zona}</p>
-                            </div>
-                          </div>
-                          <div className="col-capataz">
-                            {noCapataz ? (
-                              <div className="no-capataz-text"><Users size={14} /> ASIGNAR CAPATAZ</div>
-                            ) : (
-                              <div className="capataz-info">
-                                <div className="capataz-avatar">{cuadrilla.capataz_nombre.charAt(0)}</div>
-                                <div>
-                                  <h4>{cuadrilla.capataz_nombre}</h4>
-                                  <p>{cuadrilla.capataz_rol}</p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <div className="col-miembros">
-                            <span className={`miembros-number ${noCapataz ? 'text-red' : 'text-blue'}`}>{cuadrilla.miembros_count < 10 ? `0${cuadrilla.miembros_count}` : cuadrilla.miembros_count}</span>
-                          </div>
-                          <div className="col-estado">
-                            <span className={`cv-badge badge-${cuadrilla.estado.toLowerCase().replace(/\s/g, '-')}`}>{cuadrilla.estado}</span>
-                          </div>
-                          <div className="col-acciones">
-                            {noCapataz ? (
-                              <div className="alert-actions">
-                                <button className="btn-priorizar" onClick={() => handleOpenAssignModal(cuadrilla)}>PRIORIZAR</button>
-                                <div className="alert-circle">!</div>
-                              </div>
-                            ) : (
-                              <div className="normal-actions">
-                                <button className="icon-action" onClick={() => handleOpenViewMembersModal(cuadrilla)}><Eye size={16} /></button>
-                                <button className="icon-action" onClick={() => handleOpenAssignModal(cuadrilla)}><Edit2 size={16} /></button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Modal Nueva Cuadrilla */}
-            {showNewCuadrillaModal && (
-              <div className="modal-overlay">
-                <div className="modal-content">
-                  <div className="modal-header">
-                    <h2>Crear Nueva Cuadrilla</h2>
-                    <button className="icon-btn" onClick={() => setShowNewCuadrillaModal(false)}>
-                      <X size={20} />
-                    </button>
-                  </div>
-                  <form onSubmit={handleCreateCuadrilla}>
-                    <div className="form-group">
-                      <label>Nombre del Equipo</label>
-                      <input 
-                        type="text" 
-                        placeholder="Ej. Cuadrilla Los Pinos" 
-                        value={newCuadrillaData.nombre}
-                        onChange={e => setNewCuadrillaData({...newCuadrillaData, nombre: e.target.value})}
-                        required
-                        className="modal-input"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Zona / Ubicación</label>
-                      <input 
-                        type="text" 
-                        placeholder="Ej. Campamento Esperanza, Maipú" 
-                        value={newCuadrillaData.zona}
-                        onChange={e => setNewCuadrillaData({...newCuadrillaData, zona: e.target.value})}
-                        required
-                        className="modal-input"
-                      />
-                    </div>
-                    <div className="modal-footer">
-                      <button type="button" className="btn-outline" onClick={() => setShowNewCuadrillaModal(false)}>
-                        Cancelar
-                      </button>
-                      <button type="submit" className="btn-primary" disabled={creatingCuadrilla}>
-                        {creatingCuadrilla ? 'Creando...' : 'Crear Cuadrilla'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            )}
-
-            {/* Modal Asignar Miembros (Edición) */}
-            {showAssignModal && selectedCuadrilla && (
-              <div className="modal-overlay">
-                <div className="modal-content assign-modal-content">
-                  <div className="modal-header">
-                    <h2>Administrar Equipo: {selectedCuadrilla.nombre}</h2>
-                    <button className="icon-btn" onClick={handleCloseAssignModal}>
-                      <X size={20} />
-                    </button>
-                  </div>
-                  
-                  <div className="assign-layout">
-                    <div className="assign-form-section">
-                       <h3>Asignar Nuevo Miembro</h3>
-                       <form onSubmit={handleAssignMember} className="form-row-inline">
-                         <div className="form-group flex-2">
-                           <label>Voluntario</label>
-                           <select 
-                             className="modal-input" 
-                             value={assignData.userId} 
-                             onChange={e => setAssignData({...assignData, userId: e.target.value})}
-                           >
-                             {usersList.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                           </select>
-                         </div>
-                         <div className="form-group flex-1">
-                           <label>Rol</label>
-                           <select 
-                             className="modal-input" 
-                             value={assignData.rolCuadrillaId} 
-                             onChange={e => setAssignData({...assignData, rolCuadrillaId: e.target.value})}
-                           >
-                             {rolesList.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
-                           </select>
-                         </div>
-                         <div className="form-group submit-group">
-                           <button type="submit" className="btn-primary btn-add-member" disabled={assigningMember}>
-                             {assigningMember ? '...' : <Plus size={16}/>}
-                           </button>
-                         </div>
-                       </form>
-                    </div>
-
-                    <div className="members-list-section">
-                       <h3>Miembros Actuales ({currentMembers.length})</h3>
-                       <div className="members-list">
-                         {currentMembers.length === 0 ? <p className="text-muted text-center py-1">No hay miembros asignados.</p> : null}
-                         {currentMembers.map((m, idx) => (
-                           <div key={idx} className="member-item">
-                             <div className="member-avatar">{m.name.charAt(0).toUpperCase()}</div>
-                             <div className="member-info">
-                               <h4>{m.name}</h4>
-                               <span className={`member-role ${m.cargo.includes('Capataz') ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
-                             </div>
-                           </div>
-                         ))}
-                       </div>
-                    </div>
-                  </div>
-                  <div className="modal-footer">
-                    <button type="button" className="btn-primary" onClick={handleCloseAssignModal}>
-                      Listo
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Modal Ver Integrantes */}
-            {showViewMembersModal && selectedCuadrilla && (
-              <div className="modal-overlay">
-                <div className="modal-content">
-                  <div className="modal-header">
-                    <h2>Integrantes: {selectedCuadrilla.nombre}</h2>
-                    <button className="icon-btn" onClick={() => setShowViewMembersModal(false)}>
-                      <X size={20} />
-                    </button>
-                  </div>
-                  
-                  <div className="members-list-section mt-1">
-                     <div className="members-list">
-                       {currentMembers.length === 0 ? <p className="text-muted">No hay miembros asignados a esta cuadrilla.</p> : null}
-                       {currentMembers.map((m, idx) => (
-                         <div key={idx} className="member-item">
-                           <div className="member-avatar">{m.name.charAt(0).toUpperCase()}</div>
-                           <div className="member-info">
-                             <h4>{m.name}</h4>
-                             <span className={`member-role ${m.cargo.includes('Capataz') ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
-                           </div>
-                         </div>
-                       ))}
-                     </div>
-                  </div>
-                  <div className="modal-footer">
-                    <button type="button" className="btn-primary" onClick={() => setShowViewMembersModal(false)}>
-                      Cerrar
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <CuadrillasView user={user} currentView={currentView} />
             )}
           </main>
         </div>

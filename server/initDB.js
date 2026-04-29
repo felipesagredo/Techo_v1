@@ -17,6 +17,33 @@ const initDB = async () => {
       password VARCHAR(255) NOT NULL,
       role_id INTEGER REFERENCES roles(id),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+
+    // 3. Crear tabla de Cuadrillas con Geoposicionamiento
+    `CREATE TABLE IF NOT EXISTS cuadrillas (
+      id SERIAL PRIMARY KEY,
+      nombre VARCHAR(100) NOT NULL,
+      zona VARCHAR(255) NOT NULL,
+      estado VARCHAR(50) DEFAULT 'PENDIENTE',
+      latitud DECIMAL(10, 8),
+      longitud DECIMAL(11, 8),
+      meta_voluntarios INTEGER DEFAULT 5,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+
+    // 4. Crear tabla de Roles de Cuadrilla
+    `CREATE TABLE IF NOT EXISTS roles_cuadrilla (
+      id SERIAL PRIMARY KEY,
+      nombre VARCHAR(50) UNIQUE NOT NULL
+    );`,
+
+    // 5. Tabla de Miembros (Relación muchos a muchos)
+    `CREATE TABLE IF NOT EXISTS cuadrilla_miembros (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id),
+      cuadrilla_id INTEGER REFERENCES cuadrillas(id),
+      rol_cuadrilla_id INTEGER REFERENCES roles_cuadrilla(id),
+      UNIQUE(user_id, cuadrilla_id)
     );`
   ];
 
@@ -38,7 +65,31 @@ const initDB = async () => {
       console.log('✅ Roles iniciales insertados');
     }
 
-    // 4. Verificar si la columna role_id existe en users (por si la tabla se creó antes sin ella)
+    // 4. Insertar roles de cuadrilla iniciales si no existen
+    const cuadrillaRolesExist = await pool.query('SELECT COUNT(*) FROM roles_cuadrilla');
+    if (parseInt(cuadrillaRolesExist.rows[0].count) === 0) {
+      await pool.query(`
+        INSERT INTO roles_cuadrilla (nombre) VALUES 
+        ('Voluntario Senior'),
+        ('Capataz de Zona'),
+        ('Voluntario')
+      `);
+      console.log('✅ Roles de cuadrilla insertados');
+    }
+
+    // 5. Verificar si las columnas de coordenadas existen en cuadrillas
+    const latCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='cuadrillas' AND column_name='latitud'
+    `);
+
+    if (latCheck.rows.length === 0) {
+      await pool.query('ALTER TABLE cuadrillas ADD COLUMN latitud DECIMAL(10, 8), ADD COLUMN longitud DECIMAL(11, 8)');
+      console.log('✅ Columnas latitud y longitud añadidas a cuadrillas');
+    }
+
+    // 6. Verificar si la columna role_id existe en users
     const columnCheck = await pool.query(`
       SELECT column_name 
       FROM information_schema.columns 
