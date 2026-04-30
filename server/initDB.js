@@ -72,11 +72,11 @@ const initDB = async () => {
       await pool.query(query);
     }
 
-    console.log('✅ Base de datos inicializada correctamente');
+    console.log('Base de datos inicializada correctamente');
 
   } catch (error) {
 
-    console.error('❌ Error inicializando DB:', error);
+    console.error('Error inicializando DB:', error);
 
   }
 };

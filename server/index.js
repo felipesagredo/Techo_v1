@@ -5,8 +5,9 @@ require('dotenv').config();
 const initDB = require('./initDB');
 const pool = require('./config/db');
 
-// Rutas
+// RUTAS
 const authRoutes = require('./routes/authRoutes');
+const alimentoRoutes = require('./routes/alimentoRoutes');
 
 const app = express();
 
@@ -24,7 +25,9 @@ app.get('/', (req, res) => {
 
 // TEST BASE DE DATOS
 app.get('/test-db', async (req, res) => {
+
   try {
+
     const result = await pool.query('SELECT NOW()');
 
     res.json({
@@ -34,7 +37,8 @@ app.get('/test-db', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error DB:', error);
+
+    console.error(error);
 
     res.status(500).json({
       ok: false,
@@ -43,11 +47,13 @@ app.get('/test-db', async (req, res) => {
   }
 });
 
-// INICIALIZAR DB
+// INICIAR BASE DE DATOS
 initDB();
 
 // RUTAS API
 app.use('/api/auth', authRoutes);
+
+app.use('/api/alimentos', alimentoRoutes);
 
 // RUTA NO ENCONTRADA
 app.use((req, res) => {
@@ -57,9 +63,10 @@ app.use((req, res) => {
   });
 });
 
-// MANEJO GLOBAL DE ERRORES
+// ERRORES GLOBALES
 app.use((err, req, res, next) => {
-  console.error('Error global:', err);
+
+  console.error(err);
 
   res.status(500).json({
     ok: false,
@@ -67,9 +74,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// SERVIDOR
+// PUERTO
 const PORT = process.env.PORT || 5000;
 
+// LEVANTAR SERVIDOR
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+  console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
