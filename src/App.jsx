@@ -18,6 +18,7 @@ function App() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [section, setSection] = useState('inicio')
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -70,65 +71,178 @@ function App() {
   }
 
   // Si el usuario está logueado, mostrar Dashboard
-  if (user) {
-    return (
-      <div className="dashboard-container">
-        <aside className="sidebar">
-          <div className="sidebar-header">
-            <div className="logo-icon small">
-              <Home size={16} fill="white" />
-            </div>
-            <span>TECHO GESTIÓN</span>
+if (user) {
+  return (
+    <div className="dashboard-container">
+
+      <aside className="sidebar">
+
+        <div className="sidebar-header">
+          <div className="logo-icon small">
+            <Home size={16} fill="white" />
           </div>
-          <nav className="sidebar-nav">
-            <a href="#" className="active"><Home size={18} /> Inicio</a>
-            <a href="#"><Users size={18} /> Voluntarios</a>
-            <a href="#"><ArrowRight size={18} /> Proyectos</a>
-            <a href="#"><Lock size={18} /> Herramientas</a>
-          </nav>
-          <button className="logout-btn" onClick={handleLogout}>
-            Cerrar Sesión
-          </button>
-        </aside>
 
-        <main className="dashboard-main">
-          <header className="main-header">
-            <h1>Bienvenido, {user.name}</h1>
-            <div className="user-profile">
-              <div className="avatar">{user.name.charAt(0)}</div>
-              <span>{user.email}</span>
-            </div>
-          </header>
+          <span>TECHO GESTIÓN</span>
+        </div>
 
-          <section className="stats-grid">
-            <div className="stat-card">
-              <h3>Proyectos Activos</h3>
-              <p className="stat-value">12</p>
-              <span className="stat-label">+2 esta semana</span>
-            </div>
-            <div className="stat-card">
-              <h3>Voluntarios</h3>
-              <p className="stat-value">148</p>
-              <span className="stat-label">En terreno</span>
-            </div>
-            <div className="stat-card">
-              <h3>Impacto Social</h3>
-              <p className="stat-value">2.4k</p>
-              <span className="stat-label">Familias</span>
-            </div>
-          </section>
+        <nav className="sidebar-nav">
 
-          <div className="content-placeholder">
-            <h2>Panel de Actividad</h2>
-            <p>Aquí se desplegará la información detallada de la gestión en territorio.</p>
-            <div className="empty-state">
-              Próximamente: Integración con el módulo de Herramientas.
+          <a
+            href="#"
+            className={section === 'inicio' ? 'active' : ''}
+            onClick={() => setSection('inicio')}
+          >
+            <Home size={18} /> Inicio
+          </a>
+
+          <a href="#">
+            <Users size={18} /> Voluntarios
+          </a>
+
+          <a href="#">
+            <ArrowRight size={18} /> Proyectos
+          </a>
+
+          <a href="#">
+            <Lock size={18} /> Herramientas
+          </a>
+
+          <a
+            href="#"
+            className={section === 'alimentos' ? 'active' : ''}
+            onClick={() => setSection('alimentos')}
+          >
+            <Users size={18} /> Alimentos
+          </a>
+
+        </nav>
+
+        <button
+          className="logout-btn"
+          onClick={handleLogout}
+        >
+          Cerrar Sesión
+        </button>
+
+      </aside>
+
+      <main className="dashboard-main">
+
+        <header className="main-header">
+
+          <h1>
+            Bienvenido, {user.name}
+          </h1>
+
+          <div className="user-profile">
+
+            <div className="avatar">
+              {user.name.charAt(0)}
             </div>
+
+            <span>{user.email}</span>
+
           </div>
-        </main>
-      </div>
-    );
-  }
+
+        </header>
+
+        <section className="stats-grid">
+
+          <div className="stat-card">
+            <h3>Proyectos Activos</h3>
+            <p className="stat-value">12</p>
+            <span className="stat-label">
+              +2 esta semana
+            </span>
+          </div>
+
+          <div className="stat-card">
+            <h3>Voluntarios</h3>
+            <p className="stat-value">148</p>
+            <span className="stat-label">
+              En terreno
+            </span>
+          </div>
+
+          <div className="stat-card">
+            <h3>Impacto Social</h3>
+            <p className="stat-value">2.4k</p>
+            <span className="stat-label">
+              Familias
+            </span>
+          </div>
+
+        </section>
+
+        {
+          section === 'inicio' ? (
+
+            <div className="content-placeholder">
+
+              <h2>Panel de Actividad</h2>
+
+              <p>
+                Aquí se desplegará la información detallada de la gestión en territorio.
+              </p>
+
+              <div className="empty-state">
+                Bienvenido al sistema de gestión TECHO.
+              </div>
+
+            </div>
+
+          ) : (
+
+            <div className="content-placeholder">
+
+              <h2>Gestión de Alimentos</h2>
+
+              <p>
+                Control y monitoreo de alimentos disponibles para jornadas y comedores.
+              </p>
+
+              <div className="stats-grid">
+
+                <div className="stat-card">
+                  <h3>Alimentos Disponibles</h3>
+                  <p className="stat-value">24</p>
+                  <span className="stat-label">
+                    En bodega
+                  </span>
+                </div>
+
+                <div className="stat-card">
+                  <h3>Porciones Preparadas</h3>
+                  <p className="stat-value">180</p>
+                  <span className="stat-label">
+                    Jornada actual
+                  </span>
+                </div>
+
+                <div className="stat-card">
+                  <h3>Dietas Especiales</h3>
+                  <p className="stat-value">36</p>
+                  <span className="stat-label">
+                    Vegano / Celíaco
+                  </span>
+                </div>
+
+              </div>
+
+              <div className="empty-state">
+                Próximamente: CRUD completo de alimentos conectado a PostgreSQL.
+              </div>
+
+            </div>
+
+          )
+        }
+
+      </main>
+
+    </div>
+  );
+}
 
   // Si no está logueado, mostrar Login/Register
   return (
