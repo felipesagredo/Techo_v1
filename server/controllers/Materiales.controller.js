@@ -5,9 +5,13 @@ import {
     deleteMaterialService, 
     getMaterialesService,
     getMaterialesByIdService,
+    updateMaterialesService
 }from "../services/Materiales.service.js";
 
-
+import {
+    materialBodyValidation,
+    materialIdValidation
+}from "../validations/Materiales.validations.js";
 
 import {
     handleErrorClient,
@@ -17,31 +21,32 @@ import {
 
 export async function createMateriales(req, res) {
     try{
-        const { body, user} = req;
+        const body = req.body;
+        
+        await materialBodyValidation.validateAsync(body);
+        
         const materialData = {
-            ...body,
-            assigned_to: user.id,
-            estado: "Disponible",
-            archivos: null
+            nombre_material: body.nombre_material,
+            cantidad: body.cantidad,
+            categoria: body.categoria,
+            largo: body.largo,
+            ancho: body.ancho,
+            peso: body.peso
         };
         const newMaterial = await createMaterialesService(materialData);
-        handleSuccess(res, 201, "Material creado/agregado existosamente");
+        handleSuccess(res, 201, "Material creado/agregado exitosamente", newMaterial);
     } catch (error) {
-        handleErr(res, 500, "Error creando/agregando materiales");
+        console.error("Error crear material:", error.message);
+        handleErrorClient(res, 500, error.message || "Error creando/agregando materiales", error);
     }
 };
 
 export async function getMateriales(req, res) {
     try{
-        const { user, query} = res;
-
-        if (!user || user.rol || user.id){
-            return handleErrorClient(res, 400, "Token invalido, falta la informacion del usuario");
-        } 
-        await materialesqueryValidation.validateAsync(query);
-        handleSuccess(res, 200, "Materiales obtenidos correctamente");
+        const materiales = await getMaterialesService();
+        handleSuccess(res, 200, "Materiales obtenidos correctamente", materiales);
     } catch (error){
-        handleErrorClient(res, 500, "Error al obtener los materiales");
+        handleErrorClient(res, 500, error.message || "Error al obtener los materiales", error);
     }
 };
 
@@ -56,23 +61,20 @@ export async function getMaterialesById(req, res) {
         }
         handleSuccess(res, 200, "Material obtenido correctamente", material);
     } catch (error) {
-        handleErrorClient(res, 500, "Error al obtener el material");
+        handleErrorClient(res, 500, error.message || "Error al obtener el material", error);
     }
 };
 
 export async function updateMateriales(req, res) {
     try {
         const { id } = req.params;
-        const { body } = req;
+        const body = req.body;
         await materialIdValidation.validateAsync({ id });
 
         const updatedMaterial = await updateMaterialesService(id, body);
-        if (!updatedMaterial) {
-            return handleErrorClient(res, 404, "Material no encontrado");
-        }
         handleSuccess(res, 200, "Material actualizado correctamente", updatedMaterial);
     } catch (error) {
-        handleErrorClient(res, 500, "Error al actualizar el material");
+        handleErrorClient(res, 500, error.message || "Error al actualizar el material", error);
     }
 };
 
@@ -81,11 +83,8 @@ export async function deleteMaterial(req, res) {
         const { id } = req.params;
         await materialIdValidation.validateAsync({ id });   
         const deletedMaterial = await deleteMaterialService(id);
-        if (!deletedMaterial) {
-            return handleErrorClient(res, 404, "Material no encontrado");
-        }   
         handleSuccess(res, 200, "Material eliminado correctamente", deletedMaterial);
     } catch (error) {
-        handleErrorClient(res, 500, "Error al eliminar el material");
+        handleErrorClient(res, 500, error.message || "Error al eliminar el material", error);
     }
 };

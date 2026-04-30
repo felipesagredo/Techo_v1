@@ -1,8 +1,8 @@
-const pool = require('../config/db');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+import pool from '../config/db.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
-exports.register = async (req, res) => {
+export const register = async (req, res) => {
   const { name, email, password, role_id } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -18,7 +18,7 @@ exports.register = async (req, res) => {
   }
 };
 
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   const { email, password } = req.body;
   try {
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -28,10 +28,13 @@ exports.login = async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) return res.status(400).json({ error: 'Contraseña incorrecta' });
 
-    const token = jwt.sign({ id: user.id, email: user.email, role_id: user.role_id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.json({ token, user: { id: user.id, name: user.name, role_id: user.role_id } });
+    const jwtSecret = process.env.JWT_SECRET || 'secret_key_123';
+    const token = jwt.sign({ id: user.id, email: user.email, role_id: user.role_id }, jwtSecret, { expiresIn: '1h' });
+    res.json({ token, user: { id: user.id, name: user.name, role_id: user.role_id }, message: 'Inicio de Sesion Exitoso' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error en el login' });
   }
 };
+
+export default { register, login };

@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+import pool from '../config/db.js';
 
 const getAllCuadrillas = async () => {
     const query = `
@@ -61,9 +61,11 @@ const getMiembrosByCuadrilla = async (cuadrillaId) => {
     );
     return res.rows;
 };
+
 const getRolesCuadrilla = async () => {
     const res = await pool.query('SELECT id, nombre FROM roles_cuadrilla ORDER BY id');
     return res.rows;
 };
 
-module.exports = { createCuadrilla, assignMember, getMiembrosByCuadrilla, getAllCuadrillas, getRolesCuadrilla };
+export { createCuadrilla, assignMember, getMiembrosByCuadrilla, getAllCuadrillas, getRolesCuadrilla };
+export default { createCuadrilla, assignMember, getMiembrosByCuadrilla, getAllCuadrillas, getRolesCuadrilla };

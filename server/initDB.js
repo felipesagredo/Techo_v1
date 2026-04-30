@@ -1,4 +1,4 @@
-const pool = require('./config/db');
+import pool from './config/db.js';
 
 const initDB = async () => {
   const queries = [
@@ -17,7 +17,8 @@ const initDB = async () => {
       password VARCHAR(255) NOT NULL,
       role_id INTEGER REFERENCES roles(id),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );`
+    );`,
+
   ];
 
   try {
@@ -26,7 +27,7 @@ const initDB = async () => {
       await pool.query(query);
     }
 
-    // 3. Insertar roles iniciales si no existen
+    // 4. Insertar roles iniciales si no existen
     const rolesExist = await pool.query('SELECT COUNT(*) FROM roles');
     if (parseInt(rolesExist.rows[0].count) === 0) {
       await pool.query(`
@@ -38,7 +39,7 @@ const initDB = async () => {
       console.log('✅ Roles iniciales insertados');
     }
 
-    // 4. Verificar si la columna role_id existe en users (por si la tabla se creó antes sin ella)
+    // 5. Verificar si la columna role_id existe en users (por si la tabla se creó antes sin ella)
     const columnCheck = await pool.query(`
       SELECT column_name 
       FROM information_schema.columns 
@@ -56,4 +57,4 @@ const initDB = async () => {
   }
 };
 
-module.exports = initDB;
+export default initDB;

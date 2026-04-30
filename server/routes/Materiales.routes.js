@@ -1,20 +1,24 @@
 "use strict";
-import router from "express";
-
+import express from "express";
+import authMiddleware from "../middleware/auth.js";
+import authorizeRoles from "../middleware/authorization.middleware.js";
 import { 
     createMateriales,
     getMateriales,
     getMaterialesById,
     updateMateriales,
-    deleteMateriales
-}from "../controllers/Materiales.controller.js";
+    deleteMaterial
+} from "../controllers/Materiales.controller.js";
 
-const router = router();
+const router = express.Router();
 
-router.post("/", createMateriales);
-router.get("/", getMateriales);
-router.get("/:id", getMaterialesById);
-router.put("/:id", updateMateriales);
-router.delete("/:id", deleteMateriales);
+// RUTAS DE LECTURA - Acceso: admin y voluntario
+router.get("/", [authMiddleware, authorizeRoles('admin', 'voluntario')], getMateriales);
+router.get("/:id", [authMiddleware, authorizeRoles('admin', 'voluntario')], getMaterialesById);
+
+// RUTAS DE ESCRITURA - Acceso: solo admin
+router.post("/", [authMiddleware, authorizeRoles('admin')], createMateriales);
+router.put("/:id", [authMiddleware, authorizeRoles('admin')], updateMateriales);
+router.delete("/:id", [authMiddleware, authorizeRoles('admin')], deleteMaterial);
 
 export default router;

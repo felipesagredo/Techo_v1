@@ -1,6 +1,6 @@
-const cuadrillaService = require('../services/cuadrillaService');
+import cuadrillaService from '../services/cuadrillaService.js';
 
-exports.getAll = async (req, res) => {
+export const getAll = async (req, res) => {
     try {
         const cuadrillas = await cuadrillaService.getAllCuadrillas();
         res.json(cuadrillas);
@@ -9,7 +9,7 @@ exports.getAll = async (req, res) => {
     }
 };
 
-exports.getRoles = async (req, res) => {
+export const getRoles = async (req, res) => {
     try {
         const roles = await cuadrillaService.getRolesCuadrilla();
         res.json(roles);
@@ -18,7 +18,7 @@ exports.getRoles = async (req, res) => {
     }
 };
 
-exports.create = async (req, res) => {
+export const create = async (req, res) => {
     try {
         const { nombre, zona } = req.body;
         const cuadrilla = await cuadrillaService.createCuadrilla(nombre, zona);
@@ -28,7 +28,7 @@ exports.create = async (req, res) => {
     }
 };
 
-exports.addMember = async (req, res) => {
+export const addMember = async (req, res) => {
     try {
         const { userId, cuadrillaId, rolCuadrillaId } = req.body;
         const asignacion = await cuadrillaService.assignMember(userId, cuadrillaId, rolCuadrillaId);
@@ -38,7 +38,7 @@ exports.addMember = async (req, res) => {
     }
 };
 
-exports.getDetails = async (req, res) => {
+export const getDetails = async (req, res) => {
     try {
         const miembros = await cuadrillaService.getMiembrosByCuadrilla(req.params.id);
         res.json(miembros);
@@ -46,3 +46,5 @@ exports.getDetails = async (req, res) => {
         res.status(500).json({ error: 'Error al obtener detalles' });
     }
 };
+
+export default { getAll, getRoles, create, addMember, getDetails };

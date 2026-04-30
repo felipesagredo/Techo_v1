@@ -5,7 +5,7 @@ import {
     getHerramientasService,
     getHerramientasByIdService,
     updateHerramientasService,
-}from "../services/Herramientas.services.js";
+}from "../services/Herramientas.service.js";
 
 import {
     herramientaBodyValidation,
@@ -22,31 +22,36 @@ import {
 
 export async function createHerramientas(req, res) {
     try {
-        const { body, user } = req;
+        const body = req.body;
+        const user = req.user;
+
+        await herramientaBodyValidation.validateAsync(body);
 
         const herramientaData = {
-            ...body,
-            assigned_to: user.id,
-            estado: "Disponible", 
-            archivos: null
+            nombre: body.nombre,
+            descripcion: body.descripcion,
+            stock: body.stock,
+            categoria_herramienta: body.categoria_herramienta
         };
-        await herramientaBodyValidation.validateAsync(herramientaData);
-        const newHerramienta = await createHerramientasService(herramientas);
+        const newHerramienta = await createHerramientasService(herramientaData);
         handleSuccess(res, 201, "Herramienta creada/agregada exitosamente", newHerramienta);
     } catch (error){
-        handleErrorClient(res, 500, "Error creando/agregando la herramienta", error);
+        console.error("Error crear herramienta:", error.message);
+        handleErrorClient(res, 500, error.message || "Error creando/agregando la herramienta", error);
     }
 };
 
 export async function getHerramientas(req, res) {
     try{
-        const { user, query} = res;
+        const { user } = req;
+        const query = req.query;
 
-        if(!user || !user.rol || user.id){
+        if(!user || !user.role_id || !user.id){
             return handleErrorClient(res, 400, "Token invalido: falta la informacion del usuario");
         }
 
         await herramientaqueryValidation.validateAsync(query);
+        const herramientas = await getHerramientasService();
         handleSuccess(res, 200, "Herramientas obtenidas exitosamente", herramientas);
     } catch (error){
         handleErrorClient(res, 500, "Error al obtener las herramientas", error);
@@ -71,7 +76,7 @@ export async function getHerramientasById(req, res) {
 export async function updateHerramientas(req, res) {
     try {
         const { id } = req.params;
-        const { body } = req;
+        const body = req.body;
         await herramientaIdValidation.validateAsync({ id });
 
         const updatedHerramienta = await updateHerramientasService(id, body);

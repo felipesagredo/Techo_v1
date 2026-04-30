@@ -1,6 +1,6 @@
-const userService = require('../services/userService');
+import userService from '../services/userService.js';
 
-exports.getAll = async (req, res) => {
+export const getAll = async (req, res) => {
     try {
         const users = await userService.getAllUsers();
         res.json(users);
@@ -9,3 +9,5 @@ exports.getAll = async (req, res) => {
         res.status(500).json({ error: 'Error al obtener usuarios' });
     }
 };
+
+export default { getAll };

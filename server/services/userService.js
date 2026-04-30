@@ -1,5 +1,5 @@
-const pool = require('../config/db');
-const bcrypt = require('bcrypt');
+import pool from '../config/db.js';
+import bcrypt from 'bcrypt';
 
 const createUser = async (userData) => {
     const { name, email, password, role_id } = userData;
@@ -26,4 +26,5 @@ const getAllUsers = async () => {
     return result.rows;
 };
 
-module.exports = { createUser, getAllUsers };
+export { createUser, getAllUsers };
+export default { createUser, getAllUsers };
