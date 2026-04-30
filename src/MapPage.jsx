@@ -261,7 +261,7 @@ const MapPage = ({ onBack }) => {
               fontSize: '14px'
             }}
           >
-            📍 Mi Ubicación
+            Mi Ubicación
           </button>
 
           <button 
@@ -277,7 +277,7 @@ const MapPage = ({ onBack }) => {
               fontSize: '14px'
             }}
           >
-            {loading ? 'Cargando...' : '🔄 Actualizar'}
+            {loading ? 'Cargando...' : 'Actualizar'}
           </button>
         </div>
 
@@ -289,7 +289,7 @@ const MapPage = ({ onBack }) => {
             borderRadius: '4px',
             fontSize: '13px'
           }}>
-            ⚠️ {error}
+            {error}
           </div>
         )}
 
@@ -301,7 +301,7 @@ const MapPage = ({ onBack }) => {
             borderRadius: '4px',
             fontSize: '13px'
           }}>
-            ℹ️ Haz clic en el mapa para agregar una nueva ubicación
+            Haz clic en el mapa para agregar una nueva ubicación
           </div>
         )}
       </div>
@@ -325,7 +325,7 @@ const MapPage = ({ onBack }) => {
         textAlign: 'center'
       }}>
         <p style={{ margin: '4px 0' }}>
-          📍 Ubicaciones registradas: <strong>{addresses.length}</strong>
+          Ubicaciones registradas: <strong>{addresses.length}</strong>
         </p>
         <p style={{ margin: '4px 0', fontSize: '11px' }}>
           © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors
