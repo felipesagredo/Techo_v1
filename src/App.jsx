@@ -30,9 +30,11 @@ function App() {
     setLoading(true)
     setError('')
 
-    const endpoint = mode === 'login' ? '/api/login' : '/api/register'
-    const body = mode === 'login' 
-      ? { email, password } 
+    const endpoint = mode === 'login'
+  ? '/api/auth/login'
+  : '/api/auth/register'
+    const body = mode === 'login'
+      ? { email, password }
       : { name, email, password }
 
     try {
