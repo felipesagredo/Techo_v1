@@ -1,16 +1,20 @@
-const express = require('express');
-const router = express.Router();
+const express = require('express')
 
-const alimentoController = require('../controllers/alimentoController');
+const router = express.Router()
 
-router.get('/', alimentoController.getAllAlimentos);
+const {
+  getAlimentos,
+  createAlimento,
+  deleteAlimento,
+} = require('../controllers/alimentoController')
 
-router.get('/:id', alimentoController.getAlimentoById);
+// Obtener alimentos
+router.get('/', getAlimentos)
 
-router.post('/', alimentoController.createAlimento);
+// Crear alimento
+router.post('/', createAlimento)
 
-router.put('/:id', alimentoController.updateAlimento);
+// Eliminar alimento
+router.delete('/:id', deleteAlimento)
 
-router.delete('/:id', alimentoController.deleteAlimento);
-
-module.exports = router;
+module.exports = router

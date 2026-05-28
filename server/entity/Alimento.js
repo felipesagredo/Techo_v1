@@ -1,11 +1,11 @@
-const { EntitySchema } = require('typeorm');
+const { EntitySchema } = require('typeorm')
 
 module.exports = new EntitySchema({
   name: 'Alimento',
+
   tableName: 'alimentos',
 
   columns: {
-
     id: {
       primary: true,
       type: 'int',
@@ -14,21 +14,17 @@ module.exports = new EntitySchema({
 
     nombre: {
       type: 'varchar',
+      nullable: false,
     },
 
-    stock: {
-      type: 'int',
-      default: 0,
+    disponible: {
+      type: 'boolean',
+      default: true,
     },
 
-    fecha_vencimiento: {
-      type: 'date',
-      nullable: true,
-    },
-
-    created_at: {
-      type: 'timestamp',
-      createDate: true,
+    jornadaActiva: {
+      type: 'boolean',
+      default: false,
     },
   },
-});
+})
