@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Mail,
   Lock,
@@ -8,383 +8,713 @@ import {
 } from 'lucide-react'
 
 function App() {
+
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
+    const savedUser = localStorage.getItem('user')
+    return savedUser ? JSON.parse(savedUser) : null
+  })
+
   const [mode, setMode] = useState('login')
+
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
   const [section, setSection] = useState('inicio')
 
+  const [alimentos, setAlimentos] = useState([])
+  const [nuevoAlimento, setNuevoAlimento] = useState('')
+
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-  };
+
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+
+    setUser(null)
+  }
+
+  // OBTENER ALIMENTOS
+
+  const obtenerAlimentos = async () => {
+
+    try {
+
+      const response = await fetch(
+        'http://localhost:5000/api/alimentos',
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      )
+
+      const data = await response.json()
+
+      setAlimentos(data)
+
+    } catch (error) {
+
+      console.log(error)
+    }
+  }
+
+  // CREAR ALIMENTO
+
+  const crearAlimento = async () => {
+
+    if (!nuevoAlimento.trim()) return
+
+    try {
+
+      await fetch(
+        'http://localhost:5000/api/alimentos',
+        {
+          method: 'POST',
+
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+
+          body: JSON.stringify({
+            nombre: nuevoAlimento,
+          }),
+        }
+      )
+
+      setNuevoAlimento('')
+
+      obtenerAlimentos()
+
+    } catch (error) {
+
+      console.log(error)
+    }
+  }
+
+  // ELIMINAR ALIMENTO
+
+  const eliminarAlimento = async (id) => {
+
+    try {
+
+      await fetch(
+        `http://localhost:5000/api/alimentos/${id}`,
+        {
+          method: 'DELETE',
+
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      )
+
+      obtenerAlimentos()
+
+    } catch (error) {
+
+      console.log(error)
+    }
+  }
+
+  useEffect(() => {
+
+    if (user) {
+      obtenerAlimentos()
+    }
+
+  }, [user])
+
+  // LOGIN / REGISTRO
 
   const handleSubmit = async (e) => {
+
     e.preventDefault()
+
     setLoading(true)
     setError('')
 
-    const endpoint = mode === 'login'
-  ? '/api/auth/login'
-  : '/api/auth/register'
-    const body = mode === 'login'
-      ? { email, password }
-      : { name, email, password }
+    const endpoint =
+      mode === 'login'
+        ? '/api/auth/login'
+        : '/api/auth/register'
+
+    const body =
+      mode === 'login'
+        ? { email, password }
+        : {
+            name,
+            email,
+            password,
+            role: 'voluntario',
+          }
 
     try {
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      })
+
+      const response = await fetch(
+        `http://localhost:5000${endpoint}`,
+        {
+          method: 'POST',
+
+          headers: {
+            'Content-Type': 'application/json',
+          },
+
+          body: JSON.stringify(body),
+        }
+      )
 
       const data = await response.json()
 
       if (response.ok) {
+
         if (mode === 'register') {
-          alert('¡Registro exitoso! Ahora puedes iniciar sesión.')
+
+          alert('Registro exitoso')
+
           setMode('login')
+
           setName('')
+          setEmail('')
+          setPassword('')
+
         } else {
-          localStorage.setItem('token', data.token)
-          localStorage.setItem('user', JSON.stringify(data.user))
+
+          localStorage.setItem(
+            'token',
+            data.token
+          )
+
+          localStorage.setItem(
+            'user',
+            JSON.stringify(data.user)
+          )
+
           setUser(data.user)
-          alert('¡Bienvenido, ' + data.user.name + '!')
+
+          alert(`Bienvenido ${data.user.name}`)
         }
+
       } else {
-        setError(data.error || 'Ocurrió un error')
+
+        setError(data.message || 'Error')
+
       }
-    } catch (err) {
-      setError('No se pudo conectar con el servidor. ¿Está encendido?')
+
+    } catch (error) {
+
+      setError('No se pudo conectar con el servidor')
+
     } finally {
+
       setLoading(false)
     }
   }
 
-  // Si el usuario está logueado, mostrar Dashboard
-if (user) {
-  return (
-    <div className="dashboard-container">
 
-      <aside className="sidebar">
+  if (user) {
 
-        <div className="sidebar-header">
-          <div className="logo-icon small">
-            <Home size={16} fill="white" />
+    return (
+
+      <div className="dashboard-container">
+
+        <aside className="sidebar">
+
+          <div className="sidebar-header">
+
+            <div className="logo-icon small">
+              <Home size={16} fill="white" />
+            </div>
+
+            <span>TECHO GESTIÓN</span>
+
           </div>
 
-          <span>TECHO GESTIÓN</span>
-        </div>
+          <nav className="sidebar-nav">
 
-        <nav className="sidebar-nav">
+            <a
+              href="#"
+              className={section === 'inicio' ? 'active' : ''}
+              onClick={(e) => {
+                e.preventDefault()
+                setSection('inicio')
+              }}
+            >
+              <Home size={18} />
+              Inicio
+            </a>
 
-          <a
-            href="#"
-            className={section === 'inicio' ? 'active' : ''}
-            onClick={() => setSection('inicio')}
+            <a href="#">
+              <Users size={18} />
+              Voluntarios
+            </a>
+
+            <a href="#">
+              <ArrowRight size={18} />
+              Proyectos
+            </a>
+
+            <a href="#">
+              <Lock size={18} />
+              Herramientas
+            </a>
+
+            <a
+              href="#"
+              className={section === 'alimentos' ? 'active' : ''}
+              onClick={(e) => {
+                e.preventDefault()
+                setSection('alimentos')
+              }}
+            >
+              <Users size={18} />
+              Alimentos
+            </a>
+
+          </nav>
+
+          <button
+            className="logout-btn"
+            onClick={handleLogout}
           >
-            <Home size={18} /> Inicio
-          </a>
+            Cerrar Sesión
+          </button>
 
-          <a href="#">
-            <Users size={18} /> Voluntarios
-          </a>
+        </aside>
 
-          <a href="#">
-            <ArrowRight size={18} /> Proyectos
-          </a>
+        <main className="dashboard-main">
 
-          <a href="#">
-            <Lock size={18} /> Herramientas
-          </a>
+          <header className="main-header">
 
-          <a
-            href="#"
-            className={section === 'alimentos' ? 'active' : ''}
-            onClick={() => setSection('alimentos')}
-          >
-            <Users size={18} /> Alimentos
-          </a>
+            <h1>
+              Bienvenido, {user.name}
+            </h1>
 
-        </nav>
+            <div className="user-profile">
 
-        <button
-          className="logout-btn"
-          onClick={handleLogout}
-        >
-          Cerrar Sesión
-        </button>
-
-      </aside>
-
-      <main className="dashboard-main">
-
-        <header className="main-header">
-
-          <h1>
-            Bienvenido, {user.name}
-          </h1>
-
-          <div className="user-profile">
-
-            <div className="avatar">
-              {user.name.charAt(0)}
-            </div>
-
-            <span>{user.email}</span>
-
-          </div>
-
-        </header>
-
-        <section className="stats-grid">
-
-          <div className="stat-card">
-            <h3>Proyectos Activos</h3>
-            <p className="stat-value">12</p>
-            <span className="stat-label">
-              +2 esta semana
-            </span>
-          </div>
-
-          <div className="stat-card">
-            <h3>Voluntarios</h3>
-            <p className="stat-value">148</p>
-            <span className="stat-label">
-              En terreno
-            </span>
-          </div>
-
-          <div className="stat-card">
-            <h3>Impacto Social</h3>
-            <p className="stat-value">2.4k</p>
-            <span className="stat-label">
-              Familias
-            </span>
-          </div>
-
-        </section>
-
-        {
-          section === 'inicio' ? (
-
-            <div className="content-placeholder">
-
-              <h2>Panel de Actividad</h2>
-
-              <p>
-                Aquí se desplegará la información detallada de la gestión en territorio.
-              </p>
-
-              <div className="empty-state">
-                Bienvenido al sistema de gestión TECHO.
+              <div className="avatar">
+                {user.name.charAt(0)}
               </div>
+
+              <span>{user.email}</span>
 
             </div>
 
-          ) : (
+          </header>
 
-            <div className="content-placeholder">
+          <section className="stats-grid">
 
-              <h2>Gestión de Alimentos</h2>
-
-              <p>
-                Control y monitoreo de alimentos disponibles para jornadas y comedores.
-              </p>
-
-              <div className="stats-grid">
-
-                <div className="stat-card">
-                  <h3>Alimentos Disponibles</h3>
-                  <p className="stat-value">24</p>
-                  <span className="stat-label">
-                    En bodega
-                  </span>
-                </div>
-
-                <div className="stat-card">
-                  <h3>Porciones Preparadas</h3>
-                  <p className="stat-value">180</p>
-                  <span className="stat-label">
-                    Jornada actual
-                  </span>
-                </div>
-
-                <div className="stat-card">
-                  <h3>Dietas Especiales</h3>
-                  <p className="stat-value">36</p>
-                  <span className="stat-label">
-                    Vegano / Celíaco
-                  </span>
-                </div>
-
-              </div>
-
-              <div className="empty-state">
-                Próximamente: CRUD completo de alimentos conectado a PostgreSQL.
-              </div>
-
+            <div className="stat-card">
+              <h3>Proyectos Activos</h3>
+              <p className="stat-value">12</p>
+              <span className="stat-label">
+                +2 esta semana
+              </span>
             </div>
 
-          )
-        }
+            <div className="stat-card">
+              <h3>Voluntarios</h3>
+              <p className="stat-value">148</p>
+              <span className="stat-label">
+                En terreno
+              </span>
+            </div>
 
-      </main>
+            <div className="stat-card">
+              <h3>Impacto Social</h3>
+              <p className="stat-value">2.4k</p>
+              <span className="stat-label">
+                Familias
+              </span>
+            </div>
 
-    </div>
-  );
-}
+          </section>
 
-  // Si no está logueado, mostrar Login/Register
+          {
+            section === 'inicio'
+              ? (
+
+                <div className="content-placeholder">
+
+                  <h2>Panel de Actividad</h2>
+
+                  <p>
+                    Aquí se desplegará la información de gestión.
+                  </p>
+
+                  <div className="empty-state">
+                    Bienvenido al sistema TECHO.
+                  </div>
+
+                </div>
+
+              )
+              : (
+
+                <div className="content-placeholder">
+
+                  <h2>Gestión de Alimentos</h2>
+
+                  <p>
+                    Control y monitoreo de alimentos disponibles.
+                  </p>
+
+                  {
+                    user.role === 'admin' && (
+
+                      <div
+                        style={{
+                          marginBottom: '20px',
+                        }}
+                      >
+
+                        <input
+                          type="text"
+                          placeholder="Nuevo alimento"
+                          value={nuevoAlimento}
+                          onChange={(e) =>
+                            setNuevoAlimento(e.target.value)
+                          }
+                        />
+
+                        <button
+                          type="button"
+                          onClick={crearAlimento}
+                        >
+                          Agregar
+                        </button>
+
+                      </div>
+                    )
+                  }
+
+                  <div>
+
+                    {
+                      alimentos.map((alimento) => (
+
+                        <div
+                          key={alimento.id}
+                          className="stat-card"
+                          style={{
+                            marginBottom: '15px',
+                          }}
+                        >
+
+                          <h3>
+                            {alimento.nombre}
+                          </h3>
+
+                          <p>
+                            Estado:
+                            {' '}
+                            {
+                              alimento.asignado
+                                ? 'Asignado'
+                                : 'Disponible'
+                            }
+                          </p>
+
+                          {
+                            user.role === 'admin' && (
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  eliminarAlimento(alimento.id)
+                                }
+                              >
+                                Eliminar
+                              </button>
+                            )
+                          }
+
+                        </div>
+                      ))
+                    }
+
+                  </div>
+
+                </div>
+              )
+          }
+
+        </main>
+
+      </div>
+    )
+  }
+
+  // LOGIN
+
   return (
+
     <div className="login-container">
-      {/* Left Section */}
+
       <div className="left-section">
+
         <div className="left-content">
-          <span className="tag">Grupo 12 - 2026</span>
+
+          <span className="tag">
+            Grupo 12 - 2026
+          </span>
+
           <h1>
-            Construyendo <br />
-            <span>Comunidad</span> desde la gestión.
+            Construyendo
+            <br />
+
+            <span>
+              Comunidad
+            </span>
+
+            {' '}
+            desde la gestión.
           </h1>
 
           <div className="cards-container">
+
             <div className="info-card">
+
               <h3>
-                <ArrowRight size={18} /> Precisión
+                <ArrowRight size={18} />
+                {' '}
+                Precisión
               </h3>
+
               <p>
-                Herramientas técnicas diseñadas para maximizar el impacto en territorio.
+                Herramientas diseñadas
+                para maximizar el impacto.
               </p>
+
             </div>
+
             <div className="info-card">
+
               <h3>
-                <Users size={18} /> Empatía
+                <Users size={18} />
+                {' '}
+                Empatía
               </h3>
+
               <p>
-                Centrados en la dignidad humana y el trabajo colectivo.
+                Centrados en el trabajo colectivo.
               </p>
+
             </div>
+
           </div>
+
         </div>
 
         <div className="left-footer">
           2026 © TECHO
         </div>
+
       </div>
 
-      {/* Right Section */}
       <div className="right-section">
+
         <div className="logo-container">
+
           <div className="techo-logo">
+
             <div className="logo-text">
               <h2>TECHO</h2>
               <p>Gestión Nacional</p>
             </div>
+
             <div className="logo-icon">
               <Home size={20} fill="white" />
             </div>
+
           </div>
+
         </div>
 
         <div className="form-header">
-          <h2>{mode === 'login' ? 'Acceso al Portal' : 'Crear Cuenta'}</h2>
+
+          <h2>
+            {
+              mode === 'login'
+                ? 'Acceso al Portal'
+                : 'Crear Cuenta'
+            }
+          </h2>
+
           <p>
-            {mode === 'login' 
-              ? 'Gestiona proyectos, cuadrillas e impacto social desde una sola plataforma.' 
-              : 'Únete a la red de gestión de voluntarios de Techo Chile.'}
+            {
+              mode === 'login'
+                ? 'Gestiona proyectos y alimentos.'
+                : 'Únete a la plataforma.'
+            }
           </p>
-          {error && <p style={{ color: '#ff4d4d', marginTop: '1rem', fontWeight: 'bold' }}>{error}</p>}
+
+          {
+            error && (
+              <p
+                style={{
+                  color: 'red',
+                  marginTop: '1rem',
+                }}
+              >
+                {error}
+              </p>
+            )
+          }
+
         </div>
 
         <form onSubmit={handleSubmit}>
-          {mode === 'register' && (
-            <div className="form-group">
-              <div className="label-row">
-                <label>Nombre Completo</label>
+
+          {
+            mode === 'register' && (
+
+              <div className="form-group">
+
+                <div className="label-row">
+                  <label>Nombre Completo</label>
+                </div>
+
+                <div className="input-wrapper">
+
+                  <Users
+                    className="input-icon"
+                    size={18}
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Tu nombre"
+                    value={name}
+                    onChange={(e) =>
+                      setName(e.target.value)
+                    }
+                    required
+                  />
+
+                </div>
+
               </div>
-              <div className="input-wrapper">
-                <Users className="input-icon" size={18} />
-                <input 
-                  type="text" 
-                  placeholder="Tu nombre completo" 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-          )}
+            )
+          }
 
           <div className="form-group">
+
             <div className="label-row">
-              <label>Correo Institucional</label>
+              <label>Correo</label>
             </div>
+
             <div className="input-wrapper">
-              <Mail className="input-icon" size={18} />
-              <input 
-                type="email" 
-                placeholder="nombre@techo.org" 
+
+              <Mail
+                className="input-icon"
+                size={18}
+              />
+
+              <input
+                type="email"
+                placeholder="correo@techo.org"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) =>
+                  setEmail(e.target.value)
+                }
                 required
               />
+
             </div>
+
           </div>
 
           <div className="form-group">
+
             <div className="label-row">
+
               <label>Contraseña</label>
-              <a href="#" className="forgot-link">¿Olvidaste tu clave?</a>
+
             </div>
+
             <div className="input-wrapper">
-              <Lock className="input-icon" size={18} />
-              <input 
-                type="password" 
-                placeholder="••••••••" 
+
+              <Lock
+                className="input-icon"
+                size={18}
+              />
+
+              <input
+                type="password"
+                placeholder="********"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) =>
+                  setPassword(e.target.value)
+                }
                 required
               />
+
             </div>
+
           </div>
 
-          <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? 'Cargando...' : (mode === 'login' ? 'Ingresar a Gestión' : 'Registrarse')} <ArrowRight size={18} />
-          </button>
+          <button
+            type="submit"
+            className="submit-btn"
+            disabled={loading}
+          >
 
-          <div className="divider">
-            <span>O accede con</span>
-          </div>
+            {
+              loading
+                ? 'Cargando...'
+                : (
+                  mode === 'login'
+                    ? 'Ingresar'
+                    : 'Registrarse'
+                )
+            }
 
-          <button type="button" className="google-btn">
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/5/5f/Google_Workspace_Logo.svg"
-              alt="Google"
-              width="180"
-            />
+            <ArrowRight size={18} />
+
           </button>
 
           <p className="footer-link">
-            {mode === 'login' ? '¿Nuevo en el equipo?' : '¿Ya tienes cuenta?'} {' '}
-            <a href="#" onClick={(e) => {
-              e.preventDefault();
-              setMode(mode === 'login' ? 'register' : 'login');
-              setError('');
-            }}>
-              {mode === 'login' ? 'Solicitar acceso' : 'Iniciar sesión'}
+
+            {
+              mode === 'login'
+                ? '¿Nuevo en el equipo?'
+                : '¿Ya tienes cuenta?'
+            }
+
+            {' '}
+
+            <a
+              href="#"
+              onClick={(e) => {
+
+                e.preventDefault()
+
+                setMode(
+                  mode === 'login'
+                    ? 'register'
+                    : 'login'
+                )
+
+                setError('')
+              }}
+            >
+              {
+                mode === 'login'
+                  ? 'Registrarse'
+                  : 'Iniciar sesión'
+              }
             </a>
+
           </p>
+
         </form>
+
       </div>
+
     </div>
   )
 }

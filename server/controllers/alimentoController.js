@@ -1,7 +1,9 @@
-const alimentoService = require('../services/alimento.service')
+const alimentoService =
+  require('../services/alimento.service')
 
-// Obtener alimentos
+// GET
 const getAlimentos = async (req, res) => {
+
   try {
 
     const alimentos =
@@ -11,59 +13,87 @@ const getAlimentos = async (req, res) => {
 
   } catch (error) {
 
-    console.log(error)
-
     res.status(500).json({
-      message: 'Error obteniendo alimentos',
+      ok: false,
+      message: error.message,
     })
   }
 }
 
-// Crear alimento
+// CREATE
 const createAlimento = async (req, res) => {
+
   try {
 
-    const { nombre } = req.body
-
     const alimento =
-      await alimentoService.createAlimento(nombre)
+      await alimentoService.createAlimento(
+        req.body
+      )
 
     res.status(201).json(alimento)
 
   } catch (error) {
 
-    console.log(error)
-
     res.status(500).json({
-      message: 'Error creando alimento',
+      ok: false,
+      message: error.message,
     })
   }
 }
 
-// Eliminar alimento
-const deleteAlimento = async (req, res) => {
+// UPDATE
+const updateAlimento = async (req, res) => {
+
   try {
 
-    const { id } = req.params
+    const alimento =
+      await alimentoService.updateAlimento(
+        req.params.id,
+        req.body
+      )
 
-    await alimentoService.deleteAlimento(id)
+    res.json(alimento)
+
+  } catch (error) {
+
+    res.status(500).json({
+      ok: false,
+      message: error.message,
+    })
+  }
+}
+
+// DELETE
+const deleteAlimento = async (req, res) => {
+
+  try {
+
+    await alimentoService.deleteAlimento(
+      req.params.id
+    )
 
     res.json({
-      message: 'Alimento eliminado',
+      ok: true,
+      message:
+        'Alimento eliminado',
     })
 
   } catch (error) {
 
-    console.log(error)
-
-    res.status(500).json({
+    res.status(400).json({
+      ok: false,
       message: error.message,
     })
   }
 }
 
 module.exports = {
+
   getAlimentos,
+
   createAlimento,
+
+  updateAlimento,
+
   deleteAlimento,
 }

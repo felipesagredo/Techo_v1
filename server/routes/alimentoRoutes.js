@@ -1,20 +1,40 @@
-const express = require('express')
+const express = require('express');
+const router = express.Router();
 
-const router = express.Router()
+const alimentoController = require('../controllers/alimentoController');
 
-const {
-  getAlimentos,
-  createAlimento,
-  deleteAlimento,
-} = require('../controllers/alimentoController')
+const verifyToken = require('../middleware/authMiddleware');
+const verifyRole = require('../middleware/roleMiddleware');
 
-// Obtener alimentos
-router.get('/', getAlimentos)
+// TODOS pueden visualizar
+router.get(
+  '/',
+  verifyToken,
+  alimentoController.getAlimentos
+);
 
-// Crear alimento
-router.post('/', createAlimento)
+// SOLO admin puede crear
+router.post(
+  '/',
+  verifyToken,
+  verifyRole(['admin']),
+  alimentoController.createAlimento
+);
 
-// Eliminar alimento
-router.delete('/:id', deleteAlimento)
+// SOLO admin puede eliminar
+router.delete(
+  '/:id',
+  verifyToken,
+  verifyRole(['admin']),
+  alimentoController.deleteAlimento
+);
 
-module.exports = router
+// SOLO admin puede editar
+router.put(
+  '/:id',
+  verifyToken,
+  verifyRole(['admin']),
+  alimentoController.updateAlimento
+)
+
+module.exports = router;

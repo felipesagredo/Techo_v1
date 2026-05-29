@@ -1,47 +1,103 @@
-const AppDataSource = require('../config/data-source')
-const Alimento = require('../entity/Alimento')
+const AppDataSource =
+  require('../config/data-source')
+
+const Alimento =
+  require('../entity/Alimento')
 
 const alimentoRepository =
   AppDataSource.getRepository(Alimento)
 
-// Obtener
+// GET
 const getAlimentos = async () => {
+
   return await alimentoRepository.find()
 }
 
-// Crear
-const createAlimento = async (nombre) => {
+// CREATE
+const createAlimento = async (data) => {
 
-  const alimento =
+  const nuevoAlimento =
     alimentoRepository.create({
-      nombre,
+
+      nombre: data.nombre,
+
       asignado: false,
+
+      jornadaActiva: false,
+
+      encargado: null,
     })
 
-  return await alimentoRepository.save(alimento)
+  return await alimentoRepository.save(
+    nuevoAlimento
+  )
 }
 
-// Eliminar
-const deleteAlimento = async (id) => {
+// UPDATE
+const updateAlimento = async (
+  id,
+  data
+) => {
 
   const alimento =
-    await alimentoRepository.findOneBy({ id })
+    await alimentoRepository.findOneBy({
+      id: Number(id),
+    })
 
   if (!alimento) {
-    throw new Error('Alimento no encontrado')
-  }
 
-  if (alimento.asignado) {
     throw new Error(
-      'No se puede eliminar un alimento asignado'
+      'Alimento no encontrado'
     )
   }
 
-  await alimentoRepository.remove(alimento)
+  alimento.nombre =
+    data.nombre || alimento.nombre
+
+  return await alimentoRepository.save(
+    alimento
+  )
+}
+
+// DELETE
+const deleteAlimento = async (id) => {
+
+  const alimento =
+    await alimentoRepository.findOneBy({
+      id: Number(id),
+    })
+
+  if (!alimento) {
+
+    throw new Error(
+      'Alimento no encontrado'
+    )
+  }
+
+  // Restricción funcional
+
+  if (
+    alimento.asignado ||
+    alimento.jornadaActiva
+  ) {
+
+    throw new Error(
+      'No se puede eliminar un alimento asociado a una jornada activa'
+    )
+  }
+
+  return await alimentoRepository.remove(
+    alimento
+  )
 }
 
 module.exports = {
+
   getAlimentos,
+
   createAlimento,
+
+  updateAlimento,
+
   deleteAlimento,
 }

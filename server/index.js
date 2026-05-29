@@ -7,6 +7,7 @@ const AppDataSource = require('./config/data-source')
 
 const authRoutes = require('./routes/authRoutes')
 const alimentoRoutes = require('./routes/alimentoRoutes')
+const jornadaRoutes = require('./routes/jornadaRoutes')
 
 const app = express()
 
@@ -21,7 +22,7 @@ app.get('/', (req, res) => {
 // Rutas
 app.use('/api/auth', authRoutes)
 app.use('/api/alimentos', alimentoRoutes)
-
+app.use('/api/jornadas', jornadaRoutes)
 // Ruta no encontrada
 app.use((req, res) => {
   res.status(404).json({

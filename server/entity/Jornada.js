@@ -1,7 +1,9 @@
-const { EntitySchema } = require('typeorm');
+const { EntitySchema } = require('typeorm')
 
 module.exports = new EntitySchema({
+
   name: 'Jornada',
+
   tableName: 'jornadas',
 
   columns: {
@@ -16,13 +18,32 @@ module.exports = new EntitySchema({
       type: 'varchar',
     },
 
-    fecha: {
-      type: 'date',
+    activa: {
+      type: 'boolean',
+      default: true,
     },
 
-    created_at: {
+    responsable: {
+      type: 'varchar',
+    },
+
+    createdAt: {
       type: 'timestamp',
       createDate: true,
     },
   },
-});
+
+  relations: {
+
+    alimentos: {
+
+      type: 'many-to-many',
+
+      target: 'Alimento',
+
+      joinTable: true,
+
+      cascade: true,
+    },
+  },
+})
