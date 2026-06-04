@@ -32,8 +32,7 @@ export async function updateHerramientas(id, dataHerramientas){
         const response = await axios.put(`/herramientas/${id}`, dataHerramientas);
         return response.data;
     }catch (error) {
-        const respopnse = await axios.get(`/herramientas/${id}`);
-        return response.data;
+        return error.response.data;
     }
 }
 

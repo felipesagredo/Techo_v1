@@ -1,23 +1,31 @@
-import { useState} from 'react';
+import { useState, useEffect } from 'react';
 import { getHerramientas } from '@services/Herramientas.service';
 
 export function useGetHerramientas(){
-    const [loading, setLoading] = useState(false); // Estado para indicar si la operación está en curso
-    const [error, setError] = useState(null); // guarda errores por si algo falla
-    const [herramienta, setHerramienta] = useState(null); // esto guarda el dato que devuelve la api para mostrarlo
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [herramientas, setHerramientas] = useState([]);
 
-    const handleGetHerramienta = async(id) => { // esta función se llama para obtener los datos de la api
-        setLoading(true); // indica que la operación está en curso
-        setError(null); // limpia errores anteriores
-    try {
-        const response = await getHerramientas(id); // llama a la función que hace la petición a la api
-        setHerramienta(response.data); // guarda la herramienta
-    }catch (error){
-        setError(eror); //guarda el error si falla
-        } finally { 
-            setLoading(false); //indica que la operación ha terminado, ya sea con éxito o con error
+    const refetch = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await getHerramientas();
+            if (response.status === 'Success') {
+                setHerramientas(response.data || []);
+            } else {
+                setError(response.message || 'Error al obtener herramientas');
+            }
+        } catch (err) {
+            setError(err.message || 'Error al obtener herramientas');
+        } finally {
+            setLoading(false);
         }
     };
+
+    useEffect(() => {
+        refetch();
+    }, []);
     
-    return { handleGetHerramienta, loading, error, herramienta }; //devuelve la funcion y el estado para que pueda ser usado
+    return { herramientas, loading, error, refetch };
 }

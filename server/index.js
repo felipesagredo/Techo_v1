@@ -6,6 +6,7 @@ import authRoutes from './routes/authRoutes.js';
 import cuadrillaRoutes from './routes/cuadrillaRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import herramientasRoutes from './routes/Herramientas.routes.js';
+import materialesRoutes from './routes/Materiales.routes.js';
 
 dotenv.config();
 
@@ -15,6 +16,8 @@ app.use(cors());
 app.use('/api/cuadrillas', cuadrillaRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/herramientas', herramientasRoutes);
+app.use('/api/materiales', materialesRoutes);
+app.use('/api/material', materialesRoutes);
 
 // Inicializar Base de Datos
 initDB();

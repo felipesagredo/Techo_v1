@@ -1,0 +1,105 @@
+.herramientas-container {
+  padding: 2rem;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.herramientas-header {
+  margin-bottom: 2rem;
+}
+
+.herramientas-header h1 {
+  font-size: 2.5rem;
+  color: #1e3a5f;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Estadísticas */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.stat-label {
+  color: #666;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e3a5f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.stat-icon {
+  font-size: 1.2rem;
+  margin-left: 0.5rem;
+}
+
+.stat-icon.success {
+  color: #28a745;
+}
+
+.stat-icon.warning {
+  color: #ffc107;
+}
+
+.stat-icon.danger {
+  color: #dc3545;
+}
+
+/* Acciones */
+.herramientas-actions {
+  margin-bottom: 2rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.btn-nuevo-registro {
+  background: #0056b3;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background 0.3s;
+}
+
+.btn-nuevo-registro:hover {
+  background: #004085;
+}
+
+.loading,
+.error {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+.error {
+  color: #dc3545;
+  border: 1px solid #dc3545;
+}

@@ -23,11 +23,45 @@ import {
   Plus,
   X
 } from 'lucide-react'
+import Herramientas from './pages/Herramientas'
 
 function App() {
+  const isJwtValid = (token) => {
+    if (!token) return false;
+
+    try {
+      const payloadPart = token.split('.')[1];
+      if (!payloadPart) return false;
+
+      const normalizedPayload = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+      const paddedPayload = normalizedPayload + '='.repeat((4 - (normalizedPayload.length % 4)) % 4);
+      const payload = JSON.parse(atob(paddedPayload));
+
+      if (!payload.exp) return true;
+
+      return payload.exp * 1000 > Date.now();
+    } catch {
+      return false;
+    }
+  };
+
+  const unwrapApiList = (payload) => {
+    if (Array.isArray(payload)) return payload
+    if (Array.isArray(payload?.data)) return payload.data
+    return []
+  }
+
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
+    const token = localStorage.getItem('token');
+
+    if (!savedUser || !token || !isJwtValid(token)) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return null;
+    }
+
+    return JSON.parse(savedUser);
   });
   const [mode, setMode] = useState('login')
   const [currentView, setCurrentView] = useState('dashboard')
@@ -96,8 +130,8 @@ function App() {
         }).then(res => res.json())
       ])
         .then(([herramientas, materiales]) => {
-          setHerramientasList(herramientas)
-          setMaterialesList(materiales)
+          setHerramientasList(unwrapApiList(herramientas))
+          setMaterialesList(unwrapApiList(materiales))
           setLoadingInventario(false)
         })
         .catch(err => {
@@ -263,8 +297,8 @@ function App() {
           fetch('http://localhost:5000/api/herramientas').then(r => r.json()),
           fetch('http://localhost:5000/api/materiales').then(r => r.json())
         ])
-        setHerramientasList(herramientas)
-        setMaterialesList(materiales)
+        setHerramientasList(unwrapApiList(herramientas))
+        setMaterialesList(unwrapApiList(materiales))
       } else {
         alert('Error al crear item')
       }
@@ -299,8 +333,8 @@ function App() {
           fetch('http://localhost:5000/api/herramientas').then(r => r.json()),
           fetch('http://localhost:5000/api/materiales').then(r => r.json())
         ])
-        setHerramientasList(herramientas)
-        setMaterialesList(materiales)
+        setHerramientasList(unwrapApiList(herramientas))
+        setMaterialesList(unwrapApiList(materiales))
       } else {
         alert('Error al actualizar item')
       }
@@ -332,8 +366,8 @@ function App() {
           fetch('http://localhost:5000/api/herramientas').then(r => r.json()),
           fetch('http://localhost:5000/api/materiales').then(r => r.json())
         ])
-        setHerramientasList(herramientas)
-        setMaterialesList(materiales)
+        setHerramientasList(unwrapApiList(herramientas))
+        setMaterialesList(unwrapApiList(materiales))
       } else {
         alert('Error al eliminar item')
       }
@@ -781,130 +815,7 @@ function App() {
             )}
 
             {/* HERRAMIENTAS & MATERIALES VIEW */}
-            {currentView === 'herramientas' && (
-              <div className="inventario-view-container">
-                <div className="inventario-header">
-                  <div>
-                    <h1>Gestión de Herramientas y Materiales</h1>
-                    <p>Administra el inventario de construcción y asigna recursos a cuadrillas.</p>
-                  </div>
-                  <div className="header-buttons">
-                    <button className="btn-primary" onClick={() => handleOpenCreateModal('herramienta')}>
-                      <Plus size={16} /> Nueva Herramienta
-                    </button>
-                    <button className="btn-secondary" onClick={() => handleOpenCreateModal('material')}>
-                      <Plus size={16} /> Nuevo Material
-                    </button>
-                  </div>
-                </div>
-
-                {loadingInventario ? (
-                  <div className="loading-container">
-                    <p>Cargando inventario...</p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Herramientas Section */}
-                    <div className="inventario-section">
-                      <div className="section-title">
-                        <h2><Wrench size={24} /> Herramientas ({herramientasList.length})</h2>
-                        <p>Herramientas técnicas de construcción en inventario</p>
-                      </div>
-                      <div className="items-grid">
-                        {herramientasList.length === 0 ? (
-                          <div className="empty-state">
-                            <Wrench size={48} />
-                            <p>No hay herramientas registradas</p>
-                          </div>
-                        ) : (
-                          herramientasList.map(herr => (
-                            <div key={herr.id} className="item-card">
-                              <div className="item-header">
-                                <div className="item-icon herramienta-icon">
-                                  <Wrench size={24} />
-                                </div>
-                                <div className={`item-status status-${herr.estado || 'bueno'}`}>
-                                  {herr.estado || 'bueno'}
-                                </div>
-                              </div>
-                              <h3>{herr.nombre}</h3>
-                              <p className="item-desc">{herr.descripcion || 'Sin descripción'}</p>
-                              <div className="item-meta">
-                                <div className="meta-item">
-                                  <span className="meta-label">Cantidad:</span>
-                                  <span className="meta-value">{herr.cantidad || 0}</span>
-                                </div>
-                                <div className="meta-item">
-                                  <span className="meta-label">Responsable:</span>
-                                  <span className="meta-value">{herr.responsable || 'N/A'}</span>
-                                </div>
-                              </div>
-                              <div className="item-actions">
-                                <button className="btn-edit" onClick={() => handleOpenEditModal(herr, 'herramienta')}>
-                                  <Edit2 size={16} /> Editar
-                                </button>
-                                <button className="btn-delete" onClick={() => handleDeleteItem(herr.id, 'herramienta')}>
-                                  X Eliminar
-                                </button>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Materiales Section */}
-                    <div className="inventario-section">
-                      <div className="section-title">
-                        <h2><Package size={24} /> Materiales ({materialesList.length})</h2>
-                        <p>Materiales de construcción en inventario</p>
-                      </div>
-                      <div className="items-grid">
-                        {materialesList.length === 0 ? (
-                          <div className="empty-state">
-                            <Package size={48} />
-                            <p>No hay materiales registrados</p>
-                          </div>
-                        ) : (
-                          materialesList.map(mat => (
-                            <div key={mat.id} className="item-card">
-                              <div className="item-header">
-                                <div className="item-icon material-icon">
-                                  <Package size={24} />
-                                </div>
-                                <div className={`item-status status-${mat.estado || 'bueno'}`}>
-                                  {mat.estado || 'bueno'}
-                                </div>
-                              </div>
-                              <h3>{mat.nombre}</h3>
-                              <p className="item-desc">{mat.descripcion || 'Sin descripción'}</p>
-                              <div className="item-meta">
-                                <div className="meta-item">
-                                  <span className="meta-label">Cantidad:</span>
-                                  <span className="meta-value">{mat.cantidad || 0}</span>
-                                </div>
-                                <div className="meta-item">
-                                  <span className="meta-label">Responsable:</span>
-                                  <span className="meta-value">{mat.responsable || 'N/A'}</span>
-                                </div>
-                              </div>
-                              <div className="item-actions">
-                                <button className="btn-edit" onClick={() => handleOpenEditModal(mat, 'material')}>
-                                  <Edit2 size={16} /> Editar
-                                </button>
-                                <button className="btn-delete" onClick={() => handleDeleteItem(mat.id, 'material')}>
-                                  X Eliminar
-                                </button>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+            {currentView === 'herramientas' && <Herramientas />}
             
             {/* Modal Nueva Cuadrilla */}
             {showNewCuadrillaModal && (
