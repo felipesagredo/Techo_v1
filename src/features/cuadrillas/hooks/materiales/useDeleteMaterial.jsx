@@ -3,7 +3,7 @@ import { deleteMaterial } from '../../services/Materiales.service';
 import Swal from 'sweetalert2';
 
 export function useDeleteMaterial() {
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false); // Estado para indicar si la operación está en curso
     const [error, setError] = useState(null);
 
     const deleteMaterialById = async (id) => {
