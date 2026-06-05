@@ -39,6 +39,15 @@ const initDB = async () => {
       archivos TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE TABLE IF NOT EXISTS prestamos_herramientas (
+      id SERIAL PRIMARY KEY,
+      herramienta_id INTEGER REFERENCES herramientas(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      fecha_prestamo TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      fecha_devolucion TIMESTAMP,
+      estado_prestamo VARCHAR(30) DEFAULT 'prestado',
+      notas TEXT
     );`
   ];
 
@@ -57,6 +66,85 @@ const initDB = async () => {
         ON CONFLICT (nombre) DO NOTHING
       `);
       console.log('✅ Roles iniciales insertados');
+    }
+
+    // 4. Insertar roles de cuadrilla iniciales si no existen
+    const cuadrillaRolesExist = await pool.query('SELECT COUNT(*) FROM roles_cuadrilla');
+    if (parseInt(cuadrillaRolesExist.rows[0].count) === 0) {
+      await pool.query(`
+        INSERT INTO roles_cuadrilla (nombre) VALUES 
+        ('Voluntario Senior'),
+        ('Capataz de Zona'),
+        ('Voluntario')
+      `);
+      console.log('✅ Roles de cuadrilla insertados');
+    }
+
+    // 5. Verificar si las columnas de coordenadas existen en cuadrillas
+    const latCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='cuadrillas' AND column_name='latitud'
+    `);
+
+    if (latCheck.rows.length === 0) {
+      await pool.query('ALTER TABLE cuadrillas ADD COLUMN latitud DECIMAL(10, 8), ADD COLUMN longitud DECIMAL(11, 8)');
+      console.log('✅ Columnas latitud y longitud añadidas a cuadrillas');
+    }
+
+    // 6. Verificar si la columna role_id existe en users
+    const columnCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='users' AND column_name='role_id'
+    `);
+
+    if (columnCheck.rows.length === 0) {
+      await pool.query('ALTER TABLE users ADD COLUMN role_id INTEGER REFERENCES roles(id) DEFAULT 2');
+      console.log('✅ Columna role_id añadida a la tabla users');
+    }
+
+    // 7. Verificar si la columna meta_voluntarios existe en cuadrillas
+    const metaCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='cuadrillas' AND column_name='meta_voluntarios'
+    `);
+
+    if (metaCheck.rows.length === 0) {
+      await pool.query('ALTER TABLE cuadrillas ADD COLUMN meta_voluntarios INTEGER DEFAULT 5');
+      console.log('✅ Columna meta_voluntarios añadida a la tabla cuadrillas');
+    }
+
+    // 8. Verificar nuevas columnas en users (telefono, comuna, habilidades)
+    const userColumnsCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='users' AND column_name IN ('telefono', 'comuna', 'habilidades')
+    `);
+
+    const existingColumns = userColumnsCheck.rows.map(r => r.column_name);
+
+    if (!existingColumns.includes('telefono')) {
+      await pool.query('ALTER TABLE users ADD COLUMN telefono VARCHAR(20)');
+      console.log('✅ Columna telefono añadida a users');
+    }
+    if (!existingColumns.includes('comuna')) {
+      await pool.query('ALTER TABLE users ADD COLUMN comuna VARCHAR(100)');
+      console.log('✅ Columna comuna añadida a users');
+    }
+    if (!existingColumns.includes('habilidades')) {
+      await pool.query('ALTER TABLE users ADD COLUMN habilidades TEXT');
+      console.log('✅ Columna habilidades añadida a users');
+    }
+
+    // Cuadrillas: Añadir capacidad
+    const cuadrillaColsRes = await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'cuadrillas'");
+    const cuadrillaCols = cuadrillaColsRes.rows.map(c => c.column_name);
+
+    if (!cuadrillaCols.includes('capacidad')) {
+      await pool.query('ALTER TABLE cuadrillas ADD COLUMN capacidad INTEGER DEFAULT 10');
+      console.log('✅ Columna capacidad añadida a cuadrillas');
     }
 
     console.log('✅ Sistema de base de datos listo y sincronizado');

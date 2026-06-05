@@ -23,13 +23,13 @@ export const cuadrillaService = {
   },
 
   getMembers: async (id) => {
-    const res = await fetch(`${API_URL}/cuadrillas/${id}/miembros`);
+    const res = await fetch(`${API_URL}/cuadrillas/${id}/miembros`, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Error fetching members');
     return res.json();
   },
 
   getUsers: async () => {
-    const res = await fetch(`${API_URL}/users`);
+    const res = await fetch(`${API_URL}/users/available`, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Error fetching users');
     return res.json();
   },
@@ -53,6 +53,16 @@ export const cuadrillaService = {
     return res.json();
   },
 
+  removeMember: async (data) => {
+    const res = await fetch(`${API_URL}/cuadrillas/remove-member`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Error removing member');
+    return res.json();
+  },
+
   getAvailableCount: async () => {
     const res = await fetch(`${API_URL}/cuadrillas/available-count`, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error('Error fetching available count');
@@ -69,6 +79,25 @@ export const cuadrillaService = {
       const errorData = await res.json().catch(() => null);
       throw new Error(errorData?.error || 'Error in auto-generation');
     }
+    return res.json();
+  },
+  
+  delete: async (id) => {
+    const res = await fetch(`${API_URL}/cuadrillas/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error('Error deleting cuadrilla');
+    return res.json();
+  },
+
+  update: async (id, data) => {
+    const res = await fetch(`${API_URL}/cuadrillas/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Error updating cuadrilla');
     return res.json();
   }
 };

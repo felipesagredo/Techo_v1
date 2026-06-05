@@ -18,11 +18,16 @@ import {
   Calendar,
   ClipboardList,
   Utensils,
+  Trash2,
   Eye,
   Edit2,
   Plus,
   X
 } from 'lucide-react'
+
+// Features
+import CuadrillasView from './features/cuadrillas/components/CuadrillasView'
+import VoluntariosView from './features/voluntarios/components/VoluntariosView'
 import Herramientas from './pages/Herramientas'
 import Materiales from './pages/Materiales'
 
@@ -818,7 +823,11 @@ function App() {
               </div>
             )}
 
-            {/* HERRAMIENTAS VIEW */}
+            {currentView === 'registro' && (
+              <VoluntariosView />
+            )}
+
+            {/* HERRAMIENTAS & MATERIALES VIEW */}
             {currentView === 'herramientas' && <Herramientas user={user} />}
 
             {/* MATERIALES VIEW */}
@@ -1127,7 +1136,6 @@ function App() {
                 </div>
               </div>
             )}
-
           </main>
         </div>
       </div>
@@ -1140,7 +1148,6 @@ function App() {
       {/* Left Section */}
       <div className="left-section">
         <div className="left-content">
-          <span className="tag">Grupo 12 - 2026</span>
           <h1>
             Construyendo <br />
             <span>Comunidad</span> desde la gestión.

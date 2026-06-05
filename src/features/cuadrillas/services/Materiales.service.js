@@ -36,26 +36,27 @@ export async function getMaterialesById(id) {
 
 export async function updateMaterial(id, dataMaterial) {
     try {
-        const response = await api.put(`/materiales/${id}`, dataMaterial);
-        return unwrapResponse(response);
-    } catch (error) {
-        return unwrapError(error);
+        const response = await axios.get(`/materiales/${id}`);
+        return response.data;
+    }catch (error) {
+        return error.response.data;
     }
 }
 
 export async function updateMateriales(id, dataMaterial) {
-    return updateMaterial(id, dataMaterial);
-}
-
-export async function deleteMaterial(id) {
-    try {
-        const response = await api.delete(`/materiales/${id}`);
-        return unwrapResponse(response);
-    } catch (error) {
-        return unwrapError(error);
+    try{
+        const response = await axios.put(`/materiales/${id}`, dataMaterial);
+        return response.data;
+    }catch (error) {
+        return error.response.data;
     }
 }
 
 export async function deleteMateriales(id) {
-    return deleteMaterial(id);
+    try{
+        const response = await axios.delete(`/materiales/${id}`);
+        return response.data;
+    }catch(error) {
+        return error.response.data;
+    }
 }

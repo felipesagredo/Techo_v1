@@ -10,7 +10,18 @@ import {
     deleteHerramientas
 } from "../controllers/Herramientas.controller.js";  
 
+import {
+    createPrestamo,
+    registrarDevolucion,
+    getHistorialByHerramienta
+} from "../controllers/prestamosController.js";
+
 const router = express.Router();
+
+// RUTAS DE PRESTAMOS Y HISTORIAL
+router.get("/:id/prestamos", [authMiddleware, authorizeRoles('admin', 'voluntario')], getHistorialByHerramienta);
+router.post("/prestamos", [authMiddleware, authorizeRoles('admin')], createPrestamo);
+router.post("/prestamos/:id/devolucion", [authMiddleware, authorizeRoles('admin')], registrarDevolucion);
 
 // RUTAS DE LECTURA - Acceso: admin y voluntario
 router.get("/", [authMiddleware, authorizeRoles('admin', 'voluntario')], getHerramientas);

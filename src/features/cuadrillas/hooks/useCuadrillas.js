@@ -134,8 +134,13 @@ export const useCuadrillas = (user, currentView) => {
         cuadrillaId: selectedCuadrilla.id,
         rolCuadrillaId: Number(assignData.rolCuadrillaId)
       });
-      const membersData = await cuadrillaService.getMembers(selectedCuadrilla.id);
+      const [membersData, usersData] = await Promise.all([
+        cuadrillaService.getMembers(selectedCuadrilla.id),
+        cuadrillaService.getUsers()
+      ]);
       setCurrentMembers(membersData);
+      setUsersList(usersData);
+      setAssignData(prev => ({ ...prev, userId: usersData.length > 0 ? usersData[0].id : '' }));
       
       const available = await cuadrillaService.getAvailableCount();
       setAvailableVolunteersCount(available.count);
@@ -147,10 +152,80 @@ export const useCuadrillas = (user, currentView) => {
     }
   };
 
+  const handleRemoveMember = async (userId) => {
+    if (!selectedCuadrilla || !selectedCuadrilla.id) {
+      alert('Error: No se ha seleccionado una cuadrilla válida.');
+      return;
+    }
+
+    if (!window.confirm('¿Deseas desasignar a este miembro de la cuadrilla?')) return;
+    
+    try {
+      await cuadrillaService.removeMember({
+        userId,
+        cuadrillaId: selectedCuadrilla.id
+      });
+      const [membersData, usersData] = await Promise.all([
+        cuadrillaService.getMembers(selectedCuadrilla.id),
+        cuadrillaService.getUsers()
+      ]);
+      setCurrentMembers(membersData);
+      setUsersList(usersData);
+      
+      const available = await cuadrillaService.getAvailableCount();
+      setAvailableVolunteersCount(available.count);
+    } catch (err) {
+      console.error(err);
+      alert('Error al remover miembro');
+    }
+  };
+
   const handleCloseAssignModal = async () => {
     setShowAssignModal(false);
     setSelectedCuadrilla(null);
     await fetchCuadrillas();
+  };
+
+  const handleDeleteCuadrilla = async (id) => {
+    console.log('Attempting to delete cuadrilla with ID:', id);
+    if (!window.confirm('¿Estás seguro de que deseas eliminar esta cuadrilla? Los voluntarios quedarán libres.')) {
+      console.log('Deletion cancelled by user');
+      return;
+    }
+    
+    try {
+      console.log('Calling delete service...');
+      await cuadrillaService.delete(id);
+      console.log('Delete successful, fetching list...');
+      await fetchCuadrillas();
+      alert('Cuadrilla eliminada correctamente');
+    } catch (err) {
+      console.error('Error in handleDeleteCuadrilla:', err);
+      alert('Error al eliminar cuadrilla: ' + err.message);
+    }
+  };  const [showEditModal, setShowEditModal] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleOpenEditModal = (cuadrilla) => {
+    setEditData({ ...cuadrilla });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateCuadrilla = async (e) => {
+    e.preventDefault();
+    setIsUpdating(true);
+    try {
+      await cuadrillaService.update(editData.id, editData);
+      await fetchCuadrillas();
+      setShowEditModal(false);
+      alert('Cuadrilla actualizada correctamente');
+    } catch (err) {
+      console.error(err);
+      alert('Error al actualizar la cuadrilla');
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return {
@@ -173,10 +248,19 @@ export const useCuadrillas = (user, currentView) => {
     assigningMember,
     showViewMembersModal,
     setShowViewMembersModal,
+    showEditModal,
+    setShowEditModal,
+    editData,
+    setEditData,
+    isUpdating,
     handleCreateCuadrilla,
     handleOpenAssignModal,
     handleOpenViewMembersModal,
+    handleOpenEditModal,
+    handleUpdateCuadrilla,
     handleAssignMember,
-    handleCloseAssignModal
+    handleRemoveMember,
+    handleCloseAssignModal,
+    handleDeleteCuadrilla
   };
 };

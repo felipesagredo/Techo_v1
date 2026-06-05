@@ -6,7 +6,9 @@ import {
   Home, 
   Eye, 
   Edit2, 
-  X 
+  X,
+  Trash2,
+  Settings
 } from 'lucide-react';
 import { useCuadrillas } from '../hooks/useCuadrillas';
 import LocationPicker from './LocationPicker';
@@ -31,11 +33,20 @@ const CuadrillasView = ({ user, currentView }) => {
     assigningMember,
     showViewMembersModal,
     setShowViewMembersModal,
+    showEditModal,
+    setShowEditModal,
+    editData,
+    setEditData,
+    isUpdating,
     handleCreateCuadrilla,
     handleOpenAssignModal,
     handleOpenViewMembersModal,
+    handleOpenEditModal,
+    handleUpdateCuadrilla,
     handleAssignMember,
-    handleCloseAssignModal
+    handleRemoveMember,
+    handleCloseAssignModal,
+    handleDeleteCuadrilla
   } = useCuadrillas(user, currentView);
 
   return (
@@ -134,6 +145,17 @@ const CuadrillasView = ({ user, currentView }) => {
                   <div className="normal-actions">
                     <button className="icon-action" title="Ver Miembros" onClick={() => handleOpenViewMembersModal(cuadrilla)}><Eye size={16} /></button>
                     <button className="icon-action" title="Gestionar Equipo" onClick={() => handleOpenAssignModal(cuadrilla)}><Edit2 size={16} /></button>
+                    <button className="icon-action" title="Configuración" onClick={() => handleOpenEditModal(cuadrilla)}><Settings size={16} /></button>
+                    <button 
+                      className="icon-action text-red" 
+                      title="Eliminar Cuadrilla" 
+                      onClick={() => {
+                        console.log('Delete button clicked for ID:', cuadrilla.id);
+                        handleDeleteCuadrilla(cuadrilla.id);
+                      }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -205,8 +227,11 @@ const CuadrillasView = ({ user, currentView }) => {
                   type="number"
                   min="1"
                   max={availableVolunteersCount}
-                  value={createData.count}
-                  onChange={e => setCreateData({ ...createData, count: parseInt(e.target.value) })}
+                  value={createData.count || ''}
+                  onChange={e => {
+                    const val = parseInt(e.target.value);
+                    setCreateData({ ...createData, count: isNaN(val) ? 0 : val });
+                  }}
                   required
                   className="modal-input"
                 />
@@ -273,15 +298,26 @@ const CuadrillasView = ({ user, currentView }) => {
                 <h3>Miembros Actuales ({currentMembers.length})</h3>
                 <div className="members-list">
                   {currentMembers.length === 0 ? <p className="text-muted text-center py-1">No hay miembros asignados.</p> : null}
-                  {currentMembers.map((m, idx) => (
-                    <div key={idx} className="member-item">
-                      <div className="member-avatar">{m.name.charAt(0).toUpperCase()}</div>
-                      <div className="member-info">
-                        <h4>{m.name}</h4>
-                        <span className={`member-role ${m.cargo.includes('Capataz') ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
+                    {currentMembers.map((m) => (
+                      <div key={m.user_id} className="member-item">
+                        <div className="member-avatar">{m.name ? m.name.charAt(0).toUpperCase() : '?'}</div>
+                        <div className="member-info">
+                          <h4>{m.name}</h4>
+                          <span className={`member-role ${m.cargo && m.cargo.includes('Capataz') ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
+                        </div>
+                        <button 
+                          className="btn-liberar" 
+                          title="Quitar de la cuadrilla" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveMember(m.user_id);
+                          }}
+                        >
+                          <Trash2 size={12} />
+                          <span>Liberar</span>
+                        </button>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
             </div>
@@ -324,6 +360,77 @@ const CuadrillasView = ({ user, currentView }) => {
                 Cerrar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Cuadrilla (Configuración) */}
+      {showEditModal && editData && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Configurar Cuadrilla</h2>
+              <button className="icon-btn" onClick={() => setShowEditModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleUpdateCuadrilla}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Nombre de la Cuadrilla</label>
+                  <input
+                    type="text"
+                    className="modal-input"
+                    value={editData.nombre}
+                    onChange={e => setEditData({ ...editData, nombre: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Zona / Ubicación</label>
+                  <input
+                    type="text"
+                    className="modal-input"
+                    value={editData.zona}
+                    onChange={e => setEditData({ ...editData, zona: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-row">
+                  <div className="form-group flex-1">
+                    <label>Cantidad Objetivo (Voluntarios)</label>
+                    <input
+                      type="number"
+                      className="modal-input"
+                      value={editData.meta_voluntarios}
+                      onChange={e => setEditData({ ...editData, meta_voluntarios: Number(e.target.value) })}
+                      min="1"
+                      required
+                    />
+                  </div>
+                  <div className="form-group flex-1">
+                    <label>Estado</label>
+                    <select
+                      className="modal-input"
+                      value={editData.estado}
+                      onChange={e => setEditData({ ...editData, estado: e.target.value })}
+                    >
+                      <option value="PENDIENTE">PENDIENTE</option>
+                      <option value="EN CONSTRUCCION">EN CONSTRUCCION</option>
+                      <option value="COMPLETA">COMPLETA</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn-secondary" onClick={() => setShowEditModal(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary" disabled={isUpdating}>
+                  {isUpdating ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

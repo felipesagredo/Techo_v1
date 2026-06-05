@@ -25,8 +25,8 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete,
       <div className="inventario-header">
         <h2>Detalle de Existencias</h2>
         <div className="inventario-filters">
-          <button className="filter-btn">Filtro</button>
-          <button className="export-btn">Exportar</button>
+          <button className="btn-outline">Filtro</button>
+          <button className="btn-outline">Exportar</button>
         </div>
       </div>
 

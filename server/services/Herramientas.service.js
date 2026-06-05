@@ -3,10 +3,10 @@ import pool from "../config/db.js";
 
 export async function createHerramientasService(body){
     try {
-        const { nombre, descripcion, stock, categoria_herramienta} = body;
+        const { nombre, descripcion, stock, categoria_herramienta, estado = 'disponible' } = body;
         const result = await pool.query(
-            'INSERT INTO herramientas (nombre, descripcion, stock, categoria_herramienta) VALUES ($1, $2, $3, $4) RETURNING *',
-            [nombre, descripcion, stock, categoria_herramienta]
+            'INSERT INTO herramientas (nombre, descripcion, stock, categoria_herramienta, estado) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [nombre, descripcion, stock, categoria_herramienta, estado]
         );
         return result.rows[0];
     } catch(error){
@@ -16,7 +16,12 @@ export async function createHerramientasService(body){
 
 export async function getHerramientasService(){
     try{
-        const result = await pool.query('SELECT * FROM herramientas');
+        const result = await pool.query(`
+            SELECT h.*, u.name AS voluntario_nombre, u.email AS voluntario_email
+            FROM herramientas h
+            LEFT JOIN users u ON h.assigned_to = u.id
+            ORDER BY h.nombre ASC
+        `);
         return result.rows;
     } catch(error){
         throw new Error("Error, no se han podido obtener las herramientas")
@@ -25,7 +30,12 @@ export async function getHerramientasService(){
 
 export async function getHerramientasByIdService(id) {
   try {
-        const result = await pool.query('SELECT * FROM herramientas WHERE id = $1', [id]);
+        const result = await pool.query(`
+            SELECT h.*, u.name AS voluntario_nombre, u.email AS voluntario_email
+            FROM herramientas h
+            LEFT JOIN users u ON h.assigned_to = u.id
+            WHERE h.id = $1
+        `, [id]);
         return result.rows[0];
   } catch (error) {
     throw new Error("Error al obtener la herramienta por ID");
