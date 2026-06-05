@@ -16,7 +16,7 @@ export function useGetMaterialById() {
                 swal.fire({
                     icon: 'success',
                     title: 'Éxito',
-                    text: 'Material por Id obtenido correctamente',
+                    text: 'Material por id obtenido correctamente',
                     timer: 2000
                 });
             }else {
