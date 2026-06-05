@@ -1,6 +1,6 @@
-const userService = require('../services/userService');
+import userService from '../services/userService.js';
 
-exports.getAll = async (req, res) => {
+export const getAll = async (req, res) => {
     try {
         const users = await userService.getAllUsers();
         res.json(users);

@@ -22,8 +22,13 @@ const HerramientasSchema = new EntitySchema({
             type: Number
         },
         assigned_to: {
-            type: Number,
+            type: String,
+            length: 30,
             nullable: true
+        },
+        categoria_herramienta: {
+            type: String,
+            length: 30
         },
         fechaCreacion: {
             type: Date,

@@ -1,19 +1,24 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
-const initDB = require('./initDB');
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import initDB from './initDB.js';
+import authRoutes from './routes/authRoutes.js';
+import cuadrillaRoutes from './routes/cuadrillaRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import herramientasRoutes from './routes/Herramientas.routes.js';
+import materialesRoutes from './routes/Materiales.routes.js';
 
+dotenv.config();
 
-// Importar Rutas
-const authRoutes = require('./routes/authRoutes');
-const cuadrillaRoutes = require('./routes/cuadrillaRoutes');
-const userRoutes = require('./routes/userRoutes');
 const app = express();
 app.use(express.json());
 app.use(cors());
 
 app.use('/api/cuadrillas', cuadrillaRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/herramientas', herramientasRoutes);
+app.use('/api/materiales', materialesRoutes);
+app.use('/api/material', materialesRoutes);
 
 // Inicializar Base de Datos
 initDB();

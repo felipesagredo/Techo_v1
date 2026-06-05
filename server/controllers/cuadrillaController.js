@@ -1,6 +1,6 @@
-const cuadrillaService = require('../services/cuadrillaService');
+import cuadrillaService from '../services/cuadrillaService.js';
 
-exports.getAll = async (req, res) => {
+export const getAll = async (req, res) => {
     try {
         const cuadrillas = await cuadrillaService.getAllCuadrillas();
         res.json(cuadrillas);
@@ -9,7 +9,7 @@ exports.getAll = async (req, res) => {
     }
 };
 
-exports.getRoles = async (req, res) => {
+export const getRoles = async (req, res) => {
     try {
         const roles = await cuadrillaService.getRolesCuadrilla();
         res.json(roles);
@@ -18,17 +18,17 @@ exports.getRoles = async (req, res) => {
     }
 };
 
-exports.create = async (req, res) => {
+export const create = async (req, res) => {
     try {
-        const { nombre, zona, latitud, longitud } = req.body;
-        const cuadrilla = await cuadrillaService.createCuadrilla(nombre, zona, latitud, longitud);
+        const { nombre, zona } = req.body;
+        const cuadrilla = await cuadrillaService.createCuadrilla(nombre, zona);
         res.status(201).json(cuadrilla);
     } catch (err) {
         res.status(500).json({ error: 'Error al crear cuadrilla' });
     }
 };
 
-exports.addMember = async (req, res) => {
+export const addMember = async (req, res) => {
     try {
         const { userId, cuadrillaId, rolCuadrillaId } = req.body;
         const asignacion = await cuadrillaService.assignMember(userId, cuadrillaId, rolCuadrillaId);
@@ -96,4 +96,4 @@ exports.update = async (req, res) => {
         res.status(500).json({ error: 'Error al actualizar cuadrilla' });
     }
 };
-
+

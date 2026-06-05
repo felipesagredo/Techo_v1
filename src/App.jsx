@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Mail,
   Lock,
   Users,
   ArrowRight,
+  Home,
   LayoutDashboard,
   Package,
   Wrench,
@@ -17,6 +18,7 @@ import {
   Calendar,
   ClipboardList,
   Utensils,
+<<<<<<< HEAD
   Home,
   Trash2
 } from 'lucide-react'
@@ -24,14 +26,366 @@ import {
 // Features
 import CuadrillasView from './features/cuadrillas/components/CuadrillasView'
 import VoluntariosView from './features/voluntarios/components/VoluntariosView'
+=======
+  Eye,
+  Edit2,
+  Plus,
+  X
+} from 'lucide-react'
+import Herramientas from './pages/Herramientas'
+>>>>>>> origin/Cebolla
 
 function App() {
+  const isJwtValid = (token) => {
+    if (!token) return false;
+
+    try {
+      const payloadPart = token.split('.')[1];
+      if (!payloadPart) return false;
+
+      const normalizedPayload = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+      const paddedPayload = normalizedPayload + '='.repeat((4 - (normalizedPayload.length % 4)) % 4);
+      const payload = JSON.parse(atob(paddedPayload));
+
+      if (!payload.exp) return true;
+
+      return payload.exp * 1000 > Date.now();
+    } catch {
+      return false;
+    }
+  };
+
+  const unwrapApiList = (payload) => {
+    if (Array.isArray(payload)) return payload
+    if (Array.isArray(payload?.data)) return payload.data
+    return []
+  }
+
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
+    const token = localStorage.getItem('token');
+
+    if (!savedUser || !token || !isJwtValid(token)) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return null;
+    }
+
+    return JSON.parse(savedUser);
   });
   const [mode, setMode] = useState('login')
   const [currentView, setCurrentView] = useState('dashboard')
+  const [cuadrillasList, setCuadrillasList] = useState([])
+  const [loadingCuadrillas, setLoadingCuadrillas] = useState(false)
+
+  // Modals state
+  const [showNewCuadrillaModal, setShowNewCuadrillaModal] = useState(false)
+  const [newCuadrillaData, setNewCuadrillaData] = useState({ nombre: '', zona: '' })
+  const [creatingCuadrilla, setCreatingCuadrilla] = useState(false)
+
+  // Assign Modal state
+  const [showAssignModal, setShowAssignModal] = useState(false)
+  const [selectedCuadrilla, setSelectedCuadrilla] = useState(null)
+  const [usersList, setUsersList] = useState([])
+  const [rolesList, setRolesList] = useState([])
+  const [currentMembers, setCurrentMembers] = useState([])
+  const [assignData, setAssignData] = useState({ userId: '', rolCuadrillaId: '' })
+  const [assigningMember, setAssigningMember] = useState(false)
+
+  // View Members Modal state
+  const [showViewMembersModal, setShowViewMembersModal] = useState(false)
+
+  // Herramientas & Materiales state
+  const [herramientasList, setHerramientasList] = useState([])
+  const [materialesList, setMaterialesList] = useState([])
+  const [loadingInventario, setLoadingInventario] = useState(false)
+  
+  // Herramientas/Materiales Modals
+  const [showCreateItemModal, setShowCreateItemModal] = useState(false)
+  const [showEditItemModal, setShowEditItemModal] = useState(false)
+  const [itemType, setItemType] = useState('herramienta') // 'herramienta' | 'material'
+  const [selectedItem, setSelectedItem] = useState(null)
+  const [formData, setFormData] = useState({ nombre: '', descripcion: '', cantidad: '', estado: 'bueno', responsable: '' })
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (user && currentView === 'cuadrillas') {
+      setLoadingCuadrillas(true)
+      fetch('http://localhost:5000/api/cuadrillas', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          setCuadrillasList(data)
+          setLoadingCuadrillas(false)
+        })
+        .catch(err => {
+          console.error(err)
+          setLoadingCuadrillas(false)
+        })
+    }
+  }, [user, currentView])
+
+  useEffect(() => {
+    if (user && currentView === 'herramientas') {
+      setLoadingInventario(true)
+      Promise.all([
+        fetch('http://localhost:5000/api/herramientas', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        }).then(res => res.json()),
+        fetch('http://localhost:5000/api/materiales', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        }).then(res => res.json())
+      ])
+        .then(([herramientas, materiales]) => {
+          setHerramientasList(unwrapApiList(herramientas))
+          setMaterialesList(unwrapApiList(materiales))
+          setLoadingInventario(false)
+        })
+        .catch(err => {
+          console.error(err)
+          setLoadingInventario(false)
+        })
+    }
+  }, [user, currentView])
+
+  const handleCreateCuadrilla = async (e) => {
+    e.preventDefault();
+    setCreatingCuadrilla(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/cuadrillas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(newCuadrillaData)
+      });
+      if (response.ok) {
+        // Fetch again to get updated list with count 0 and no capataz
+        const fetchRes = await fetch('http://localhost:5000/api/cuadrillas');
+        const data = await fetchRes.json();
+        setCuadrillasList(data);
+        setShowNewCuadrillaModal(false);
+        setNewCuadrillaData({ nombre: '', zona: '' });
+      } else {
+        alert('Error al crear cuadrilla');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error de red al crear cuadrilla');
+    } finally {
+      setCreatingCuadrilla(false);
+    }
+  };
+
+  const handleOpenAssignModal = async (cuadrilla) => {
+    setSelectedCuadrilla(cuadrilla);
+    setShowAssignModal(true);
+    
+    try {
+      const [membersRes, usersRes, rolesRes] = await Promise.all([
+        fetch(`http://localhost:5000/api/cuadrillas/${cuadrilla.id}/miembros`),
+        fetch(`http://localhost:5000/api/users`),
+        fetch(`http://localhost:5000/api/cuadrillas/roles`)
+      ]);
+      
+      const membersData = await membersRes.json();
+      const usersData = await usersRes.json();
+      const rolesData = await rolesRes.json();
+      
+      setCurrentMembers(membersData);
+      setUsersList(usersData);
+      setRolesList(rolesData);
+      if (usersData.length > 0 && rolesData.length > 0) {
+        setAssignData({ userId: usersData[0].id, rolCuadrillaId: rolesData[0].id });
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error cargando datos de asignación');
+    }
+  };
+
+  const handleOpenViewMembersModal = async (cuadrilla) => {
+    setSelectedCuadrilla(cuadrilla);
+    setShowViewMembersModal(true);
+    
+    try {
+      const membersRes = await fetch(`http://localhost:5000/api/cuadrillas/${cuadrilla.id}/miembros`);
+      const membersData = await membersRes.json();
+      setCurrentMembers(membersData);
+    } catch (err) {
+      console.error(err);
+      alert('Error cargando miembros');
+    }
+  };
+
+  const handleAssignMember = async (e) => {
+    e.preventDefault();
+    if (!assignData.userId || !assignData.rolCuadrillaId) return;
+    
+    setAssigningMember(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/cuadrillas/add-member', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: Number(assignData.userId),
+          cuadrillaId: selectedCuadrilla.id,
+          rolCuadrillaId: Number(assignData.rolCuadrillaId)
+        })
+      });
+      
+      if (response.ok) {
+        const membersRes = await fetch(`http://localhost:5000/api/cuadrillas/${selectedCuadrilla.id}/miembros`);
+        setCurrentMembers(await membersRes.json());
+      } else {
+        const errorData = await response.json().catch(() => null);
+        alert(errorData?.error || 'El voluntario ya está asignado a esta cuadrilla o hubo un error.');
+      }
+    } catch(err) {
+       console.error(err);
+       alert('Error de conexión al asignar voluntario.');
+    } finally {
+       setAssigningMember(false);
+    }
+  };
+
+  const handleCloseAssignModal = async () => {
+    setShowAssignModal(false);
+    setSelectedCuadrilla(null);
+    const fetchRes = await fetch('http://localhost:5000/api/cuadrillas');
+    const data = await fetchRes.json();
+    setCuadrillasList(data);
+  };
+
+  // Handlers for Herramientas/Materiales CRUD
+  const handleOpenCreateModal = (type) => {
+    setItemType(type)
+    setFormData({ nombre: '', descripcion: '', cantidad: '', estado: 'bueno', responsable: '' })
+    setSelectedItem(null)
+    setShowCreateItemModal(true)
+  }
+
+  const handleOpenEditModal = (item, type) => {
+    setItemType(type)
+    setSelectedItem(item)
+    setFormData({
+      nombre: item.nombre,
+      descripcion: item.descripcion || '',
+      cantidad: item.cantidad || '',
+      estado: item.estado || 'bueno',
+      responsable: item.responsable || ''
+    })
+    setShowEditItemModal(true)
+  }
+
+  const handleCreateItem = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    const endpoint = itemType === 'herramienta' ? '/api/herramientas' : '/api/materiales'
+    
+    try {
+      const response = await fetch(`http://localhost:5000${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(formData)
+      })
+      
+      if (response.ok) {
+        alert(`${itemType === 'herramienta' ? 'Herramienta' : 'Material'} creado exitosamente`)
+        setShowCreateItemModal(false)
+        // Reload inventory
+        const [herramientas, materiales] = await Promise.all([
+          fetch('http://localhost:5000/api/herramientas').then(r => r.json()),
+          fetch('http://localhost:5000/api/materiales').then(r => r.json())
+        ])
+        setHerramientasList(unwrapApiList(herramientas))
+        setMaterialesList(unwrapApiList(materiales))
+      } else {
+        alert('Error al crear item')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Error de conexión')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleEditItem = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    const endpoint = itemType === 'herramienta' ? `/api/herramientas/${selectedItem.id}` : `/api/materiales/${selectedItem.id}`
+    
+    try {
+      const response = await fetch(`http://localhost:5000${endpoint}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(formData)
+      })
+      
+      if (response.ok) {
+        alert(`${itemType === 'herramienta' ? 'Herramienta' : 'Material'} actualizado exitosamente`)
+        setShowEditItemModal(false)
+        // Reload inventory
+        const [herramientas, materiales] = await Promise.all([
+          fetch('http://localhost:5000/api/herramientas').then(r => r.json()),
+          fetch('http://localhost:5000/api/materiales').then(r => r.json())
+        ])
+        setHerramientasList(unwrapApiList(herramientas))
+        setMaterialesList(unwrapApiList(materiales))
+      } else {
+        alert('Error al actualizar item')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Error de conexión')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDeleteItem = async (id, type) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar este ${type === 'herramienta' ? 'herramienta' : 'material'}?`)) return
+    
+    const endpoint = type === 'herramienta' ? `/api/herramientas/${id}` : `/api/materiales/${id}`
+    
+    try {
+      const response = await fetch(`http://localhost:5000${endpoint}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      
+      if (response.ok) {
+        alert(`${type === 'herramienta' ? 'Herramienta' : 'Material'} eliminado exitosamente`)
+        // Reload inventory
+        const [herramientas, materiales] = await Promise.all([
+          fetch('http://localhost:5000/api/herramientas').then(r => r.json()),
+          fetch('http://localhost:5000/api/materiales').then(r => r.json())
+        ])
+        setHerramientasList(unwrapApiList(herramientas))
+        setMaterialesList(unwrapApiList(materiales))
+      } else {
+        alert('Error al eliminar item')
+      }
+    } catch (err) {
+      console.error(err)
+      alert('Error de conexión')
+    }
+  }
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -129,7 +483,7 @@ function App() {
                 <ClipboardList size={18} /> Registro
               </a>
               <a href="#" className={currentView === 'cuadrillas' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('cuadrillas'); }}>
-                <Users size={18} /> Cuadrillas
+                <Users size={18} /> Grupos
               </a>
               <a href="#" className={currentView === 'herramientas' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('herramientas'); }}>
                 <Wrench size={18} /> Herramientas
@@ -376,12 +730,413 @@ function App() {
             )}
 
             {currentView === 'cuadrillas' && (
-              <CuadrillasView user={user} currentView={currentView} />
+              <div className="cuadrillas-view-container">
+                <div className="cv-header">
+                  <div>
+                    <h1>Gestión de Cuadrillas</h1>
+                    <p>Supervisa y organiza los equipos de construcción en terreno. Asegura que cada cuadrilla tenga un liderazgo sólido para el cumplimiento de metas habitacionales.</p>
+                  </div>
+                  <button className="btn-primary" onClick={() => setShowNewCuadrillaModal(true)}>
+                    <Plus size={16} /> Nueva Cuadrilla
+                  </button>
+                </div>
+
+                <div className="cv-kpis">
+                  <div className="cv-kpi-card">
+                    <p>TOTAL EQUIPOS</p>
+                    <h2>{cuadrillasList.length}</h2>
+                  </div>
+                  <div className="cv-kpi-card cv-kpi-red">
+                    <p>SIN CAPATACES</p>
+                    <h2>{cuadrillasList.filter(c => !c.capataz_nombre).length < 10 ? `0${cuadrillasList.filter(c => !c.capataz_nombre).length}` : cuadrillasList.filter(c => !c.capataz_nombre).length} <AlertTriangle size={18} /></h2>
+                  </div>
+                  <div className="cv-kpi-card cv-kpi-wide">
+                    <div className="cv-kpi-text">
+                      <p>META SEMANAL</p>
+                      <h3>12 Viviendas en proceso</h3>
+                    </div>
+                    <div className="cv-progress-bar">
+                      <div className="cv-progress-fill"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="cv-table-container">
+                  <div className="cv-table-header">
+                    <div className="col-equipo">EQUIPO / UBICACIÓN</div>
+                    <div className="col-capataz">CAPATAZ ASIGNADO</div>
+                    <div className="col-miembros">MIEMBROS</div>
+                    <div className="col-estado">ESTADO</div>
+                    <div className="col-acciones">ACCIONES</div>
+                  </div>
+
+                  <div className="cv-table-body">
+                    {loadingCuadrillas ? <p className="loading-text">Cargando...</p> : cuadrillasList.map(cuadrilla => {
+                      const noCapataz = !cuadrilla.capataz_nombre;
+                      return (
+                        <div key={cuadrilla.id} className={`cv-table-row ${noCapataz ? 'row-alert' : ''}`}>
+                          <div className="col-equipo">
+                            <div className={`cv-icon ${noCapataz ? 'icon-alert' : 'icon-normal'}`}>
+                              <Home size={18} />
+                            </div>
+                            <div>
+                              <h4>{cuadrilla.nombre}</h4>
+                              <p>{cuadrilla.zona}</p>
+                            </div>
+                          </div>
+                          <div className="col-capataz">
+                            {noCapataz ? (
+                              <div className="no-capataz-text"><Users size={14} /> ASIGNAR CAPATAZ</div>
+                            ) : (
+                              <div className="capataz-info">
+                                <div className="capataz-avatar">{cuadrilla.capataz_nombre.charAt(0)}</div>
+                                <div>
+                                  <h4>{cuadrilla.capataz_nombre}</h4>
+                                  <p>{cuadrilla.capataz_rol}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="col-miembros">
+                            <span className={`miembros-number ${noCapataz ? 'text-red' : 'text-blue'}`}>{cuadrilla.miembros_count < 10 ? `0${cuadrilla.miembros_count}` : cuadrilla.miembros_count}</span>
+                          </div>
+                          <div className="col-estado">
+                            <span className={`cv-badge badge-${cuadrilla.estado.toLowerCase().replace(/\s/g, '-')}`}>{cuadrilla.estado}</span>
+                          </div>
+                          <div className="col-acciones">
+                            {noCapataz ? (
+                              <div className="alert-actions">
+                                <button className="btn-priorizar" onClick={() => handleOpenAssignModal(cuadrilla)}>PRIORIZAR</button>
+                                <div className="alert-circle">!</div>
+                              </div>
+                            ) : (
+                              <div className="normal-actions">
+                                <button className="icon-action" onClick={() => handleOpenViewMembersModal(cuadrilla)}><Eye size={16} /></button>
+                                <button className="icon-action" onClick={() => handleOpenAssignModal(cuadrilla)}><Edit2 size={16} /></button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             )}
 
+<<<<<<< HEAD
             {currentView === 'registro' && (
               <VoluntariosView />
             )}
+=======
+            {/* HERRAMIENTAS & MATERIALES VIEW */}
+            {currentView === 'herramientas' && <Herramientas user={user} />}
+            
+            {/* Modal Nueva Cuadrilla */}
+            {showNewCuadrillaModal && (
+              <div className="modal-overlay">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h2>Crear Nueva Cuadrilla</h2>
+                    <button className="icon-btn" onClick={() => setShowNewCuadrillaModal(false)}>
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <form onSubmit={handleCreateCuadrilla}>
+                    <div className="form-group">
+                      <label>Nombre del Equipo</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ej. Cuadrilla Los Pinos" 
+                        value={newCuadrillaData.nombre}
+                        onChange={e => setNewCuadrillaData({...newCuadrillaData, nombre: e.target.value})}
+                        required
+                        className="modal-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Zona / Ubicación</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ej. Campamento Esperanza, Maipú" 
+                        value={newCuadrillaData.zona}
+                        onChange={e => setNewCuadrillaData({...newCuadrillaData, zona: e.target.value})}
+                        required
+                        className="modal-input"
+                      />
+                    </div>
+                    <div className="modal-footer">
+                      <button type="button" className="btn-outline" onClick={() => setShowNewCuadrillaModal(false)}>
+                        Cancelar
+                      </button>
+                      <button type="submit" className="btn-primary" disabled={creatingCuadrilla}>
+                        {creatingCuadrilla ? 'Creando...' : 'Crear Cuadrilla'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Asignar Miembros (Edición) */}
+            {showAssignModal && selectedCuadrilla && (
+              <div className="modal-overlay">
+                <div className="modal-content assign-modal-content">
+                  <div className="modal-header">
+                    <h2>Administrar Equipo: {selectedCuadrilla.nombre}</h2>
+                    <button className="icon-btn" onClick={handleCloseAssignModal}>
+                      <X size={20} />
+                    </button>
+                  </div>
+                  
+                  <div className="assign-layout">
+                    <div className="assign-form-section">
+                       <h3>Asignar Nuevo Miembro</h3>
+                       <form onSubmit={handleAssignMember} className="form-row-inline">
+                         <div className="form-group flex-2">
+                           <label>Voluntario</label>
+                           <select 
+                             className="modal-input" 
+                             value={assignData.userId} 
+                             onChange={e => setAssignData({...assignData, userId: e.target.value})}
+                           >
+                             {usersList.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                           </select>
+                         </div>
+                         <div className="form-group flex-1">
+                           <label>Rol</label>
+                           <select 
+                             className="modal-input" 
+                             value={assignData.rolCuadrillaId} 
+                             onChange={e => setAssignData({...assignData, rolCuadrillaId: e.target.value})}
+                           >
+                             {rolesList.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                           </select>
+                         </div>
+                         <div className="form-group submit-group">
+                           <button type="submit" className="btn-primary btn-add-member" disabled={assigningMember}>
+                             {assigningMember ? '...' : <Plus size={16}/>}
+                           </button>
+                         </div>
+                       </form>
+                    </div>
+
+                    <div className="members-list-section">
+                       <h3>Miembros Actuales ({currentMembers.length})</h3>
+                       <div className="members-list">
+                         {currentMembers.length === 0 ? <p className="text-muted text-center py-1">No hay miembros asignados.</p> : null}
+                         {currentMembers.map((m, idx) => (
+                           <div key={idx} className="member-item">
+                             <div className="member-avatar">{m.name.charAt(0).toUpperCase()}</div>
+                             <div className="member-info">
+                               <h4>{m.name}</h4>
+                               <span className={`member-role ${m.cargo.includes('Capataz') ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
+                             </div>
+                           </div>
+                         ))}
+                       </div>
+                    </div>
+                  </div>
+                  <div className="modal-footer">
+                    <button type="button" className="btn-primary" onClick={handleCloseAssignModal}>
+                      Listo
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Ver Integrantes */}
+            {showViewMembersModal && selectedCuadrilla && (
+              <div className="modal-overlay">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h2>Integrantes: {selectedCuadrilla.nombre}</h2>
+                    <button className="icon-btn" onClick={() => setShowViewMembersModal(false)}>
+                      <X size={20} />
+                    </button>
+                  </div>
+                  
+                  <div className="members-list-section mt-1">
+                     <div className="members-list">
+                       {currentMembers.length === 0 ? <p className="text-muted">No hay miembros asignados a esta cuadrilla.</p> : null}
+                       {currentMembers.map((m, idx) => (
+                         <div key={idx} className="member-item">
+                           <div className="member-avatar">{m.name.charAt(0).toUpperCase()}</div>
+                           <div className="member-info">
+                             <h4>{m.name}</h4>
+                             <span className={`member-role ${m.cargo.includes('Capataz') ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
+                           </div>
+                         </div>
+                       ))}
+                     </div>
+                  </div>
+                  <div className="modal-footer">
+                    <button type="button" className="btn-primary" onClick={() => setShowViewMembersModal(false)}>
+                      Cerrar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Crear Herramienta/Material */}
+            {showCreateItemModal && (
+              <div className="modal-overlay">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h2>Crear {itemType === 'herramienta' ? 'Herramienta' : 'Material'}</h2>
+                    <button className="icon-btn" onClick={() => setShowCreateItemModal(false)}>
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <form onSubmit={handleCreateItem}>
+                    <div className="form-group">
+                      <label>Nombre</label>
+                      <input 
+                        type="text" 
+                        placeholder={itemType === 'herramienta' ? 'Ej. Martillo' : 'Ej. Cemento'}
+                        value={formData.nombre}
+                        onChange={e => setFormData({...formData, nombre: e.target.value})}
+                        required
+                        className="modal-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Descripción</label>
+                      <textarea 
+                        placeholder="Descripción del item"
+                        value={formData.descripcion}
+                        onChange={e => setFormData({...formData, descripcion: e.target.value})}
+                        className="modal-input"
+                        rows="3"
+                      />
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Cantidad</label>
+                        <input 
+                          type="number" 
+                          placeholder="0"
+                          value={formData.cantidad}
+                          onChange={e => setFormData({...formData, cantidad: e.target.value})}
+                          className="modal-input"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Estado</label>
+                        <select 
+                          value={formData.estado}
+                          onChange={e => setFormData({...formData, estado: e.target.value})}
+                          className="modal-input"
+                        >
+                          <option value="bueno">Bueno</option>
+                          <option value="regular">Regular</option>
+                          <option value="malo">Malo</option>
+                          <option value="mantencion">En Mantención</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>Responsable</label>
+                      <input 
+                        type="text" 
+                        placeholder="Nombre del responsable"
+                        value={formData.responsable}
+                        onChange={e => setFormData({...formData, responsable: e.target.value})}
+                        className="modal-input"
+                      />
+                    </div>
+                    <div className="modal-footer">
+                      <button type="button" className="btn-outline" onClick={() => setShowCreateItemModal(false)}>
+                        Cancelar
+                      </button>
+                      <button type="submit" className="btn-primary" disabled={submitting}>
+                        {submitting ? 'Creando...' : 'Crear'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Modal Editar Herramienta/Material */}
+            {showEditItemModal && selectedItem && (
+              <div className="modal-overlay">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h2>Editar {itemType === 'herramienta' ? 'Herramienta' : 'Material'}</h2>
+                    <button className="icon-btn" onClick={() => setShowEditItemModal(false)}>
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <form onSubmit={handleEditItem}>
+                    <div className="form-group">
+                      <label>Nombre</label>
+                      <input 
+                        type="text" 
+                        value={formData.nombre}
+                        onChange={e => setFormData({...formData, nombre: e.target.value})}
+                        required
+                        className="modal-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Descripción</label>
+                      <textarea 
+                        value={formData.descripcion}
+                        onChange={e => setFormData({...formData, descripcion: e.target.value})}
+                        className="modal-input"
+                        rows="3"
+                      />
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Cantidad</label>
+                        <input 
+                          type="number" 
+                          value={formData.cantidad}
+                          onChange={e => setFormData({...formData, cantidad: e.target.value})}
+                          className="modal-input"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Estado</label>
+                        <select 
+                          value={formData.estado}
+                          onChange={e => setFormData({...formData, estado: e.target.value})}
+                          className="modal-input"
+                        >
+                          <option value="bueno">Bueno</option>
+                          <option value="regular">Regular</option>
+                          <option value="malo">Malo</option>
+                          <option value="mantencion">En Mantención</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>Responsable</label>
+                      <input 
+                        type="text" 
+                        value={formData.responsable}
+                        onChange={e => setFormData({...formData, responsable: e.target.value})}
+                        className="modal-input"
+                      />
+                    </div>
+                    <div className="modal-footer">
+                      <button type="button" className="btn-outline" onClick={() => setShowEditItemModal(false)}>
+                        Cancelar
+                      </button>
+                      <button type="submit" className="btn-primary" disabled={submitting}>
+                        {submitting ? 'Guardando...' : 'Guardar'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+>>>>>>> origin/Cebolla
           </main>
         </div>
       </div>

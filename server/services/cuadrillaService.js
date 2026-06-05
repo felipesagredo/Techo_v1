@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+import pool from '../config/db.js';
 
 const getAllCuadrillas = async () => {
     const query = `
@@ -7,9 +7,6 @@ const getAllCuadrillas = async () => {
             c.nombre, 
             c.zona, 
             c.estado,
-            c.latitud,
-            c.longitud,
-            c.meta_voluntarios,
             COUNT(cm.user_id) AS miembros_count,
             (
                 SELECT u.name 
@@ -30,17 +27,17 @@ const getAllCuadrillas = async () => {
             ) AS capataz_rol
         FROM cuadrillas c
         LEFT JOIN cuadrilla_miembros cm ON c.id = cm.cuadrilla_id
-        GROUP BY c.id, c.nombre, c.zona, c.estado, c.latitud, c.longitud, c.meta_voluntarios
+        GROUP BY c.id
         ORDER BY c.id;
     `;
     const res = await pool.query(query);
     return res.rows;
 };
 
-const createCuadrilla = async (nombre, zona, latitud = null, longitud = null) => {
+const createCuadrilla = async (nombre, zona) => {
     const res = await pool.query(
-        'INSERT INTO cuadrillas (nombre, zona, latitud, longitud) VALUES ($1, $2, $3, $4) RETURNING *',
-        [nombre, zona, latitud, longitud]
+        'INSERT INTO cuadrillas (nombre, zona) VALUES ($1, $2) RETURNING *',
+        [nombre, zona]
     );
     return res.rows[0];
 };
@@ -72,11 +69,13 @@ const getMiembrosByCuadrilla = async (cuadrillaId) => {
     );
     return res.rows;
 };
+
 const getRolesCuadrilla = async () => {
     const res = await pool.query('SELECT id, nombre FROM roles_cuadrilla ORDER BY id');
     return res.rows;
 };
 
+<<<<<<< HEAD
 const getAvailableVolunteersCount = async () => {
     const query = `
         SELECT COUNT(*) 
@@ -162,3 +161,7 @@ module.exports = {
     deleteCuadrilla,
     updateCuadrilla
 };
+=======
+export { createCuadrilla, assignMember, getMiembrosByCuadrilla, getAllCuadrillas, getRolesCuadrilla };
+export default { createCuadrilla, assignMember, getMiembrosByCuadrilla, getAllCuadrillas, getRolesCuadrilla };
+>>>>>>> origin/Cebolla

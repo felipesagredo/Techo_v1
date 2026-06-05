@@ -1,5 +1,5 @@
-const pool = require('../config/db');
-const bcrypt = require('bcrypt');
+import pool from '../config/db.js';
+import bcrypt from 'bcrypt';
 
 const createUser = async (userData) => {
     const { name, email, password, role_id } = userData;
@@ -117,6 +117,7 @@ const getSystemRoles = async () => {
     return result.rows;
 };
 
+<<<<<<< HEAD
 const getAvailableVolunteers = async () => {
     const query = `
         SELECT u.id, u.name, u.email, u.role_id, r.nombre AS role_nombre, u.telefono, u.comuna, u.habilidades 
@@ -138,3 +139,7 @@ module.exports = {
     updateUser,
     getSystemRoles 
 };
+=======
+export { createUser, getAllUsers };
+export default { createUser, getAllUsers };
+>>>>>>> origin/Cebolla

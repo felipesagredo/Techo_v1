@@ -1,15 +1,12 @@
-const pool = require('./config/db');
+import pool from './config/db.js';
 
 const initDB = async () => {
   const queries = [
-    // 1. Crear tabla de Roles
     `CREATE TABLE IF NOT EXISTS roles (
       id SERIAL PRIMARY KEY,
       nombre VARCHAR(50) UNIQUE NOT NULL,
       descripcion VARCHAR(255)
     );`,
-
-    // 2. Crear tabla de Usuarios con relación a Roles
     `CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       name VARCHAR(100),
@@ -18,49 +15,46 @@ const initDB = async () => {
       role_id INTEGER REFERENCES roles(id),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`,
-
-    // 3. Crear tabla de Cuadrillas con Geoposicionamiento
-    `CREATE TABLE IF NOT EXISTS cuadrillas (
+    `CREATE TABLE IF NOT EXISTS herramientas (
       id SERIAL PRIMARY KEY,
       nombre VARCHAR(100) NOT NULL,
-      zona VARCHAR(255) NOT NULL,
-      estado VARCHAR(50) DEFAULT 'PENDIENTE',
-      latitud DECIMAL(10, 8),
-      longitud DECIMAL(11, 8),
-      meta_voluntarios INTEGER DEFAULT 5,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      descripcion VARCHAR(500) NOT NULL,
+      stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
+      categoria_herramienta VARCHAR(30) NOT NULL,
+      assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      estado VARCHAR(30) NOT NULL DEFAULT 'disponible',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`,
-
-    // 4. Crear tabla de Roles de Cuadrilla
-    `CREATE TABLE IF NOT EXISTS roles_cuadrilla (
+    `CREATE TABLE IF NOT EXISTS materiales (
       id SERIAL PRIMARY KEY,
-      nombre VARCHAR(50) UNIQUE NOT NULL
-    );`,
-
-    // 5. Tabla de Miembros (Relación muchos a muchos)
-    `CREATE TABLE IF NOT EXISTS cuadrilla_miembros (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER REFERENCES users(id),
-      cuadrilla_id INTEGER REFERENCES cuadrillas(id),
-      rol_cuadrilla_id INTEGER REFERENCES roles_cuadrilla(id),
-      UNIQUE(user_id, cuadrilla_id)
+      nombre_material VARCHAR(100) NOT NULL,
+      cantidad INTEGER NOT NULL DEFAULT 0 CHECK (cantidad >= 0),
+      categoria VARCHAR(100) NOT NULL,
+      largo NUMERIC(10,2),
+      ancho NUMERIC(10,2),
+      peso NUMERIC(10,2),
+      assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      estado VARCHAR(30) NOT NULL DEFAULT 'disponible',
+      archivos TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`
   ];
 
   try {
-    // Ejecutar creación de tablas
-    for (let query of queries) {
+    for (const query of queries) {
       await pool.query(query);
     }
 
-    // 3. Insertar roles iniciales si no existen
     const rolesExist = await pool.query('SELECT COUNT(*) FROM roles');
-    if (parseInt(rolesExist.rows[0].count) === 0) {
+    if (parseInt(rolesExist.rows[0].count, 10) === 0) {
       await pool.query(`
-        INSERT INTO roles (nombre, descripcion) VALUES 
+        INSERT INTO roles (nombre, descripcion) VALUES
         ('admin', 'Administrador con acceso total'),
         ('voluntario', 'Voluntario de campo'),
         ('socio', 'Socio colaborador')
+        ON CONFLICT (nombre) DO NOTHING
       `);
       console.log('✅ Roles iniciales insertados');
     }
@@ -121,7 +115,7 @@ const initDB = async () => {
     `);
 
     const existingColumns = userColumnsCheck.rows.map(r => r.column_name);
-    
+
     if (!existingColumns.includes('telefono')) {
       await pool.query('ALTER TABLE users ADD COLUMN telefono VARCHAR(20)');
       console.log('✅ Columna telefono añadida a users');
@@ -138,7 +132,7 @@ const initDB = async () => {
     // Cuadrillas: Añadir capacidad
     const cuadrillaColsRes = await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'cuadrillas'");
     const cuadrillaCols = cuadrillaColsRes.rows.map(c => c.column_name);
-    
+
     if (!cuadrillaCols.includes('capacidad')) {
       await pool.query('ALTER TABLE cuadrillas ADD COLUMN capacidad INTEGER DEFAULT 10');
       console.log('✅ Columna capacidad añadida a cuadrillas');
@@ -150,4 +144,4 @@ const initDB = async () => {
   }
 };
 
-module.exports = initDB;
+export default initDB;
