@@ -35,16 +35,49 @@ const MapPage = ({ onBack }) => {
     addrs.forEach(addr => {
       try {
         const marker = L.marker([parseFloat(addr.lat), parseFloat(addr.lng)])
-        const popupContent = isAdminUser 
-          ? `<div style="min-width: 150px">
-               <strong>${addr.label}</strong>
-               <div style="margin-top: 8px; display: 'flex'; gap: 4px">
-                 <button onclick="window.editAddress(${addr.id})" style="padding: 4px 8px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px">Editar</button>
-                 <button onclick="window.deleteAddress(${addr.id})" style="padding: 4px 8px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px">Eliminar</button>
-               </div>
-             </div>`
-          : `<strong>${addr.label}</strong>`
-        marker.bindPopup(popupContent)
+
+        // Armo el popup con nodos DOM para evitar HTML en string y onclick inline.
+        const popup = document.createElement('div')
+        popup.style.minWidth = '150px'
+
+        const title = document.createElement('strong')
+        title.textContent = addr.label
+        popup.appendChild(title)
+
+        if (isAdminUser) {
+          const actions = document.createElement('div')
+          actions.style.marginTop = '8px'
+          actions.style.display = 'flex'
+          actions.style.gap = '4px'
+
+          const editButton = document.createElement('button')
+          editButton.textContent = 'Editar'
+          editButton.style.padding = '4px 8px'
+          editButton.style.background = '#4CAF50'
+          editButton.style.color = 'white'
+          editButton.style.border = 'none'
+          editButton.style.borderRadius = '4px'
+          editButton.style.cursor = 'pointer'
+          editButton.style.fontSize = '12px'
+          editButton.addEventListener('click', () => window.editAddress(addr.id))
+
+          const deleteButton = document.createElement('button')
+          deleteButton.textContent = 'Eliminar'
+          deleteButton.style.padding = '4px 8px'
+          deleteButton.style.background = '#f44336'
+          deleteButton.style.color = 'white'
+          deleteButton.style.border = 'none'
+          deleteButton.style.borderRadius = '4px'
+          deleteButton.style.cursor = 'pointer'
+          deleteButton.style.fontSize = '12px'
+          deleteButton.addEventListener('click', () => window.deleteAddress(addr.id))
+
+          actions.appendChild(editButton)
+          actions.appendChild(deleteButton)
+          popup.appendChild(actions)
+        }
+
+        marker.bindPopup(popup)
         layer.addLayer(marker)
       } catch (err) {
         console.error('Error añadiendo marcador:', err)
