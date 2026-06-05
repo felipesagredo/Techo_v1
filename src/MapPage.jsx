@@ -15,6 +15,17 @@ const MapPage = ({ onBack }) => {
   const isAdmin = user && user.role_id === 1
   const token = localStorage.getItem('token')
 
+  const validateClientCoordinates = (lat, lng) => {
+    const latNum = Number(lat)
+    const lngNum = Number(lng)
+    if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
+      return { valid: false, message: 'Latitud y longitud inválidas' }
+    }
+    if (latNum < -90 || latNum > 90) return { valid: false, message: 'Latitud fuera de rango (-90 a 90)' }
+    if (lngNum < -180 || lngNum > 180) return { valid: false, message: 'Longitud fuera de rango (-180 a 180)' }
+    return { valid: true, lat: latNum, lng: lngNum }
+  }
+
   // Actualizar marcadores en el mapa
   const refreshMarkers = useCallback((addrs, layer, isAdminUser) => {
     if (!layer) return
@@ -74,6 +85,13 @@ const MapPage = ({ onBack }) => {
       if (!newLabel || newLabel === addr.label) return
 
       try {
+        // Normalizar y validar coordenadas antes de enviar
+        const coordCheck = validateClientCoordinates(addr.lat, addr.lng)
+        if (!coordCheck.valid) {
+          alert(coordCheck.message)
+          return
+        }
+
         const res = await fetch(`http://localhost:5000/api/addresses/${id}`, {
           method: 'PUT',
           headers: {
@@ -82,8 +100,8 @@ const MapPage = ({ onBack }) => {
           },
           body: JSON.stringify({
             label: newLabel,
-            lat: addr.lat,
-            lng: addr.lng
+            lat: coordCheck.lat,
+            lng: coordCheck.lng
           })
         })
         if (!res.ok) throw new Error('Error actualizando')
@@ -173,6 +191,13 @@ const MapPage = ({ onBack }) => {
       const label = window.prompt('Nombre de esta dirección:')
       if (!label || label.trim() === '') return
 
+      // Validar coordenadas en cliente
+      const coordCheck = validateClientCoordinates(lat, lng)
+      if (!coordCheck.valid) {
+        alert(coordCheck.message)
+        return
+      }
+
       try {
         const res = await fetch('http://localhost:5000/api/addresses', {
           method: 'POST',
@@ -180,7 +205,7 @@ const MapPage = ({ onBack }) => {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`
           },
-          body: JSON.stringify({ label: label.trim(), lat, lng })
+          body: JSON.stringify({ label: label.trim(), lat: coordCheck.lat, lng: coordCheck.lng })
         })
         if (!res.ok) {
           const data = await res.json()
