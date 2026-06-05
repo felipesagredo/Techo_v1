@@ -101,6 +101,49 @@ const initDB = async () => {
       console.log('✅ Columna role_id añadida a la tabla users');
     }
 
+    // 7. Verificar si la columna meta_voluntarios existe en cuadrillas
+    const metaCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='cuadrillas' AND column_name='meta_voluntarios'
+    `);
+
+    if (metaCheck.rows.length === 0) {
+      await pool.query('ALTER TABLE cuadrillas ADD COLUMN meta_voluntarios INTEGER DEFAULT 5');
+      console.log('✅ Columna meta_voluntarios añadida a la tabla cuadrillas');
+    }
+
+    // 8. Verificar nuevas columnas en users (telefono, comuna, habilidades)
+    const userColumnsCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='users' AND column_name IN ('telefono', 'comuna', 'habilidades')
+    `);
+
+    const existingColumns = userColumnsCheck.rows.map(r => r.column_name);
+    
+    if (!existingColumns.includes('telefono')) {
+      await pool.query('ALTER TABLE users ADD COLUMN telefono VARCHAR(20)');
+      console.log('✅ Columna telefono añadida a users');
+    }
+    if (!existingColumns.includes('comuna')) {
+      await pool.query('ALTER TABLE users ADD COLUMN comuna VARCHAR(100)');
+      console.log('✅ Columna comuna añadida a users');
+    }
+    if (!existingColumns.includes('habilidades')) {
+      await pool.query('ALTER TABLE users ADD COLUMN habilidades TEXT');
+      console.log('✅ Columna habilidades añadida a users');
+    }
+
+    // Cuadrillas: Añadir capacidad
+    const cuadrillaColsRes = await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'cuadrillas'");
+    const cuadrillaCols = cuadrillaColsRes.rows.map(c => c.column_name);
+    
+    if (!cuadrillaCols.includes('capacidad')) {
+      await pool.query('ALTER TABLE cuadrillas ADD COLUMN capacidad INTEGER DEFAULT 10');
+      console.log('✅ Columna capacidad añadida a cuadrillas');
+    }
+
     console.log('✅ Sistema de base de datos listo y sincronizado');
   } catch (err) {
     console.error('❌ Error inicializando base de datos:', err);

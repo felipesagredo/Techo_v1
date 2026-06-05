@@ -1693,3 +1693,29 @@ h4.text-orange { font-size: 0.9rem; display: block; margin-bottom: 0.15rem; }
   color: #854d0e;
   border: 1px solid #fef08a;
 }
+
+.text-red {
+  color: #ff4d4d !important;
+}
+
+.btn-liberar {
+  margin-left: auto;
+  background: #fff5f5;
+  border: 1px solid #fadbd8;
+  color: #e74c3c;
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-liberar:hover {
+  background: #e74c3c;
+  color: white;
+  border-color: #e74c3c;
+}

@@ -16,11 +16,14 @@ import {
   MapPin,
   Calendar,
   ClipboardList,
-  Utensils
+  Utensils,
+  Home,
+  Trash2
 } from 'lucide-react'
 
 // Features
 import CuadrillasView from './features/cuadrillas/components/CuadrillasView'
+import VoluntariosView from './features/voluntarios/components/VoluntariosView'
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -375,6 +378,10 @@ function App() {
             {currentView === 'cuadrillas' && (
               <CuadrillasView user={user} currentView={currentView} />
             )}
+
+            {currentView === 'registro' && (
+              <VoluntariosView />
+            )}
           </main>
         </div>
       </div>
@@ -387,7 +394,6 @@ function App() {
       {/* Left Section */}
       <div className="left-section">
         <div className="left-content">
-          <span className="tag">Grupo 12 - 2026</span>
           <h1>
             Construyendo <br />
             <span>Comunidad</span> desde la gestión.

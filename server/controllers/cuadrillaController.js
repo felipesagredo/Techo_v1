@@ -38,6 +38,16 @@ exports.addMember = async (req, res) => {
     }
 };
 
+exports.removeMember = async (req, res) => {
+    try {
+        const { userId, cuadrillaId } = req.body;
+        await cuadrillaService.unassignMember(userId, cuadrillaId);
+        res.json({ message: 'Miembro desasignado correctamente' });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al desasignar miembro' });
+    }
+};
+
 exports.getDetails = async (req, res) => {
     try {
         const miembros = await cuadrillaService.getMiembrosByCuadrilla(req.params.id);
@@ -64,6 +74,26 @@ exports.autoGenerate = async (req, res) => {
     } catch (err) {
         console.error('Error en autoGenerate:', err);
         res.status(500).json({ error: err.message || 'Error interno al generar cuadrilla' });
+    }
+};
+
+exports.remove = async (req, res) => {
+    try {
+        const result = await cuadrillaService.deleteCuadrilla(req.params.id);
+        if (!result) return res.status(404).json({ error: 'Cuadrilla no encontrada' });
+        res.json({ message: 'Cuadrilla eliminada correctamente', cuadrilla: result });
+    } catch (err) {
+        res.status(500).json({ error: 'Error al eliminar cuadrilla' });
+    }
+};
+
+exports.update = async (req, res) => {
+    try {
+        const result = await cuadrillaService.updateCuadrilla(req.params.id, req.body);
+        res.json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error al actualizar cuadrilla' });
     }
 };
 

@@ -53,9 +53,17 @@ const assignMember = async (userId, cuadrillaId, rolCuadrillaId) => {
     return res.rows[0];
 };
 
+const unassignMember = async (userId, cuadrillaId) => {
+    const res = await pool.query(
+        'DELETE FROM cuadrilla_miembros WHERE user_id = $1 AND cuadrilla_id = $2 RETURNING *',
+        [userId, cuadrillaId]
+    );
+    return res.rows[0];
+};
+
 const getMiembrosByCuadrilla = async (cuadrillaId) => {
     const res = await pool.query(`
-        SELECT u.name, u.email, rc.nombre as cargo
+        SELECT u.id as user_id, u.name, u.email, rc.nombre as cargo
         FROM cuadrilla_miembros cm
         JOIN users u ON cm.user_id = u.id
         JOIN roles_cuadrilla rc ON cm.rol_cuadrilla_id = rc.id
@@ -125,12 +133,32 @@ const autoGenerateCuadrilla = async (nombre, zona, count, latitud, longitud) => 
     };
 };
 
+const deleteCuadrilla = async (id) => {
+    await pool.query('DELETE FROM cuadrilla_miembros WHERE cuadrilla_id = $1', [id]);
+    const res = await pool.query('DELETE FROM cuadrillas WHERE id = $1 RETURNING *', [id]);
+    return res.rows[0];
+};
+
+const updateCuadrilla = async (id, data) => {
+    const { nombre, zona, latitud, longitud, meta_voluntarios, estado } = data;
+    const res = await pool.query(
+        `UPDATE cuadrillas 
+         SET nombre = $1, zona = $2, latitud = $3, longitud = $4, meta_voluntarios = $5, estado = $6 
+         WHERE id = $7 RETURNING *`,
+        [nombre, zona, latitud, longitud, meta_voluntarios, estado, id]
+    );
+    return res.rows[0];
+};
+
 module.exports = { 
     createCuadrilla, 
     assignMember, 
+    unassignMember,
     getMiembrosByCuadrilla, 
     getAllCuadrillas, 
     getRolesCuadrilla,
     getAvailableVolunteersCount,
-    autoGenerateCuadrilla
+    autoGenerateCuadrilla,
+    deleteCuadrilla,
+    updateCuadrilla
 };
