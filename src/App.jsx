@@ -815,7 +815,7 @@ function App() {
             )}
 
             {/* HERRAMIENTAS & MATERIALES VIEW */}
-            {currentView === 'herramientas' && <Herramientas />}
+            {currentView === 'herramientas' && <Herramientas user={user} />}
             
             {/* Modal Nueva Cuadrilla */}
             {showNewCuadrillaModal && (

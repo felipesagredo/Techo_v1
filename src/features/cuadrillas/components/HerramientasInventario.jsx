@@ -2,7 +2,7 @@ import React from 'react';
 import '../../../styles/HerramientasInventario.css';
 import { Wrench, Edit2, Trash2 } from 'lucide-react';
 
-export default function HerramientasInventario({ herramientas, onEdit, onDelete }) {
+export default function HerramientasInventario({ herramientas, onEdit, onDelete, user }) {
   const getEstadoClass = (estado) => {
     switch (estado) {
       case 'disponible':
@@ -62,20 +62,24 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete 
                     </span>
                   </td>
                   <td className="acciones-cell">
-                    <button
-                      className="btn-editar"
-                      onClick={() => onEdit(herramienta)}
-                      title="Editar"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
-                      className="btn-eliminar"
-                      onClick={() => onDelete(herramienta.id)}
-                      title="Eliminar"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {user?.role_id === 1 ? (
+                      <>
+                        <button
+                          className="btn-editar"
+                          onClick={() => onEdit(herramienta)}
+                          title="Editar"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          className="btn-eliminar"
+                          onClick={() => onDelete(herramienta.id)}
+                          title="Eliminar"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    ) : null}
                   </td>
                 </tr>
               ))

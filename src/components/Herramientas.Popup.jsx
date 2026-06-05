@@ -3,7 +3,7 @@ import { useCreateHerramienta } from '../features/cuadrillas/hooks/herramientas/
 import { useUpdateHerramienta } from '../features/cuadrillas/hooks/herramientas/useUpdateHerramienta';
 import '../styles/HerramientasPopup.css';
 
-export default function HerramientasPopup({ herramienta, onClose, onSaveSuccess }) {
+export default function HerramientasPopup({ herramienta, mode = 'create', onClose, onSaveSuccess }) {
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
@@ -16,7 +16,7 @@ export default function HerramientasPopup({ herramienta, onClose, onSaveSuccess 
   const { handleUpdateHerramienta, loading: updateLoading } = useUpdateHerramienta();
 
   useEffect(() => {
-    if (herramienta) {
+    if (mode === 'edit' && herramienta) {
       setFormData({
         nombre: herramienta.nombre,
         descripcion: herramienta.descripcion,
@@ -24,8 +24,16 @@ export default function HerramientasPopup({ herramienta, onClose, onSaveSuccess 
         categoria_herramienta: herramienta.categoria_herramienta,
         estado: herramienta.estado
       });
+    } else {
+      setFormData({
+        nombre: '',
+        descripcion: '',
+        stock: '',
+        categoria_herramienta: 'manual',
+        estado: 'disponible'
+      });
     }
-  }, [herramienta]);
+  }, [herramienta, mode]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -56,14 +64,15 @@ export default function HerramientasPopup({ herramienta, onClose, onSaveSuccess 
   };
 
   return (
-    <div className="popup-overlay" onClick={onClose}>
-      <div className="popup-container" onClick={(e) => e.stopPropagation()}>
-        <div className="popup-header">
-          <h2>{herramienta ? 'Editar Herramienta' : 'Nueva Herramienta'}</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+    <div className="herramientas-modal-overlay" onClick={onClose}>
+      <div className="herramientas-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="herramientas-modal-header">
+          <h2>{mode === 'edit' ? 'Editar Herramienta' : 'Nueva Herramienta'}</h2>
+          <button type="button" className="herramientas-modal-close" onClick={onClose}>×</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="popup-form">
+        <div className="herramientas-modal-body">
+          <form onSubmit={handleSubmit} className="popup-form">
           <div className="form-group">
             <label htmlFor="nombre">Nombre *</label>
             <input
@@ -141,7 +150,8 @@ export default function HerramientasPopup({ herramienta, onClose, onSaveSuccess 
               {createLoading || updateLoading ? 'Guardando...' : 'Guardar'}
             </button>
           </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

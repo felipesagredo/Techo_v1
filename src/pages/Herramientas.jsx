@@ -5,8 +5,9 @@ import HerramientasInventario from '../features/cuadrillas/components/Herramient
 import HerramientasPopup from '../components/Herramientas.Popup';
 import '../styles/Herramientas.css';
 
-export default function Herramientas() {
+export default function Herramientas({ user }) {
   const [showPopup, setShowPopup] = useState(false);
+  const [popupMode, setPopupMode] = useState('create');
   const [editingHerramienta, setEditingHerramienta] = useState(null);
   const { herramientas, loading, error, refetch } = useGetHerramientas();
   const { deleteHerramienta } = useDeleteHerramienta();
@@ -17,11 +18,13 @@ export default function Herramientas() {
 
   const handleOpenPopup = () => {
     setEditingHerramienta(null);
+    setPopupMode('create');
     setShowPopup(true);
   };
 
   const handleEditHerramienta = (herramienta) => {
     setEditingHerramienta(herramienta);
+    setPopupMode('edit');
     setShowPopup(true);
   };
 
@@ -35,6 +38,7 @@ export default function Herramientas() {
   const handleClosePopup = () => {
     setShowPopup(false);
     setEditingHerramienta(null);
+    setPopupMode('create');
   };
 
   const handleSaveSuccess = () => {
@@ -88,17 +92,19 @@ export default function Herramientas() {
       ) : error ? (
         <div className="error">{error}</div>
       ) : (
-        <HerramientasInventario
-          herramientas={herramientas}
-          onEdit={handleEditHerramienta}
-          onDelete={handleDeleteHerramienta}
-        />
+          <HerramientasInventario
+            herramientas={herramientas}
+            user={user}
+            onEdit={handleEditHerramienta}
+            onDelete={handleDeleteHerramienta}
+          />
       )}
 
       {/* Popup */}
       {showPopup && (
         <HerramientasPopup
           herramienta={editingHerramienta}
+          mode={popupMode}
           onClose={handleClosePopup}
           onSaveSuccess={handleSaveSuccess}
         />
