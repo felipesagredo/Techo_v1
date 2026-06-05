@@ -1,28 +1,28 @@
 import { useState } from "react";
-import { deleteHerramientas } from '@services/Herramientas.service.js';
+import { deleteMaterial } from '@services/Herramientas.service';
 import Swal from 'sweetalert2';
 
-export function useDeleteHerramienta() {
+export function useDeleteMaterial() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const deleteHerramienta = async (id) => {
+    const deleteMaterialById = async (id) => {
         setLoading(true);
         setError(null);
         try {
-            const response = await deleteHerramientas(id);
+            const response = await deleteMaterial(id);
             if (response.status === "Success") {
                 Swal.fire({
                     icon: 'success',
                     title: 'Éxito',
-                    text: 'Herramienta eliminada correctamente',
+                    text: 'Material eliminado correctamente',
                     timer: 2000
                 });
             } else {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: response.message || 'Error al eliminar la herramienta',
+                    text: response.message || 'Error al eliminar el material',
                     timer: 2000
                 });
             }
@@ -32,7 +32,7 @@ export function useDeleteHerramienta() {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: err.message || 'Error al eliminar la herramienta',
+                text: error.message || 'Error al eliminar el material',
                 timer: 2000
             });
         } finally {
@@ -40,5 +40,5 @@ export function useDeleteHerramienta() {
         }
     };
 
-    return { deleteHerramienta, loading, error };
+    return { deleteMaterialById, loading, error };
 }
