@@ -1,45 +1,45 @@
 import { useState } from "react";
-import { createHerramienta } from '@services/Herramientas.service.js';
-import Swal from 'sweetalert2';
+import { createMaterial } from "../../services/Materiales.service";
+import Swal from "sweetalert2";
 
-export function useCreateHerramienta() {
+export function useCreateMaterial() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const handleCreateHerramienta = async(dataHerramienta) => {
+    const handleCreateMaterial = async(dataMaterial) => {
         setLoading(true);
         setError(null);
         try{
-            const response = await createHerramienta(dataHerramienta);
+            const response = await createMaterial(dataMaterial);
             if(response.status === "Success") {
                 Swal.fire({
                     icon: 'success',
                     title: 'Exito',
-                    text: 'Herramienta Agregada Correctamente',
+                    text: 'Material Agregado Correctamente',
                     timer:2000
                 });
             }else {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: response.message || 'Error al agregar la herramienta',
+                    text: response.message || 'Error al agregar el material',
                     timer: 2000
                 });
             }
             return response;
-        }catch (error) {
-            setError(error);
+        }catch (error) { // Corregido el error de sintaxis aquí
+            setError(error); // Guardar el error en el estado
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: error.message || 'Error al agregar la herramienta',
+                text: error.message || 'Error al agregar el material',
                 timer: 2000
             });
-            return error.response.data;
-        } finally {
+            return error.response.data; // Devolver el error para que pueda ser manejado por el componente
+        }finally {
             setLoading(false);
         }
     };
 
-    return { handleCreateHerramienta, loading, error };
+    return {handleCreateMaterial, loading, error};
 }

@@ -16,8 +16,8 @@ export function useGetHerramientas(){
             } else {
                 setError(response.message || 'Error al obtener herramientas');
             }
-        } catch (err) {
-            setError(err.message || 'Error al obtener herramientas');
+        } catch (error) {
+            setError(error.message || 'Error al obtener herramientas');
         } finally {
             setLoading(false);
         }
