@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { deleteMaterial } from '@services/Herramientas.service';
+import { deleteMaterial } from '../../services/Materiales.service';
 import Swal from 'sweetalert2';
 
 export function useDeleteMaterial() {
@@ -35,6 +35,7 @@ export function useDeleteMaterial() {
                 text: error.message || 'Error al eliminar el material',
                 timer: 2000
             });
+            return error.response?.data || error;
         } finally {
             setLoading(false);
         }

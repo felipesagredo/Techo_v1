@@ -27,7 +27,7 @@ export function useCreateMaterial() {
                 });
             }
             return response;
-        }catch (error) { // Corregido el error de sintaxis aquí
+        }catch (error) {
             setError(error); // Guardar el error en el estado
             Swal.fire({
                 icon: 'error',
@@ -35,7 +35,7 @@ export function useCreateMaterial() {
                 text: error.message || 'Error al agregar el material',
                 timer: 2000
             });
-            return error.response.data; // Devolver el error para que pueda ser manejado por el componente
+            return error.response?.data || error; // Devolver el error para que pueda ser manejado por el componente
         }finally {
             setLoading(false);
         }

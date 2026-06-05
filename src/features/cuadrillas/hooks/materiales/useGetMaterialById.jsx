@@ -1,5 +1,5 @@
-import {useState} from 'react';
-import {getMaterialById} from '@services/Materiales.service';
+import { useState } from 'react';
+import { getMaterialById } from '../../services/Materiales.service';
 import Swal from 'sweetalert2';
 
 export function useGetMaterialById() {
@@ -13,29 +13,27 @@ export function useGetMaterialById() {
         try{
             const response = await getMaterialById(id);
             if (response.status === 'Success') {
-                swal.fire({
-                    icon: 'success',
-                    title: 'Éxito',
-                    text: 'Material por id obtenido correctamente',
-                    timer: 2000
-                });
-            }else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: response.message || 'Error al obtener el material por Id',
-                        timer: 2000
-                    });
-                }
-                return response;
-            } catch (error) {
-                setError(error);
+                setMaterial(response.data || response);
+            } else {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: error.message || 'Error al obtener el material por Id',
-                    timer: 2000    
+                    text: response.message || 'Error al obtener el material por Id',
+                    timer: 2000
+                });
+            }
+            return response;
+        } catch (error) {
+            setError(error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message || 'Error al obtener el material por Id',
+                timer: 2000
             });
+            return error.response?.data || error;
+        } finally {
+            setLoading(false);
         }
     };
 

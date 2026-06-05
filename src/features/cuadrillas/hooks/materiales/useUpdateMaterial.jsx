@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { updateHerramientas } from '@services/Herramientas.service';
+import { updateMaterial } from '../../services/Materiales.service';
 import Swal from 'sweetalert2';
 
 export function useUpdateMaterial(){
@@ -11,7 +11,7 @@ export function useUpdateMaterial(){
         setLoading(true);
         setError(null);
         try {
-            const response = await updateHerramientas(id, data);
+            const response = await updateMaterial(id, data);
             if (response.status === "Success") {
                 Swal.fire({
                     icon: 'success',
@@ -28,8 +28,10 @@ export function useUpdateMaterial(){
                 });
             }
             setMaterial(response.data); // Guardar el material actualizado en el estado
+            return response;
         }catch (error){
             setError(error); // Guardar el error en el estado
+            return error.response?.data || error;
         }finally {
             setLoading(false); // Finalizar el estado de carga
         }

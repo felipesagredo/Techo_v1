@@ -24,6 +24,7 @@ import {
   X
 } from 'lucide-react'
 import Herramientas from './pages/Herramientas'
+import Materiales from './pages/Materiales'
 
 function App() {
   const isJwtValid = (token) => {
@@ -478,6 +479,9 @@ function App() {
               <a href="#" className={currentView === 'herramientas' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('herramientas'); }}>
                 <Wrench size={18} /> Herramientas
               </a>
+              <a href="#" className={currentView === 'materiales' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('materiales'); }}>
+                <Package size={18} /> Materiales
+              </a>
               <a href="#" className={currentView === 'almuerzos' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('almuerzos'); }}>
                 <Utensils size={18} /> Almuerzos
               </a>
@@ -814,8 +818,11 @@ function App() {
               </div>
             )}
 
-            {/* HERRAMIENTAS & MATERIALES VIEW */}
+            {/* HERRAMIENTAS VIEW */}
             {currentView === 'herramientas' && <Herramientas user={user} />}
+
+            {/* MATERIALES VIEW */}
+            {currentView === 'materiales' && <Materiales user={user} />}
             
             {/* Modal Nueva Cuadrilla */}
             {showNewCuadrillaModal && (
