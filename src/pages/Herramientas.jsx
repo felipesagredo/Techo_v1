@@ -3,6 +3,7 @@ import { useGetHerramientas } from '../features/cuadrillas/hooks/herramientas/us
 import { useDeleteHerramienta } from '../features/cuadrillas/hooks/herramientas/useDeleteHerramienta';
 import HerramientasInventario from '../features/cuadrillas/components/HerramientasInventario';
 import HerramientasPopup from '../components/Herramientas.Popup';
+import { Search, X } from 'lucide-react';
 import '../styles/Herramientas.css';
 
 export default function Herramientas({ user }) {
@@ -11,6 +12,7 @@ export default function Herramientas({ user }) {
   const [editingHerramienta, setEditingHerramienta] = useState(null);
   const { herramientas, loading, error, refetch } = useGetHerramientas();
   const { deleteHerramienta } = useDeleteHerramienta();
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     refetch();
@@ -52,6 +54,10 @@ export default function Herramientas({ user }) {
   const bajoStock = herramientas?.filter(h => h.stock <= 5).length || 0;
   const porReponer = herramientas?.filter(h => h.stock === 0).length || 0;
   const optimo = totalHerramientas > 0 ? Math.round((disponibles / totalHerramientas) * 100) : 0;
+  const herramientasFiltradas = herramientas?.filter((h) => {
+    const nombre = h.nombre || '';
+    return nombre.toLowerCase().includes(searchTerm.trim().toLowerCase());
+  }) || [];
 
   return (
     <div className="herramientas-container">
@@ -60,6 +66,27 @@ export default function Herramientas({ user }) {
       </div>
 
       {/* Estadísticas */}
+      <div className="materials-search-bar">
+        <div className="materials-search-input">
+          <Search size={18} />
+          <input
+            type="text"
+            placeholder="Buscar por nombre de herramienta..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              className="materials-search-clear"
+              onClick={() => setSearchTerm('')}
+              aria-label="Limpiar búsqueda"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      </div>
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-label">TOTAL ITEMS</div>
@@ -80,11 +107,13 @@ export default function Herramientas({ user }) {
       </div>
 
       {/* Botón Nuevo Registro */}
-      <div className="herramientas-actions">
-        <button className="btn-nuevo-registro" onClick={handleOpenPopup}>
-          + Nuevo Registro
-        </button>
-      </div>
+      {user?.role_id === 1 && (
+        <div className="herramientas-actions">
+          <button className="btn-nuevo-registro" onClick={handleOpenPopup}>
+            + Nuevo Registro
+          </button>
+        </div>
+      )}
 
       {/* Inventario */}
       {loading ? (
@@ -93,10 +122,11 @@ export default function Herramientas({ user }) {
         <div className="error">{error}</div>
       ) : (
           <HerramientasInventario
-            herramientas={herramientas}
+            herramientas={herramientasFiltradas}
             user={user}
             onEdit={handleEditHerramienta}
             onDelete={handleDeleteHerramienta}
+            emptyMessage={searchTerm.trim() ? 'No se encontraron herramientas con ese nombre' : 'No hay herramientas registradas'}
           />
       )}
 

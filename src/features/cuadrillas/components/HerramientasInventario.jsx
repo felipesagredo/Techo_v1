@@ -2,7 +2,7 @@ import React from 'react';
 import '../../../styles/HerramientasInventario.css';
 import { Wrench, Edit2, Trash2 } from 'lucide-react';
 
-export default function HerramientasInventario({ herramientas, onEdit, onDelete, user }) {
+export default function HerramientasInventario({ herramientas, onEdit, onDelete, user, emptyMessage = 'No hay herramientas registradas' }) {
   const getEstadoClass = (estado) => {
     switch (estado) {
       case 'disponible':
@@ -86,7 +86,7 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete,
             ) : (
               <tr>
                 <td colSpan="5" className="sin-datos">
-                  No hay herramientas registradas
+                  {emptyMessage}
                 </td>
               </tr>
             )}

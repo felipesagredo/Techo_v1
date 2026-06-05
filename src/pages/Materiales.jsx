@@ -104,11 +104,13 @@ export default function Materiales({ user }) {
         </div>
       </div>
 
-      <div className="herramientas-actions">
-        <button className="btn-nuevo-registro" onClick={handleOpenPopup}>
-          + Nuevo Registro
-        </button>
-      </div>
+      {user?.role_id === 1 && (
+        <div className="herramientas-actions">
+          <button className="btn-nuevo-registro" onClick={handleOpenPopup}>
+            + Nuevo Registro
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="loading">Cargando materiales...</div>
