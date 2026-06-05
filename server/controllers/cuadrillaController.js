@@ -20,8 +20,8 @@ export const getRoles = async (req, res) => {
 
 export const create = async (req, res) => {
     try {
-        const { nombre, zona } = req.body;
-        const cuadrilla = await cuadrillaService.createCuadrilla(nombre, zona);
+        const { nombre, zona, latitud, longitud } = req.body;
+        const cuadrilla = await cuadrillaService.createCuadrilla(nombre, zona, latitud, longitud);
         res.status(201).json(cuadrilla);
     } catch (err) {
         res.status(500).json({ error: 'Error al crear cuadrilla' });
@@ -38,7 +38,7 @@ export const addMember = async (req, res) => {
     }
 };
 
-exports.removeMember = async (req, res) => {
+export const removeMember = async (req, res) => {
     try {
         const { userId, cuadrillaId } = req.body;
         await cuadrillaService.unassignMember(userId, cuadrillaId);
@@ -48,7 +48,7 @@ exports.removeMember = async (req, res) => {
     }
 };
 
-exports.getDetails = async (req, res) => {
+export const getDetails = async (req, res) => {
     try {
         const miembros = await cuadrillaService.getMiembrosByCuadrilla(req.params.id);
         res.json(miembros);
@@ -57,7 +57,7 @@ exports.getDetails = async (req, res) => {
     }
 };
 
-exports.getAvailableCount = async (req, res) => {
+export const getAvailableCount = async (req, res) => {
     try {
         const count = await cuadrillaService.getAvailableVolunteersCount();
         res.json({ count });
@@ -66,7 +66,7 @@ exports.getAvailableCount = async (req, res) => {
     }
 };
 
-exports.autoGenerate = async (req, res) => {
+export const autoGenerate = async (req, res) => {
     try {
         const { nombre, zona, count, latitud, longitud } = req.body;
         const result = await cuadrillaService.autoGenerateCuadrilla(nombre, zona, count, latitud, longitud);
@@ -77,7 +77,7 @@ exports.autoGenerate = async (req, res) => {
     }
 };
 
-exports.remove = async (req, res) => {
+export const remove = async (req, res) => {
     try {
         const result = await cuadrillaService.deleteCuadrilla(req.params.id);
         if (!result) return res.status(404).json({ error: 'Cuadrilla no encontrada' });
@@ -87,7 +87,7 @@ exports.remove = async (req, res) => {
     }
 };
 
-exports.update = async (req, res) => {
+export const update = async (req, res) => {
     try {
         const result = await cuadrillaService.updateCuadrilla(req.params.id, req.body);
         res.json(result);
@@ -97,3 +97,17 @@ exports.update = async (req, res) => {
     }
 };
 
+const cuadrillaController = {
+    getAll,
+    getRoles,
+    create,
+    addMember,
+    removeMember,
+    getDetails,
+    getAvailableCount,
+    autoGenerate,
+    remove,
+    update
+};
+
+export default cuadrillaController;

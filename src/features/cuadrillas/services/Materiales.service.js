@@ -20,7 +20,8 @@ export async function getMateriales() {
 
 export async function getMaterialesById(id) {
     try {
-        const response = await axios.get('/materiales/${id}');
+        const response = await axios.get(`/materiales/${id}`);
+        return response.data;
     }catch (error) {
         return error.response.data;
     }
@@ -28,7 +29,7 @@ export async function getMaterialesById(id) {
 
 export async function updateMateriales(id, dataMaterial) {
     try{
-        const response = await axios.put('/materiales/${id}', dataMaterial);
+        const response = await axios.put(`/materiales/${id}`, dataMaterial);
         return response.data;
     }catch (error) {
         return error.response.data;
@@ -37,9 +38,9 @@ export async function updateMateriales(id, dataMaterial) {
 
 export async function deleteMateriales(id) {
     try{
-        const response = await axios.delete('/materiales/${id}');
+        const response = await axios.delete(`/materiales/${id}`);
+        return response.data;
     }catch(error) {
         return error.response.data;
     }
-    
 }

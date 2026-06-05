@@ -18,22 +18,17 @@ import {
   Calendar,
   ClipboardList,
   Utensils,
-<<<<<<< HEAD
-  Home,
-  Trash2
-} from 'lucide-react'
-
-// Features
-import CuadrillasView from './features/cuadrillas/components/CuadrillasView'
-import VoluntariosView from './features/voluntarios/components/VoluntariosView'
-=======
+  Trash2,
   Eye,
   Edit2,
   Plus,
   X
 } from 'lucide-react'
+
+// Features
+import CuadrillasView from './features/cuadrillas/components/CuadrillasView'
+import VoluntariosView from './features/voluntarios/components/VoluntariosView'
 import Herramientas from './pages/Herramientas'
->>>>>>> origin/Cebolla
 
 function App() {
   const isJwtValid = (token) => {
@@ -824,11 +819,10 @@ function App() {
               </div>
             )}
 
-<<<<<<< HEAD
             {currentView === 'registro' && (
               <VoluntariosView />
             )}
-=======
+
             {/* HERRAMIENTAS & MATERIALES VIEW */}
             {currentView === 'herramientas' && <Herramientas user={user} />}
             
@@ -1135,8 +1129,6 @@ function App() {
                 </div>
               </div>
             )}
-
->>>>>>> origin/Cebolla
           </main>
         </div>
       </div>

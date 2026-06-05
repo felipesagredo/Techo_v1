@@ -20,7 +20,7 @@ export async function getHerramientas() {
 
 export async function getHerramientasById(id) {
     try {
-        const response = await axios.get('/herramientas/${id}');
+        const response = await axios.get(`/herramientas/${id}`);
         return response.data;
     } catch (error) {
         return error.response.data;
@@ -29,7 +29,7 @@ export async function getHerramientasById(id) {
 
 export async function updateHerramientas(id, dataHerramientas){
     try{
-        const response = await axios.put('/herramientas/${id}', dataHerramientas);
+        const response = await axios.put(`/herramientas/${id}`, dataHerramientas);
         return response.data;
     }catch (error) {
         return error.response.data;
@@ -38,7 +38,7 @@ export async function updateHerramientas(id, dataHerramientas){
 
 export async function deleteHerramientas(id){
     try{
-        const response = await axios.delete('/herramientas/${id}');
+        const response = await axios.delete(`/herramientas/${id}`);
         return response.data;
     } catch (error) {
         return error.response.data;

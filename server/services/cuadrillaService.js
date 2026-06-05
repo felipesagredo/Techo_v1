@@ -7,6 +7,9 @@ const getAllCuadrillas = async () => {
             c.nombre, 
             c.zona, 
             c.estado,
+            c.latitud,
+            c.longitud,
+            c.meta_voluntarios,
             COUNT(cm.user_id) AS miembros_count,
             (
                 SELECT u.name 
@@ -27,17 +30,17 @@ const getAllCuadrillas = async () => {
             ) AS capataz_rol
         FROM cuadrillas c
         LEFT JOIN cuadrilla_miembros cm ON c.id = cm.cuadrilla_id
-        GROUP BY c.id
+        GROUP BY c.id, c.nombre, c.zona, c.estado, c.latitud, c.longitud, c.meta_voluntarios
         ORDER BY c.id;
     `;
     const res = await pool.query(query);
     return res.rows;
 };
 
-const createCuadrilla = async (nombre, zona) => {
+const createCuadrilla = async (nombre, zona, latitud = null, longitud = null) => {
     const res = await pool.query(
-        'INSERT INTO cuadrillas (nombre, zona) VALUES ($1, $2) RETURNING *',
-        [nombre, zona]
+        'INSERT INTO cuadrillas (nombre, zona, latitud, longitud) VALUES ($1, $2, $3, $4) RETURNING *',
+        [nombre, zona, latitud, longitud]
     );
     return res.rows[0];
 };
@@ -75,7 +78,6 @@ const getRolesCuadrilla = async () => {
     return res.rows;
 };
 
-<<<<<<< HEAD
 const getAvailableVolunteersCount = async () => {
     const query = `
         SELECT COUNT(*) 
@@ -117,15 +119,15 @@ const autoGenerateCuadrilla = async (nombre, zona, count, latitud, longitud) => 
     for (let i = 0; i < availableVolunteers.length; i++) {
         const v = availableVolunteers[i];
         const roleId = (i === 0) ? capatazRole.id : voluntarioRole.id;
-        
+
         await pool.query(
             'INSERT INTO cuadrilla_miembros (user_id, cuadrilla_id, rol_cuadrilla_id) VALUES ($1, $2, $3)',
             [v.id, newCuadrilla.id, roleId]
         );
     }
 
-    return { 
-        ...newCuadrilla, 
+    return {
+        ...newCuadrilla,
         miembros_count: availableVolunteers.length,
         capataz_nombre: availableVolunteers.length > 0 ? 'Asignado' : null,
         capataz_rol: availableVolunteers.length > 0 ? 'Capataz de Zona' : null
@@ -149,19 +151,30 @@ const updateCuadrilla = async (id, data) => {
     return res.rows[0];
 };
 
-module.exports = { 
-    createCuadrilla, 
-    assignMember, 
+const cuadrillaService = {
+    getAllCuadrillas,
+    createCuadrilla,
+    assignMember,
     unassignMember,
-    getMiembrosByCuadrilla, 
-    getAllCuadrillas, 
+    getMiembrosByCuadrilla,
     getRolesCuadrilla,
     getAvailableVolunteersCount,
     autoGenerateCuadrilla,
     deleteCuadrilla,
     updateCuadrilla
 };
-=======
-export { createCuadrilla, assignMember, getMiembrosByCuadrilla, getAllCuadrillas, getRolesCuadrilla };
-export default { createCuadrilla, assignMember, getMiembrosByCuadrilla, getAllCuadrillas, getRolesCuadrilla };
->>>>>>> origin/Cebolla
+
+export {
+    getAllCuadrillas,
+    createCuadrilla,
+    assignMember,
+    unassignMember,
+    getMiembrosByCuadrilla,
+    getRolesCuadrilla,
+    getAvailableVolunteersCount,
+    autoGenerateCuadrilla,
+    deleteCuadrilla,
+    updateCuadrilla
+};
+
+export default cuadrillaService;

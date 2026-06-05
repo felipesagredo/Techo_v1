@@ -39,6 +39,15 @@ const initDB = async () => {
       archivos TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE TABLE IF NOT EXISTS prestamos_herramientas (
+      id SERIAL PRIMARY KEY,
+      herramienta_id INTEGER REFERENCES herramientas(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      fecha_prestamo TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      fecha_devolucion TIMESTAMP,
+      estado_prestamo VARCHAR(30) DEFAULT 'prestado',
+      notas TEXT
     );`
   ];
 

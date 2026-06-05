@@ -31,7 +31,8 @@ export async function createHerramientas(req, res) {
             nombre: body.nombre,
             descripcion: body.descripcion,
             stock: body.stock,
-            categoria_herramienta: body.categoria_herramienta
+            categoria_herramienta: body.categoria_herramienta,
+            estado: body.estado || 'disponible'
         };
         const newHerramienta = await createHerramientasService(herramientaData);
         handleSuccess(res, 201, "Herramienta creada/agregada exitosamente", newHerramienta);

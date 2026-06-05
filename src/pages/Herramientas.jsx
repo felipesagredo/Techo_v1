@@ -81,7 +81,7 @@ export default function Herramientas({ user }) {
 
       {/* Botón Nuevo Registro */}
       <div className="herramientas-actions">
-        <button className="btn-nuevo-registro" onClick={handleOpenPopup}>
+        <button className="btn-primary" onClick={handleOpenPopup}>
           + Nuevo Registro
         </button>
       </div>

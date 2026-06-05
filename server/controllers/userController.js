@@ -10,7 +10,7 @@ export const getAll = async (req, res) => {
     }
 };
 
-exports.getAvailable = async (req, res) => {
+export const getAvailable = async (req, res) => {
     try {
         const users = await userService.getAvailableVolunteers();
         res.json(users);
@@ -19,7 +19,7 @@ exports.getAvailable = async (req, res) => {
     }
 };
 
-exports.getById = async (req, res) => {
+export const getById = async (req, res) => {
     try {
         const user = await userService.getUserById(req.params.id);
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -29,7 +29,7 @@ exports.getById = async (req, res) => {
     }
 };
 
-exports.remove = async (req, res) => {
+export const remove = async (req, res) => {
     try {
         await userService.deleteUser(req.params.id);
         res.json({ message: 'Usuario eliminado correctamente' });
@@ -38,7 +38,7 @@ exports.remove = async (req, res) => {
     }
 };
 
-exports.getRoles = async (req, res) => {
+export const getRoles = async (req, res) => {
     try {
         const roles = await userService.getSystemRoles();
         res.json(roles);
@@ -47,7 +47,7 @@ exports.getRoles = async (req, res) => {
     }
 };
 
-exports.update = async (req, res) => {
+export const update = async (req, res) => {
     try {
         const user = await userService.updateUser(req.params.id, req.body);
         res.json(user);
@@ -55,3 +55,14 @@ exports.update = async (req, res) => {
         res.status(500).json({ error: 'Error al actualizar usuario' });
     }
 };
+
+const userController = {
+    getAll,
+    getAvailable,
+    getById,
+    remove,
+    getRoles,
+    update
+};
+
+export default userController;

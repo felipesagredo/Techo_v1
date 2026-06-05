@@ -8,13 +8,9 @@ router.get('/available', userController.getAvailable);
 router.get('/roles', userController.getRoles);
 router.get('/', userController.getAll);
 
-<<<<<<< HEAD
 // Rutas dinámicas (con :id) al final
 router.get('/:id', userController.getById);
 router.delete('/:id', userController.remove);
 router.put('/:id', userController.update);
 
-module.exports = router;
-=======
 export default router;
->>>>>>> origin/Cebolla

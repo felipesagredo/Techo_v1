@@ -19,7 +19,9 @@ const createUser = async (userData) => {
 
     const result = await pool.query(query, values);
     return result.rows[0];
-};const mapUserRow = (row) => {
+};
+
+const mapUserRow = (row) => {
     if (!row) return null;
     return {
         id: row.id,
@@ -117,7 +119,6 @@ const getSystemRoles = async () => {
     return result.rows;
 };
 
-<<<<<<< HEAD
 const getAvailableVolunteers = async () => {
     const query = `
         SELECT u.id, u.name, u.email, u.role_id, r.nombre AS role_nombre, u.telefono, u.comuna, u.habilidades 
@@ -130,16 +131,24 @@ const getAvailableVolunteers = async () => {
     return result.rows;
 };
 
-module.exports = { 
-    createUser, 
-    getAllUsers, 
-    getUserById, 
+const userService = {
+    createUser,
+    getAllUsers,
+    getUserById,
     getAvailableVolunteers,
-    deleteUser, 
+    deleteUser,
     updateUser,
-    getSystemRoles 
+    getSystemRoles
 };
-=======
-export { createUser, getAllUsers };
-export default { createUser, getAllUsers };
->>>>>>> origin/Cebolla
+
+export {
+    createUser,
+    getAllUsers,
+    getUserById,
+    getAvailableVolunteers,
+    deleteUser,
+    updateUser,
+    getSystemRoles
+};
+
+export default userService;
