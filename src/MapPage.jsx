@@ -15,6 +15,8 @@ const MapPage = ({ onBack }) => {
   const isAdmin = user && user.role_id === 1
   const token = localStorage.getItem('token')
 
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
   const validateClientCoordinates = (lat, lng) => {
     const latNum = Number(lat)
     const lngNum = Number(lng)
@@ -55,7 +57,7 @@ const MapPage = ({ onBack }) => {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('http://localhost:5000/api/addresses', {
+      const res = await fetch(`${API_BASE}/api/addresses`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       })
       if (!res.ok) throw new Error('Error cargando direcciones')
@@ -92,7 +94,7 @@ const MapPage = ({ onBack }) => {
           return
         }
 
-        const res = await fetch(`http://localhost:5000/api/addresses/${id}`, {
+        const res = await fetch(`${API_BASE}/api/addresses/${id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -116,7 +118,7 @@ const MapPage = ({ onBack }) => {
       if (!window.confirm('¿Estás seguro de eliminar esta dirección?')) return
 
       try {
-        const res = await fetch(`http://localhost:5000/api/addresses/${id}`, {
+        const res = await fetch(`${API_BASE}/api/addresses/${id}`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}` }
         })
@@ -199,7 +201,7 @@ const MapPage = ({ onBack }) => {
       }
 
       try {
-        const res = await fetch('http://localhost:5000/api/addresses', {
+        const res = await fetch(`${API_BASE}/api/addresses`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
