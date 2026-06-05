@@ -3,12 +3,14 @@ import { useGetMateriales } from '../features/cuadrillas/hooks/materiales/useGet
 import { useDeleteMaterial } from '../features/cuadrillas/hooks/materiales/useDeleteMaterial';
 import MaterialesInventario from '../features/cuadrillas/components/MaterialesInventario';
 import MaterialesPopup from '../components/Materiales.Popup';
+import { Search, X } from 'lucide-react';
 import '../styles/Herramientas.css';
 
 export default function Materiales({ user }) {
   const [showPopup, setShowPopup] = useState(false);
   const [popupMode, setPopupMode] = useState('create');
   const [editingMaterial, setEditingMaterial] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const { materiales, loading, error, refetch } = useGetMateriales();
   const { deleteMaterialById } = useDeleteMaterial();
 
@@ -50,11 +52,37 @@ export default function Materiales({ user }) {
   const cantidadTotal = materiales?.reduce((acc, material) => acc + (Number(material.cantidad) || 0), 0) || 0;
   const pesoTotal = materiales?.reduce((acc, material) => acc + (Number(material.peso) || 0), 0) || 0;
   const porReponer = materiales?.filter((material) => Number(material.cantidad) === 0).length || 0;
+  const materialesFiltrados = materiales?.filter((material) => {
+    const nombre = material.nombre_material || '';
+    return nombre.toLowerCase().includes(searchTerm.trim().toLowerCase());
+  }) || [];
 
   return (
     <div className="herramientas-container">
       <div className="herramientas-header">
         <h1>Materiales</h1>
+      </div>
+
+      <div className="materials-search-bar">
+        <div className="materials-search-input">
+          <Search size={18} />
+          <input
+            type="text"
+            placeholder="Buscar por nombre del material..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              className="materials-search-clear"
+              onClick={() => setSearchTerm('')}
+              aria-label="Limpiar búsqueda"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="stats-grid">
@@ -88,10 +116,13 @@ export default function Materiales({ user }) {
         <div className="error">{error}</div>
       ) : (
         <MaterialesInventario
-          materiales={materiales}
+          materiales={materialesFiltrados}
           user={user}
           onEdit={handleEditMaterial}
           onDelete={handleDeleteMaterial}
+          emptyMessage={searchTerm.trim()
+            ? 'No se encontraron materiales con ese nombre'
+            : 'No hay materiales registrados'}
         />
       )}
 

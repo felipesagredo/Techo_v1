@@ -2,7 +2,7 @@ import React from 'react';
 import '../../../styles/HerramientasInventario.css';
 import { Package, Edit2, Trash2 } from 'lucide-react';
 
-export default function MaterialesInventario({ materiales, onEdit, onDelete, user }) {
+export default function MaterialesInventario({ materiales, onEdit, onDelete, user, emptyMessage = 'No hay materiales registrados' }) {
   const getEstadoClass = (estado) => {
     switch (estado) {
       case 'disponible':
@@ -90,7 +90,7 @@ export default function MaterialesInventario({ materiales, onEdit, onDelete, use
             ) : (
               <tr>
                 <td colSpan="5" className="sin-datos">
-                  No hay materiales registrados
+                  {emptyMessage}
                 </td>
               </tr>
             )}
