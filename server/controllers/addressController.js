@@ -1,8 +1,15 @@
-const pool = require('../config/db');
+const {
+  getAllAddresses,
+  createAddress,
+  updateAddressById,
+  deleteAddressById,
+} = require('../services/Address.service');
+
+const { validateCoordinates } = require('../validations/address.validations');
 
 exports.getAll = async (req, res) => {
   try {
-    const result = await pool.query('SELECT id, label, lat, lng, created_by, created_at FROM addresses ORDER BY id DESC');
+    const result = await getAllAddresses();
     res.json({ addresses: result.rows });
   } catch (err) {
     console.error(err);
@@ -23,11 +30,18 @@ exports.create = async (req, res) => {
     return res.status(400).json({ error: 'Faltan datos requeridos' });
   }
 
+  const coordCheck = validateCoordinates(lat, lng);
+  if (!coordCheck.valid) {
+    return res.status(400).json({ error: coordCheck.message });
+  }
+
   try {
-    const result = await pool.query(
-      'INSERT INTO addresses (label, lat, lng, created_by) VALUES ($1, $2, $3, $4) RETURNING id, label, lat, lng, created_by, created_at',
-      [label, lat, lng, user.id]
-    );
+    const result = await createAddress({
+      label,
+      lat: coordCheck.lat,
+      lng: coordCheck.lng,
+      createdBy: user.id,
+    });
     res.status(201).json({ address: result.rows[0] });
   } catch (err) {
     console.error(err);
@@ -49,11 +63,18 @@ exports.update = async (req, res) => {
     return res.status(400).json({ error: 'Faltan datos requeridos' });
   }
 
+  const coordCheck = validateCoordinates(lat, lng);
+  if (!coordCheck.valid) {
+    return res.status(400).json({ error: coordCheck.message });
+  }
+
   try {
-    const result = await pool.query(
-      'UPDATE addresses SET label = $1, lat = $2, lng = $3 WHERE id = $4 RETURNING id, label, lat, lng, created_by, created_at',
-      [label, lat, lng, id]
-    );
+    const result = await updateAddressById({
+      id,
+      label,
+      lat: coordCheck.lat,
+      lng: coordCheck.lng,
+    });
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Dirección no encontrada' });
@@ -76,7 +97,7 @@ exports.delete = async (req, res) => {
   if (user.role_id !== 1) return res.status(403).json({ error: 'Acceso prohibido: solo administradores' });
 
   try {
-    const result = await pool.query('DELETE FROM addresses WHERE id = $1 RETURNING id', [id]);
+    const result = await deleteAddressById(id);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Dirección no encontrada' });
