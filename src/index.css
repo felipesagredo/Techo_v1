@@ -2237,10 +2237,7 @@ h4.text-orange {
   color: #15803d;
   border: 1px solid #bbf7d0;
 }
-
-<<<<<<< HEAD
-
-/* ==========================================
+/* ==========================================
    SWEETALERT2 CUSTOM PREMIUM STYLES
    ========================================== */
 .premium-swal-popup {
@@ -2279,8 +2276,8 @@ h4.text-orange {
   font-size: 0.95rem !important;
   font-weight: 500 !important;
   line-height: 1.5 !important;
-}
-=======
+}
+
 /* Card Layout for Cuadrillas */
 .cuadrillas-cards-grid {
   display: grid;
@@ -2555,5 +2552,4 @@ h4.text-orange {
   display: flex;
   gap: 0.5rem;
 }
-
->>>>>>> origin/pipefs_prueba
+
