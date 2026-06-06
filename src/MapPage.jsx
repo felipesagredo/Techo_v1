@@ -3,6 +3,36 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Plus } from 'lucide-react'
 
+const COLOR_OPTIONS = [
+  { value: 'red', label: 'Rojo', hex: '#e53935', description: 'Ubicación de llegada' },
+  { value: 'purple', label: 'Morado', hex: '#8e24aa', description: 'Área de comida' },
+  { value: 'blue', label: 'Azul', hex: '#1e88e5', description: 'Ubicación de emergencia' },
+  { value: 'yellow', label: 'Amarillo', hex: '#fdd835', description: 'Área de trabajo' },
+  { value: 'green', label: 'Verde', hex: '#43a047', description: 'Herramientas' },
+]
+
+const COLOR_ICON_URLS = {
+  red: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+  purple: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-violet.png',
+  blue: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+  yellow: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png',
+  green: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+}
+
+const getColorOption = (color) => COLOR_OPTIONS.find(option => option.value === color) || COLOR_OPTIONS[0]
+
+const getMarkerIcon = (color) => {
+  const colorKey = getColorOption(color).value
+  return L.icon({
+    iconUrl: COLOR_ICON_URLS[colorKey],
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  })
+}
+
 const MapPage = ({ onBack }) => {
   const mapRef = useRef(null)
   const [map, setMap] = useState(null)
@@ -11,6 +41,15 @@ const MapPage = ({ onBack }) => {
   const [addresses, setAddresses] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [selectedColor, setSelectedColor] = useState('red')
+  const [modalVisible, setModalVisible] = useState(false)
+  const [modalLabel, setModalLabel] = useState('')
+  const [pendingLocation, setPendingLocation] = useState(null)
+  const [editModalVisible, setEditModalVisible] = useState(false)
+  const [editingAddress, setEditingAddress] = useState(null)
+  const [editingLabel, setEditingLabel] = useState('')
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false)
+  const [deletingAddressId, setDeletingAddressId] = useState(null)
   const user = JSON.parse(localStorage.getItem('user') || 'null')
   const isAdmin = user && user.role_id === 1
   const token = localStorage.getItem('token')
@@ -34,7 +73,10 @@ const MapPage = ({ onBack }) => {
     layer.clearLayers()
     addrs.forEach(addr => {
       try {
-        const marker = L.marker([parseFloat(addr.lat), parseFloat(addr.lng)])
+        const markerColor = getColorOption(addr.color).value
+        const marker = L.marker([parseFloat(addr.lat), parseFloat(addr.lng)], {
+          icon: getMarkerIcon(markerColor)
+        })
 
         // Armo el popup con nodos DOM para evitar HTML en string y onclick inline.
         const popup = document.createElement('div')
@@ -43,6 +85,13 @@ const MapPage = ({ onBack }) => {
         const title = document.createElement('strong')
         title.textContent = addr.label
         popup.appendChild(title)
+
+        const colorInfo = document.createElement('div')
+        colorInfo.style.marginTop = '4px'
+        colorInfo.style.fontSize = '12px'
+        colorInfo.style.color = '#666'
+        colorInfo.textContent = `Color: ${getColorOption(markerColor).label}`
+        popup.appendChild(colorInfo)
 
         if (isAdminUser) {
           const actions = document.createElement('div')
@@ -190,14 +239,7 @@ const MapPage = ({ onBack }) => {
           const { latitude, longitude } = pos.coords
           const userMarker = L.marker([latitude, longitude], {
             title: 'Tu ubicación',
-            icon: L.icon({
-              iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-              iconSize: [25, 41],
-              iconAnchor: [12, 41],
-              popupAnchor: [1, -34],
-              shadowSize: [41, 41]
-            })
+            icon: getMarkerIcon('blue')
           })
           userMarker.bindPopup('Tu ubicación actual')
           userMarker.addTo(m)
@@ -223,9 +265,7 @@ const MapPage = ({ onBack }) => {
     const handleMapClick = async (e) => {
       if (!adding || !isAdmin) return
       const { lat, lng } = e.latlng
-      const label = window.prompt('Nombre de esta dirección:')
-      if (!label || label.trim() === '') return
-
+      
       // Validar coordenadas en cliente
       const coordCheck = validateClientCoordinates(lat, lng)
       if (!coordCheck.valid) {
@@ -233,25 +273,10 @@ const MapPage = ({ onBack }) => {
         return
       }
 
-      try {
-        const res = await fetch(`${API_BASE}/api/addresses`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ label: label.trim(), lat: coordCheck.lat, lng: coordCheck.lng })
-        })
-        if (!res.ok) {
-          const data = await res.json()
-          throw new Error(data.error || 'Error guardando')
-        }
-        setAdding(false)
-        alert('Marcador guardado')
-        await loadAddresses()
-      } catch (err) {
-        alert('Error: ' + err.message)
-      }
+      // Abrir modal en lugar de prompt
+      setPendingLocation({ lat: coordCheck.lat, lng: coordCheck.lng })
+      setModalLabel('')
+      setModalVisible(true)
     }
 
     map.on('click', handleMapClick)
@@ -259,7 +284,44 @@ const MapPage = ({ onBack }) => {
     return () => {
       map.off('click', handleMapClick)
     }
-  }, [map, adding, isAdmin, token])
+  }, [map, adding, isAdmin])
+
+  // Manejar envío del formulario modal
+  const handleSubmitLocation = async () => {
+    if (!modalLabel.trim()) {
+      alert('Por favor ingresa un nombre')
+      return
+    }
+
+    try {
+      const color = isAdmin ? selectedColor : 'red'
+      const res = await fetch(`${API_BASE}/api/addresses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          label: modalLabel.trim(), 
+          lat: pendingLocation.lat, 
+          lng: pendingLocation.lng, 
+          color 
+        })
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Error guardando')
+      }
+      setAdding(false)
+      setModalVisible(false)
+      setModalLabel('')
+      setPendingLocation(null)
+      alert('Ubicación guardada correctamente')
+      await loadAddresses()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
+  }
 
   // Cargar direcciones al montar y cuando el mapa esté listo
   useEffect(() => {
@@ -307,6 +369,32 @@ const MapPage = ({ onBack }) => {
               <Plus size={16} />
               {adding ? 'Cancelar' : 'Añadir Ubicación'}
             </button>
+          )}
+
+          {isAdmin && adding && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#f5f5f5', borderRadius: '6px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600 }}>Color:</span>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {COLOR_OPTIONS.map(option => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setSelectedColor(option.value)}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: '999px',
+                      border: selectedColor === option.value ? '2px solid #111' : '1px solid #ccc',
+                      background: option.hex,
+                      color: option.value === 'yellow' ? '#111' : 'white',
+                      fontSize: '12px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
           <button 
@@ -361,7 +449,7 @@ const MapPage = ({ onBack }) => {
             borderRadius: '4px',
             fontSize: '13px'
           }}>
-            Haz clic en el mapa para agregar una nueva ubicación
+            Haz clic en el mapa para agregar una nueva ubicación con el color seleccionado
           </div>
         )}
       </div>
@@ -377,6 +465,23 @@ const MapPage = ({ onBack }) => {
         }} 
       />
 
+      <div style={{ marginTop: '10px', padding: '10px 12px', background: '#fafafa', border: '1px solid #eee', borderRadius: '8px' }}>
+        <strong style={{ display: 'block', marginBottom: '8px' }}>Categorías de ubicaciones</strong>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {COLOR_OPTIONS.map(option => (
+            <div key={option.value} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
+              <span style={{ width: '14px', height: '14px', borderRadius: '50%', background: option.hex, display: 'inline-block', border: '1px solid rgba(0,0,0,0.15)' }} />
+              <span><strong>{option.description}</strong></span>
+            </div>
+          ))}
+        </div>
+        {!isAdmin && (
+          <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#666' }}>
+            Cada color representa una categoría diferente de ubicación.
+          </p>
+        )}
+      </div>
+
       {/* Footer */}
       <div style={{
         marginTop: '12px',
@@ -391,6 +496,99 @@ const MapPage = ({ onBack }) => {
           © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors
         </p>
       </div>
+
+      {/* Modal amigable para agregar ubicación */}
+      {modalVisible && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '90%',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)'
+          }}>
+            <h2 style={{ margin: '0 0 16px 0', fontSize: '18px', color: '#333' }}>
+              Nueva ubicación
+            </h2>
+            
+            <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#666' }}>
+              Categoria: <strong>{getColorOption(selectedColor).description}</strong>
+            </p>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#333' }}>
+                Nombre de la ubicación:
+              </label>
+              <input
+                type="text"
+                value={modalLabel}
+                onChange={(e) => setModalLabel(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSubmitLocation()}
+                placeholder="Ej: Centro comunitario..."
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                  fontFamily: 'inherit'
+                }}
+                autoFocus
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setModalVisible(false)
+                  setModalLabel('')
+                  setPendingLocation(null)
+                }}
+                style={{
+                  padding: '10px 16px',
+                  background: '#f0f0f0',
+                  color: '#333',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSubmitLocation}
+                style={{
+                  padding: '10px 16px',
+                  background: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                Guardar ubicación
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -5,7 +5,7 @@ const {
   deleteAddressById,
 } = require('../services/Address.service');
 
-const { validateCoordinates } = require('../validations/address.validations');
+const { validateCoordinates, validateColor } = require('../validations/address.validations');
 
 exports.getAll = async (req, res) => {
   try {
@@ -18,7 +18,7 @@ exports.getAll = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
-  const { label, lat, lng } = req.body;
+  const { label, lat, lng, color } = req.body;
   const user = req.user;
 
   if (!user) return res.status(401).json({ error: 'No autorizado' });
@@ -35,11 +35,17 @@ exports.create = async (req, res) => {
     return res.status(400).json({ error: coordCheck.message });
   }
 
+  const colorCheck = validateColor(color);
+  if (!colorCheck.valid) {
+    return res.status(400).json({ error: colorCheck.message });
+  }
+
   try {
     const result = await createAddress({
       label,
       lat: coordCheck.lat,
       lng: coordCheck.lng,
+      color: colorCheck.color,
       createdBy: user.id,
     });
     res.status(201).json({ address: result.rows[0] });

@@ -4,7 +4,7 @@ function isFiniteNumber(n) {
 }
 
 function validateCoordinates(lat, lng) {
-  // Rechazar valores vacíos ('' or only whitespace) y nulos/undefined
+  // Rechazar valores vacíos ('' ) y nulos
   const latStr = lat === null || lat === undefined ? '' : String(lat).trim();
   const lngStr = lng === null || lng === undefined ? '' : String(lng).trim();
 
@@ -30,4 +30,20 @@ function validateCoordinates(lat, lng) {
   return { valid: true, lat: latNum, lng: lngNum };
 }
 
-module.exports = { validateCoordinates };
+const ALLOWED_COLORS = ['red', 'purple', 'blue', 'yellow', 'green'];
+
+function validateColor(color) {
+  const normalized = typeof color === 'string' ? color.trim().toLowerCase() : '';
+
+  if (!normalized) {
+    return { valid: true, color: 'red' };
+  }
+
+  if (!ALLOWED_COLORS.includes(normalized)) {
+    return { valid: false, message: 'Color inválido' };
+  }
+
+  return { valid: true, color: normalized };
+}
+
+module.exports = { validateCoordinates, validateColor, ALLOWED_COLORS };

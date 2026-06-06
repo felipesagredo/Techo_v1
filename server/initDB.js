@@ -25,6 +25,7 @@ const initDB = async () => {
       label VARCHAR(255) NOT NULL,
       lat NUMERIC NOT NULL,
       lng NUMERIC NOT NULL,
+      color VARCHAR(20) NOT NULL DEFAULT 'red',
       created_by INTEGER REFERENCES users(id),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`
@@ -59,6 +60,18 @@ const initDB = async () => {
       if (columnCheck.rows.length === 0) {
         await pool.query('ALTER TABLE users ADD COLUMN role_id INTEGER REFERENCES roles(id) DEFAULT 2');
         console.log('✅ Columna role_id añadida a la tabla users');
+      }
+
+      // 5. Verificar si la columna color existe en addresses (por si la tabla se creó antes sin ella)
+      const colorColumnCheck = await pool.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name='addresses' AND column_name='color'
+      `);
+
+      if (colorColumnCheck.rows.length === 0) {
+        await pool.query('ALTER TABLE addresses ADD COLUMN color VARCHAR(20) NOT NULL DEFAULT \'red\'');
+        console.log('✅ Columna color añadida a la tabla addresses');
       }
 
       console.log('✅ Sistema de base de datos listo y sincronizado');

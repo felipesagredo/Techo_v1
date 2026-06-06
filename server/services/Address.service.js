@@ -1,19 +1,19 @@
 const pool = require('../config/db');
 
-const ADDRESS_SELECT_FIELDS = 'id, label, lat, lng, created_by, created_at';
+const ADDRESS_SELECT_FIELDS = 'id, label, lat, lng, color, created_by, created_at';
 
 async function getAllAddresses() {
   const query = `SELECT ${ADDRESS_SELECT_FIELDS} FROM addresses ORDER BY id DESC`;
   return pool.query(query);
 }
 
-async function createAddress({ label, lat, lng, createdBy }) {
+async function createAddress({ label, lat, lng, color = 'red', createdBy }) {
   const query = `
-    INSERT INTO addresses (label, lat, lng, created_by)
-    VALUES ($1, $2, $3, $4)
+    INSERT INTO addresses (label, lat, lng, color, created_by)
+    VALUES ($1, $2, $3, $4, $5)
     RETURNING ${ADDRESS_SELECT_FIELDS}
   `;
-  return pool.query(query, [label, lat, lng, createdBy]);
+  return pool.query(query, [label, lat, lng, color, createdBy]);
 }
 
 async function updateAddressById({ id, label, lat, lng }) {
