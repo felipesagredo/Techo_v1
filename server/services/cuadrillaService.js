@@ -27,7 +27,15 @@ const getAllCuadrillas = async () => {
                 WHERE cm2.cuadrilla_id = c.id 
                   AND rc.nombre IN ('Capataz de Zona', 'Voluntario Senior')
                 LIMIT 1
-            ) AS capataz_rol
+            ) AS capataz_rol,
+            COALESCE(
+                (SELECT json_agg(json_build_object('id', h.id, 'nombre', h.nombre, 'voluntario', u.name))
+                 FROM cuadrilla_miembros cm3
+                 JOIN users u ON cm3.user_id = u.id
+                 JOIN herramientas h ON h.assigned_to = u.id
+                 WHERE cm3.cuadrilla_id = c.id),
+                '[]'::json
+            ) AS herramientas
         FROM cuadrillas c
         LEFT JOIN cuadrilla_miembros cm ON c.id = cm.cuadrilla_id
         GROUP BY c.id, c.nombre, c.zona, c.estado, c.latitud, c.longitud, c.meta_voluntarios
@@ -46,6 +54,26 @@ const createCuadrilla = async (nombre, zona, latitud = null, longitud = null) =>
 };
 
 const assignMember = async (userId, cuadrillaId, rolCuadrillaId) => {
+    // Verificar si el rol que se quiere asignar es Capataz de Zona o Voluntario Senior
+    const roleRes = await pool.query('SELECT nombre FROM roles_cuadrilla WHERE id = $1', [rolCuadrillaId]);
+    if (roleRes.rows.length > 0) {
+        const roleName = roleRes.rows[0].nombre;
+        if (roleName === 'Capataz de Zona' || roleName === 'Voluntario Senior') {
+            // Buscar si ya existe algún Capataz de Zona o Voluntario Senior en la cuadrilla
+            const existingRes = await pool.query(`
+                SELECT u.name, rc.nombre as cargo
+                FROM cuadrilla_miembros cm
+                JOIN users u ON cm.user_id = u.id
+                JOIN roles_cuadrilla rc ON cm.rol_cuadrilla_id = rc.id
+                WHERE cm.cuadrilla_id = $1 AND rc.nombre IN ('Capataz de Zona', 'Voluntario Senior')
+            `, [cuadrillaId]);
+            
+            if (existingRes.rows.length > 0) {
+                throw new Error(`Esta cuadrilla ya cuenta con un líder asignado: ${existingRes.rows[0].name} (${existingRes.rows[0].cargo}).`);
+            }
+        }
+    }
+
     const res = await pool.query(
         'INSERT INTO cuadrilla_miembros (user_id, cuadrilla_id, rol_cuadrilla_id) VALUES ($1, $2, $3) RETURNING *',
         [userId, cuadrillaId, rolCuadrillaId]
@@ -63,7 +91,13 @@ const unassignMember = async (userId, cuadrillaId) => {
 
 const getMiembrosByCuadrilla = async (cuadrillaId) => {
     const res = await pool.query(`
-        SELECT u.id as user_id, u.name, u.email, rc.nombre as cargo
+        SELECT u.id as user_id, u.name, u.email, rc.nombre as cargo,
+          COALESCE(
+            (SELECT json_agg(json_build_object('id', h.id, 'nombre', h.nombre, 'estado', h.estado)) 
+             FROM herramientas h 
+             WHERE h.assigned_to = u.id), 
+            '[]'::json
+          ) AS herramientas
         FROM cuadrilla_miembros cm
         JOIN users u ON cm.user_id = u.id
         JOIN roles_cuadrilla rc ON cm.rol_cuadrilla_id = rc.id

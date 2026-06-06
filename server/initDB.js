@@ -30,6 +30,21 @@ const initDB = async () => {
       role_id INTEGER REFERENCES roles(id),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`,
+    `CREATE TABLE IF NOT EXISTS cuadrillas (
+      id SERIAL PRIMARY KEY,
+      nombre VARCHAR(100) NOT NULL,
+      zona VARCHAR(255) NOT NULL,
+      estado VARCHAR(50) DEFAULT 'PENDIENTE',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      latitud DECIMAL(10, 8),
+      longitud DECIMAL(11, 8),
+      meta_voluntarios INTEGER DEFAULT 5,
+      capacidad INTEGER DEFAULT 10
+    );`,
+    `CREATE TABLE IF NOT EXISTS roles_cuadrilla (
+      id SERIAL PRIMARY KEY,
+      nombre VARCHAR(50) UNIQUE NOT NULL
+    );`,
     `CREATE TABLE IF NOT EXISTS cuadrilla_miembros (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id),

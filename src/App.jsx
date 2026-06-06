@@ -468,7 +468,7 @@ function App() {
           {/* Sidebar */}
           <aside className="sidebar-modern">
             <div className="sidebar-profile">
-              <h3>Administrador</h3>
+              <h3>{user.role_id === 1 ? 'Administrador' : user.role_id === 3 ? 'Socio' : 'Voluntario'}</h3>
               <p>Gestión Nacional</p>
             </div>
             <nav className="sidebar-menu">
@@ -495,7 +495,7 @@ function App() {
               <div className="user-profile-card">
                 <div>
                   <h4>{user.name}</h4>
-                  <p>Director Regional</p>
+                  <p>{user.role_id === 1 ? 'Administrador' : user.role_id === 3 ? 'Socio' : 'Voluntario'}</p>
                 </div>
               </div>
               <button className="logout-btn-modern" onClick={handleLogout}>
