@@ -28,7 +28,13 @@ export const useCuadrillas = (user, currentView) => {
     zona: '',
     latitud: '',
     longitud: '',
+<<<<<<< HEAD
     count: 5
+=======
+    count: 0,
+    meta_herramientas: 5,
+    herramientas_requeridas: ''
+>>>>>>> origin/pipefs_prueba
   });
   const [isCreating, setIsCreating] = useState(false);
 
@@ -68,6 +74,7 @@ export const useCuadrillas = (user, currentView) => {
 
   const handleCreateCuadrilla = async (e) => {
     e.preventDefault();
+<<<<<<< HEAD
 
     // Validación de seguridad
     if (!createData.latitud || !createData.longitud) {
@@ -77,23 +84,34 @@ export const useCuadrillas = (user, currentView) => {
 
     if (createData.count > availableVolunteersCount) {
       showToast('No hay suficientes voluntarios disponibles', 'error');
+=======
+
+    if (createData.count && createData.count > availableVolunteersCount) {
+      alert('No hay suficientes voluntarios disponibles');
+>>>>>>> origin/pipefs_prueba
       return;
     }
 
     setIsCreating(true);
     try {
-      // Aseguramos que lat/long viajen como números
       const payload = {
         ...createData,
-        latitud: parseFloat(createData.latitud),
-        longitud: parseFloat(createData.longitud)
+        latitud: createData.latitud ? parseFloat(createData.latitud) : null,
+        longitud: createData.longitud ? parseFloat(createData.longitud) : null,
+        count: parseInt(createData.count) || 0,
+        meta_herramientas: parseInt(createData.meta_herramientas) || 5
       };
 
       await cuadrillaService.autoGenerate(payload);
       await fetchCuadrillas();
       setShowCreateModal(false);
+<<<<<<< HEAD
       setCreateData({ nombre: '', zona: '', latitud: '', longitud: '', count: 5 });
       showToast('¡Cuadrilla creada y asignada exitosamente!', 'success');
+=======
+      setCreateData({ nombre: '', zona: '', latitud: '', longitud: '', count: 0, meta_herramientas: 5, herramientas_requeridas: '' });
+      alert('¡Cuadrilla creada exitosamente!');
+>>>>>>> origin/pipefs_prueba
     } catch (err) {
       console.error(err);
       showToast(err.message || 'Error al crear cuadrilla', 'error');
@@ -243,6 +261,21 @@ export const useCuadrillas = (user, currentView) => {
     }
   };
 
+  const handleAutoAssignTools = async () => {
+    if (!selectedCuadrilla) return;
+    
+    try {
+      const res = await cuadrillaService.autoAssignTools(selectedCuadrilla.id);
+      alert(res.message || 'Asignación automática realizada con éxito');
+      const membersData = await cuadrillaService.getMembers(selectedCuadrilla.id);
+      setCurrentMembers(membersData);
+      await fetchCuadrillas();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Error al asignar herramientas automáticamente');
+    }
+  };
+
   return {
     cuadrillasList,
     loadingCuadrillas,
@@ -276,6 +309,7 @@ export const useCuadrillas = (user, currentView) => {
     handleAssignMember,
     handleRemoveMember,
     handleCloseAssignModal,
-    handleDeleteCuadrilla
+    handleDeleteCuadrilla,
+    handleAutoAssignTools
   };
 };

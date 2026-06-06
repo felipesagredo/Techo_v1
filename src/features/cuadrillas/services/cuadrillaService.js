@@ -99,5 +99,17 @@ export const cuadrillaService = {
     });
     if (!res.ok) throw new Error('Error updating cuadrilla');
     return res.json();
+  },
+
+  autoAssignTools: async (id) => {
+    const res = await fetch(`${API_URL}/cuadrillas/${id}/auto-assign-tools`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => null);
+      throw new Error(errorData?.error || 'Error auto-assigning tools');
+    }
+    return res.json();
   }
 };

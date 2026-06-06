@@ -120,6 +120,37 @@ function App() {
   const [formData, setFormData] = useState({ nombre: '', descripcion: '', cantidad: '', estado: 'bueno', responsable: '' })
   const [submitting, setSubmitting] = useState(false)
 
+  // Estadísticas del Dashboard
+  const [dashboardStats, setDashboardStats] = useState({
+    totalVoluntarios: 0,
+    totalHerramientas: 0,
+    totalCuadrillas: 0,
+    stockCritico: 0,
+    recentCuadrillas: [],
+    recentInventory: []
+  });
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  useEffect(() => {
+    if (user && currentView === 'dashboard') {
+      setLoadingStats(true);
+      fetch('http://localhost:5000/api/dashboard/stats', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          setDashboardStats(data);
+          setLoadingStats(false);
+        })
+        .catch(err => {
+          console.error(err);
+          setLoadingStats(false);
+        });
+    }
+  }, [user, currentView]);
+
   useEffect(() => {
     if (user && currentView === 'cuadrillas') {
       setLoadingCuadrillas(true)
@@ -562,36 +593,36 @@ function App() {
                   <div className="kpi-card blue">
                     <div className="kpi-header">
                       <div className="kpi-icon blue-bg"><Users size={20} /></div>
-                      <span className="kpi-badge green">+12%</span>
+                      <span className="kpi-badge green">Activos</span>
                     </div>
                     <div className="kpi-body">
-                      <p className="kpi-label">VOLUNTARIOS ACTIVOS</p>
-                      <h2>1,284</h2>
-                      <p className="kpi-sub">En 4 regiones activas</p>
+                      <p className="kpi-label">VOLUNTARIOS REGISTRADOS</p>
+                      <h2>{loadingStats ? '...' : dashboardStats.totalVoluntarios}</h2>
+                      <p className="kpi-sub">Listos para asignación</p>
                     </div>
                   </div>
 
                   <div className="kpi-card blue">
                     <div className="kpi-header">
                       <div className="kpi-icon blue-bg"><Wrench size={20} /></div>
-                      <span className="kpi-badge gray">Estable</span>
+                      <span className="kpi-badge gray">Inventario</span>
                     </div>
                     <div className="kpi-body">
                       <p className="kpi-label">TOTAL HERRAMIENTAS</p>
-                      <h2>4,520</h2>
-                      <p className="kpi-sub">92% en buen estado</p>
+                      <h2>{loadingStats ? '...' : dashboardStats.totalHerramientas}</h2>
+                      <p className="kpi-sub">En almacén y en préstamo</p>
                     </div>
                   </div>
 
                   <div className="kpi-card brown">
                     <div className="kpi-header">
                       <div className="kpi-icon brown-bg"><Users size={20} /></div>
-                      <span className="kpi-badge blue">En terreno</span>
+                      <span className="kpi-badge blue">Activas</span>
                     </div>
                     <div className="kpi-body">
-                      <p className="kpi-label">CUADRILLAS ACTIVAS</p>
-                      <h2>86</h2>
-                      <p className="kpi-sub">Promedio: 15 pers/cuadrilla</p>
+                      <p className="kpi-label">CUADRILLAS EN TERRENO</p>
+                      <h2>{loadingStats ? '...' : dashboardStats.totalCuadrillas}</h2>
+                      <p className="kpi-sub">Organizadas y en progreso</p>
                     </div>
                   </div>
 
@@ -601,9 +632,9 @@ function App() {
                       <span className="kpi-badge red-solid">ALERTA</span>
                     </div>
                     <div className="kpi-body">
-                      <p className="kpi-label">STOCK CRÍTICO</p>
-                      <h2>4 Items</h2>
-                      <p className="kpi-sub">Requiere reposición inmediata</p>
+                      <p className="kpi-label">ESTADO CRÍTICO / DAÑADO</p>
+                      <h2>{loadingStats ? '...' : `${dashboardStats.stockCritico} Items`}</h2>
+                      <p className="kpi-sub">Requiere revisión inmediata</p>
                     </div>
                   </div>
                 </div>
@@ -616,89 +647,72 @@ function App() {
                     <div className="card inventory-card">
                       <div className="card-header">
                         <div>
-                          <h3>Estado del Inventario</h3>
-                          <p>Alimentos y logística de campaña</p>
+                          <h3>Estado del Almacén</h3>
+                          <p>Herramientas y materiales recientes</p>
                         </div>
-                        <a href="#" className="link-action">Ver todo el almacén <ChevronRight size={16} /></a>
+                        <a href="#" className="link-action" onClick={(e) => { e.preventDefault(); setCurrentView('herramientas'); }}>Ver todo el inventario <ChevronRight size={16} /></a>
                       </div>
                       <div className="inventory-list">
-                        <div className="inventory-item">
-                          <div className="item-icon image-bg"></div>
-                          <div className="item-details">
-                            <h4>Arroz Grano Largo (Kg)</h4>
-                            <p>ID: ALM-2024-001</p>
-                          </div>
-                          <div className="item-status">
-                            <h4>120 Kg</h4>
-                            <span className="text-red">BAJO ESTADO CRÍTICO</span>
-                          </div>
-                        </div>
-                        <div className="inventory-item">
-                          <div className="item-icon dark-bg"><Package size={20} color="white" /></div>
-                          <div className="item-details">
-                            <h4>Aceite Vegetal (Lts)</h4>
-                            <p>ID: ALM-2024-012</p>
-                          </div>
-                          <div className="item-status">
-                            <h4>850 Lts</h4>
-                            <span className="text-green">STOCK SALUDABLE</span>
-                          </div>
-                        </div>
-                        <div className="inventory-item">
-                          <div className="item-icon dark-bg"><Wrench size={20} color="white" /></div>
-                          <div className="item-details">
-                            <h4>Kits de Construcción Básica</h4>
-                            <p>ID: HER-2024-113</p>
-                          </div>
-                          <div className="item-status">
-                            <h4 className="text-orange">12 Unidades</h4>
-                            <span className="text-orange">EN TRÁNSITO</span>
-                          </div>
-                        </div>
+                        {(!dashboardStats.recentInventory || dashboardStats.recentInventory.length === 0) ? (
+                          <p className="no-items-text" style={{ padding: '1.5rem', color: '#868e96', textAlign: 'center' }}>No hay items en el inventario.</p>
+                        ) : (
+                          dashboardStats.recentInventory.map(item => {
+                            const isTool = item.tipo === 'herramienta';
+                            const isCritical = item.estado === 'malo' || item.estado === 'dañado' || item.cantidad <= 5;
+                            return (
+                              <div key={`${item.tipo}-${item.id}`} className="inventory-item">
+                                <div className="item-icon dark-bg" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  {isTool ? <Wrench size={16} color="white" /> : <Package size={16} color="white" />}
+                                </div>
+                                <div className="item-details">
+                                  <h4>{item.nombre}</h4>
+                                  <p>Tipo: {isTool ? 'Herramienta' : 'Material'}</p>
+                                </div>
+                                <div className="item-status">
+                                  <h4>{isTool ? '1 Unidad' : `${item.cantidad} Unidades`}</h4>
+                                  <span className={isCritical ? 'text-red' : 'text-green'}>
+                                    {isCritical ? 'ESTADO CRÍTICO' : 'STOCK DISPONIBLE'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
                       </div>
                     </div>
 
                     {/* Cuadrillas */}
                     <div className="cuadrillas-section">
                       <div className="section-header">
-                        <h3>Cuadrillas en Terreno</h3>
-                        <span className="active-dot">42 activas ahora</span>
+                        <h3>Cuadrillas Recientes</h3>
+                        <span className="active-dot">{dashboardStats.totalCuadrillas} registradas</span>
                       </div>
                       <div className="cuadrillas-grid">
-                        <div className="cuadrilla-card">
-                          <div className="cuadrilla-info">
-                            <div className="cuadrilla-icon">C1</div>
-                            <div>
-                              <h4>Cuadrilla "Esperanza"</h4>
-                              <p>Región del Biobío</p>
+                        {(!dashboardStats.recentCuadrillas || dashboardStats.recentCuadrillas.length === 0) ? (
+                          <p className="no-items-text" style={{ padding: '1.5rem', color: '#868e96', width: '100%', textAlign: 'center' }}>No hay cuadrillas creadas aún.</p>
+                        ) : (
+                          dashboardStats.recentCuadrillas.map(c => (
+                            <div key={c.id} className="cuadrilla-card">
+                              <div className="cuadrilla-info">
+                                <div className="cuadrilla-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                                  {c.nombre.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <h4>{c.nombre}</h4>
+                                  <p>{c.zona}</p>
+                                </div>
+                              </div>
+                              <div className="cuadrilla-footer">
+                                <div className="avatar-group" style={{ fontSize: '0.8rem', color: '#666' }}>
+                                  👥 {c.miembros_count} miembros
+                                </div>
+                                <span className={`cv-badge badge-${(c.estado || 'PENDIENTE').toLowerCase().replace(/\s/g, '-')}`} style={{ fontSize: '0.7rem' }}>
+                                  {c.estado || 'PENDIENTE'}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                          <div className="cuadrilla-footer">
-                            <div className="avatar-group">
-                              <div className="small-avatar bg-1"></div>
-                              <div className="small-avatar bg-2"></div>
-                              <div className="small-avatar bg-3">+12</div>
-                            </div>
-                            <span className="tag-blue">Fase: Orientación</span>
-                          </div>
-                        </div>
-                        <div className="cuadrilla-card">
-                          <div className="cuadrilla-info">
-                            <div className="cuadrilla-icon orange">C8</div>
-                            <div>
-                              <h4>Cuadrilla "Maipú Sur"</h4>
-                              <p>Región Metropolitana</p>
-                            </div>
-                          </div>
-                          <div className="cuadrilla-footer">
-                            <div className="avatar-group">
-                              <div className="small-avatar bg-4"></div>
-                              <div className="small-avatar bg-5"></div>
-                              <div className="small-avatar bg-6">+8</div>
-                            </div>
-                            <span className="tag-light">Fase: Techado</span>
-                          </div>
-                        </div>
+                          ))
+                        )}
                       </div>
                     </div>
                   </div>
@@ -767,98 +781,7 @@ function App() {
             )}
 
             {currentView === 'cuadrillas' && (
-              <div className="cuadrillas-view-container">
-                <div className="cv-header">
-                  <div>
-                    <h1>Gestión de Cuadrillas</h1>
-                    <p>Supervisa y organiza los equipos de construcción en terreno. Asegura que cada cuadrilla tenga un liderazgo sólido para el cumplimiento de metas habitacionales.</p>
-                  </div>
-                  <button className="btn-primary" onClick={() => setShowNewCuadrillaModal(true)}>
-                    <Plus size={16} /> Nueva Cuadrilla
-                  </button>
-                </div>
-
-                <div className="cv-kpis">
-                  <div className="cv-kpi-card">
-                    <p>TOTAL EQUIPOS</p>
-                    <h2>{cuadrillasList.length}</h2>
-                  </div>
-                  <div className="cv-kpi-card cv-kpi-red">
-                    <p>SIN CAPATACES</p>
-                    <h2>{cuadrillasList.filter(c => !c.capataz_nombre).length < 10 ? `0${cuadrillasList.filter(c => !c.capataz_nombre).length}` : cuadrillasList.filter(c => !c.capataz_nombre).length} <AlertTriangle size={18} /></h2>
-                  </div>
-                  <div className="cv-kpi-card cv-kpi-wide">
-                    <div className="cv-kpi-text">
-                      <p>META SEMANAL</p>
-                      <h3>12 Viviendas en proceso</h3>
-                    </div>
-                    <div className="cv-progress-bar">
-                      <div className="cv-progress-fill"></div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="cv-table-container">
-                  <div className="cv-table-header">
-                    <div className="col-equipo">EQUIPO / UBICACIÓN</div>
-                    <div className="col-capataz">CAPATAZ ASIGNADO</div>
-                    <div className="col-miembros">MIEMBROS</div>
-                    <div className="col-estado">ESTADO</div>
-                    <div className="col-acciones">ACCIONES</div>
-                  </div>
-
-                  <div className="cv-table-body">
-                    {loadingCuadrillas ? <p className="loading-text">Cargando...</p> : cuadrillasList.map(cuadrilla => {
-                      const noCapataz = !cuadrilla.capataz_nombre;
-                      return (
-                        <div key={cuadrilla.id} className={`cv-table-row ${noCapataz ? 'row-alert' : ''}`}>
-                          <div className="col-equipo">
-                            <div className={`cv-icon ${noCapataz ? 'icon-alert' : 'icon-normal'}`}>
-                              <Home size={18} />
-                            </div>
-                            <div>
-                              <h4>{cuadrilla.nombre}</h4>
-                              <p>{cuadrilla.zona}</p>
-                            </div>
-                          </div>
-                          <div className="col-capataz">
-                            {noCapataz ? (
-                              <div className="no-capataz-text"><Users size={14} /> ASIGNAR CAPATAZ</div>
-                            ) : (
-                              <div className="capataz-info">
-                                <div className="capataz-avatar">{cuadrilla.capataz_nombre.charAt(0)}</div>
-                                <div>
-                                  <h4>{cuadrilla.capataz_nombre}</h4>
-                                  <p>{cuadrilla.capataz_rol}</p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <div className="col-miembros">
-                            <span className={`miembros-number ${noCapataz ? 'text-red' : 'text-blue'}`}>{cuadrilla.miembros_count < 10 ? `0${cuadrilla.miembros_count}` : cuadrilla.miembros_count}</span>
-                          </div>
-                          <div className="col-estado">
-                            <span className={`cv-badge badge-${cuadrilla.estado.toLowerCase().replace(/\s/g, '-')}`}>{cuadrilla.estado}</span>
-                          </div>
-                          <div className="col-acciones">
-                            {noCapataz ? (
-                              <div className="alert-actions">
-                                <button className="btn-priorizar" onClick={() => handleOpenAssignModal(cuadrilla)}>PRIORIZAR</button>
-                                <div className="alert-circle">!</div>
-                              </div>
-                            ) : (
-                              <div className="normal-actions">
-                                <button className="icon-action" onClick={() => handleOpenViewMembersModal(cuadrilla)}><Eye size={16} /></button>
-                                <button className="icon-action" onClick={() => handleOpenAssignModal(cuadrilla)}><Edit2 size={16} /></button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
+              <CuadrillasView user={user} currentView={currentView} />
             )}
 
             {currentView === 'registro' && (

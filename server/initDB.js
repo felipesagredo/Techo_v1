@@ -39,7 +39,9 @@ const initDB = async () => {
       latitud DECIMAL(10, 8),
       longitud DECIMAL(11, 8),
       meta_voluntarios INTEGER DEFAULT 5,
-      capacidad INTEGER DEFAULT 10
+      capacidad INTEGER DEFAULT 10,
+      meta_herramientas INTEGER DEFAULT 5,
+      herramientas_requeridas TEXT
     );`,
     `CREATE TABLE IF NOT EXISTS roles_cuadrilla (
       id SERIAL PRIMARY KEY,
@@ -183,6 +185,16 @@ const initDB = async () => {
     if (!cuadrillaCols.includes('capacidad')) {
       await pool.query('ALTER TABLE cuadrillas ADD COLUMN capacidad INTEGER DEFAULT 10');
       console.log('✅ Columna capacidad añadida a cuadrillas');
+    }
+
+    if (!cuadrillaCols.includes('meta_herramientas')) {
+      await pool.query('ALTER TABLE cuadrillas ADD COLUMN meta_herramientas INTEGER DEFAULT 5');
+      console.log('✅ Columna meta_herramientas añadida a cuadrillas');
+    }
+
+    if (!cuadrillaCols.includes('herramientas_requeridas')) {
+      await pool.query('ALTER TABLE cuadrillas ADD COLUMN herramientas_requeridas TEXT');
+      console.log('✅ Columna herramientas_requeridas añadida a cuadrillas');
     }
 
     console.log('✅ Sistema de base de datos listo y sincronizado');
