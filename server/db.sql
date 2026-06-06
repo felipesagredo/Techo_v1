@@ -7,6 +7,23 @@ CREATE TABLE IF NOT EXISTS roles (
   descripcion VARCHAR(255)
 );
 
+CREATE TABLE IF NOT EXISTS roles_cuadrilla (
+  id SERIAL PRIMARY KEY,
+  nombre VARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS cuadrillas (
+  id SERIAL PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL,
+  zona VARCHAR(255) NOT NULL,
+  estado VARCHAR(50) DEFAULT 'PENDIENTE',
+  latitud DECIMAL(10, 8),
+  longitud DECIMAL(11, 8),
+  meta_voluntarios INTEGER DEFAULT 5,
+  capacidad INTEGER DEFAULT 10,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100),
@@ -14,6 +31,14 @@ CREATE TABLE IF NOT EXISTS users (
   password VARCHAR(255) NOT NULL,
   role_id INTEGER REFERENCES roles(id),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS cuadrilla_miembros (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id),
+  cuadrilla_id INTEGER REFERENCES cuadrillas(id),
+  rol_cuadrilla_id INTEGER REFERENCES roles_cuadrilla(id),
+  UNIQUE(user_id, cuadrilla_id)
 );
 
 CREATE TABLE IF NOT EXISTS herramientas (
@@ -47,4 +72,10 @@ INSERT INTO roles (nombre, descripcion) VALUES
 ('admin', 'Administrador con acceso total'),
 ('voluntario', 'Voluntario de campo'),
 ('socio', 'Socio colaborador')
+ON CONFLICT (nombre) DO NOTHING;
+
+INSERT INTO roles_cuadrilla (nombre) VALUES 
+('Voluntario Senior'),
+('Capataz de Zona'),
+('Voluntario')
 ON CONFLICT (nombre) DO NOTHING;

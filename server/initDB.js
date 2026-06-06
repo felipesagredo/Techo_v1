@@ -7,6 +7,21 @@ const initDB = async () => {
       nombre VARCHAR(50) UNIQUE NOT NULL,
       descripcion VARCHAR(255)
     );`,
+    `CREATE TABLE IF NOT EXISTS roles_cuadrilla (
+      id SERIAL PRIMARY KEY,
+      nombre VARCHAR(50) UNIQUE NOT NULL
+    );`,
+    `CREATE TABLE IF NOT EXISTS cuadrillas (
+      id SERIAL PRIMARY KEY,
+      nombre VARCHAR(100) NOT NULL,
+      zona VARCHAR(255) NOT NULL,
+      estado VARCHAR(50) DEFAULT 'PENDIENTE',
+      latitud DECIMAL(10, 8),
+      longitud DECIMAL(11, 8),
+      meta_voluntarios INTEGER DEFAULT 5,
+      capacidad INTEGER DEFAULT 10,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
     `CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       name VARCHAR(100),
@@ -14,6 +29,13 @@ const initDB = async () => {
       password VARCHAR(255) NOT NULL,
       role_id INTEGER REFERENCES roles(id),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE TABLE IF NOT EXISTS cuadrilla_miembros (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id),
+      cuadrilla_id INTEGER REFERENCES cuadrillas(id),
+      rol_cuadrilla_id INTEGER REFERENCES roles_cuadrilla(id),
+      UNIQUE(user_id, cuadrilla_id)
     );`,
     `CREATE TABLE IF NOT EXISTS herramientas (
       id SERIAL PRIMARY KEY,
@@ -70,12 +92,13 @@ const initDB = async () => {
 
     // 4. Insertar roles de cuadrilla iniciales si no existen
     const cuadrillaRolesExist = await pool.query('SELECT COUNT(*) FROM roles_cuadrilla');
-    if (parseInt(cuadrillaRolesExist.rows[0].count) === 0) {
+    if (parseInt(cuadrillaRolesExist.rows[0].count, 10) === 0) {
       await pool.query(`
         INSERT INTO roles_cuadrilla (nombre) VALUES 
         ('Voluntario Senior'),
         ('Capataz de Zona'),
         ('Voluntario')
+        ON CONFLICT (nombre) DO NOTHING
       `);
       console.log('✅ Roles de cuadrilla insertados');
     }
