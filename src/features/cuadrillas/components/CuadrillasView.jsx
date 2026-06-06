@@ -96,6 +96,7 @@ const CuadrillasView = ({ user, currentView }) => {
         <div className="cv-table-header">
           <div className="col-equipo">EQUIPO / UBICACIÓN</div>
           <div className="col-capataz">CAPATAZ ASIGNADO</div>
+          <div className="col-herramientas">HERRAMIENTAS</div>
           <div className="col-miembros">MIEMBROS</div>
           <div className="col-estado">ESTADO</div>
           <div className="col-acciones">ACCIONES</div>
@@ -126,6 +127,23 @@ const CuadrillasView = ({ user, currentView }) => {
                         <p>{cuadrilla.capataz_rol}</p>
                       </div>
                     </div>
+                  )}
+                </div>
+                <div className="col-herramientas">
+                  {cuadrilla.herramientas && cuadrilla.herramientas.length > 0 ? (
+                    <div className="tools-badge-list" title={cuadrilla.herramientas.map(t => `${t.nombre} (${t.voluntario})`).join(', ')}>
+                      <span className="tools-count-badge">🔧 {cuadrilla.herramientas.length}</span>
+                      <div className="tools-preview-names">
+                        {cuadrilla.herramientas.slice(0, 2).map((t, idx) => (
+                          <span key={idx} className="tool-mini-badge">{t.nombre}</span>
+                        ))}
+                        {cuadrilla.herramientas.length > 2 && (
+                          <span className="tool-mini-badge-more">+{cuadrilla.herramientas.length - 2}</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="no-tools-text">Sin herramientas</span>
                   )}
                 </div>
                 <div className="col-miembros">
@@ -261,6 +279,19 @@ const CuadrillasView = ({ user, currentView }) => {
               </button>
             </div>
 
+            {(() => {
+              const leaders = currentMembers.filter(m => m.cargo === 'Capataz de Zona' || m.cargo === 'Voluntario Senior');
+              return leaders.length === 0 ? (
+                <div className="leadership-alert alert-warning">
+                  <AlertTriangle size={16} /> Falta asignar un líder a esta cuadrilla (Capataz de Zona o Voluntario Senior).
+                </div>
+              ) : (
+                <div className="leadership-alert alert-success">
+                  <span>✓</span> Líder asignado: {leaders.map(l => `${l.name} (${l.cargo})`).join(', ')}
+                </div>
+              );
+            })()}
+
             <div className="assign-layout">
               <div className="assign-form-section">
                 <h3>Añadir Miembro Manualmente</h3>
@@ -303,7 +334,14 @@ const CuadrillasView = ({ user, currentView }) => {
                         <div className="member-avatar">{m.name ? m.name.charAt(0).toUpperCase() : '?'}</div>
                         <div className="member-info">
                           <h4>{m.name}</h4>
-                          <span className={`member-role ${m.cargo && m.cargo.includes('Capataz') ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
+                          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.2rem' }}>
+                            <span className={`member-role ${m.cargo && (m.cargo.includes('Capataz') || m.cargo.includes('Senior')) ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
+                            {m.herramientas && m.herramientas.length > 0 && (
+                              <span style={{ fontSize: '0.65rem', color: '#1d8cf8', fontWeight: 600 }} title={m.herramientas.map(h => h.nombre).join(', ')}>
+                                🔧 {m.herramientas.length} herr.
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <button 
                           className="btn-liberar" 
@@ -349,7 +387,18 @@ const CuadrillasView = ({ user, currentView }) => {
                     <div className="member-avatar">{m.name.charAt(0).toUpperCase()}</div>
                     <div className="member-info">
                       <h4>{m.name}</h4>
-                      <span className={`member-role ${m.cargo.includes('Capataz') ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
+                      <span className={`member-role ${m.cargo.includes('Capataz') || m.cargo.includes('Senior') ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
+                    </div>
+                    <div className="member-tools">
+                      {m.herramientas && m.herramientas.length > 0 ? (
+                        m.herramientas.map((h, hIdx) => (
+                          <span key={hIdx} className="tool-mini-badge" title={`Estado: ${h.estado}`}>
+                            🔧 {h.nombre}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="no-tools-text-small">Sin herramientas</span>
+                      )}
                     </div>
                   </div>
                 ))}

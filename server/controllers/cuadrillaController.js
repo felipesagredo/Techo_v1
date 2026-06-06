@@ -34,7 +34,7 @@ export const addMember = async (req, res) => {
         const asignacion = await cuadrillaService.assignMember(userId, cuadrillaId, rolCuadrillaId);
         res.status(201).json(asignacion);
     } catch (err) {
-        res.status(500).json({ error: 'Error al asignar miembro' });
+        res.status(500).json({ error: err.message || 'Error al asignar miembro' });
     }
 };
 
