@@ -13,7 +13,9 @@ export const useCuadrillas = (user, currentView) => {
     zona: '', 
     latitud: '', 
     longitud: '',
-    count: 5 
+    count: 0,
+    meta_herramientas: 5,
+    herramientas_requeridas: ''
   });
   const [isCreating, setIsCreating] = useState(false);
 
@@ -53,32 +55,27 @@ export const useCuadrillas = (user, currentView) => {
 
   const handleCreateCuadrilla = async (e) => {
     e.preventDefault();
-    
-    // Validación de seguridad
-    if (!createData.latitud || !createData.longitud) {
-      alert('Por favor, selecciona una ubicación en el mapa haciendo clic sobre él.');
-      return;
-    }
 
-    if (createData.count > availableVolunteersCount) {
+    if (createData.count && createData.count > availableVolunteersCount) {
       alert('No hay suficientes voluntarios disponibles');
       return;
     }
     
     setIsCreating(true);
     try {
-      // Aseguramos que lat/long viajen como números
       const payload = {
         ...createData,
-        latitud: parseFloat(createData.latitud),
-        longitud: parseFloat(createData.longitud)
+        latitud: createData.latitud ? parseFloat(createData.latitud) : null,
+        longitud: createData.longitud ? parseFloat(createData.longitud) : null,
+        count: parseInt(createData.count) || 0,
+        meta_herramientas: parseInt(createData.meta_herramientas) || 5
       };
 
       await cuadrillaService.autoGenerate(payload);
       await fetchCuadrillas();
       setShowCreateModal(false);
-      setCreateData({ nombre: '', zona: '', latitud: '', longitud: '', count: 5 });
-      alert('¡Cuadrilla creada y asignada exitosamente!');
+      setCreateData({ nombre: '', zona: '', latitud: '', longitud: '', count: 0, meta_herramientas: 5, herramientas_requeridas: '' });
+      alert('¡Cuadrilla creada exitosamente!');
     } catch (err) {
       console.error(err);
       alert(err.message || 'Error al crear cuadrilla');
@@ -228,6 +225,21 @@ export const useCuadrillas = (user, currentView) => {
     }
   };
 
+  const handleAutoAssignTools = async () => {
+    if (!selectedCuadrilla) return;
+    
+    try {
+      const res = await cuadrillaService.autoAssignTools(selectedCuadrilla.id);
+      alert(res.message || 'Asignación automática realizada con éxito');
+      const membersData = await cuadrillaService.getMembers(selectedCuadrilla.id);
+      setCurrentMembers(membersData);
+      await fetchCuadrillas();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Error al asignar herramientas automáticamente');
+    }
+  };
+
   return {
     cuadrillasList,
     loadingCuadrillas,
@@ -261,6 +273,7 @@ export const useCuadrillas = (user, currentView) => {
     handleAssignMember,
     handleRemoveMember,
     handleCloseAssignModal,
-    handleDeleteCuadrilla
+    handleDeleteCuadrilla,
+    handleAutoAssignTools
   };
 };

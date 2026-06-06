@@ -68,12 +68,22 @@ export const getAvailableCount = async (req, res) => {
 
 export const autoGenerate = async (req, res) => {
     try {
-        const { nombre, zona, count, latitud, longitud } = req.body;
-        const result = await cuadrillaService.autoGenerateCuadrilla(nombre, zona, count, latitud, longitud);
+        const { nombre, zona, count, latitud, longitud, meta_herramientas, herramientas_requeridas } = req.body;
+        const result = await cuadrillaService.autoGenerateCuadrilla(nombre, zona, count, latitud, longitud, meta_herramientas, herramientas_requeridas);
         res.status(201).json(result);
     } catch (err) {
         console.error('Error en autoGenerate:', err);
         res.status(500).json({ error: err.message || 'Error interno al generar cuadrilla' });
+    }
+};
+
+export const autoAssignTools = async (req, res) => {
+    try {
+        const result = await cuadrillaService.autoAssignToolsToCuadrilla(req.params.id);
+        res.json(result);
+    } catch (err) {
+        console.error('Error al asignar herramientas:', err);
+        res.status(500).json({ error: err.message || 'Error al asignar herramientas automáticamente' });
     }
 };
 
@@ -106,6 +116,7 @@ const cuadrillaController = {
     getDetails,
     getAvailableCount,
     autoGenerate,
+    autoAssignTools,
     remove,
     update
 };
