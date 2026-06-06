@@ -14,10 +14,10 @@ export default function MaterialesInventario({ materiales, onEdit, onDelete, use
     }
   };
 
-  const getCantidadStatus = (cantidad) => {
+  const getStockStatusClass = (cantidad) => {
     if (cantidad === 0) return 'sin-stock';
-    if (cantidad <= 5) return 'bajo-stock';
-    return 'stock-ok';
+    if (cantidad < 50) return 'bajo-stock';
+    return 'stock-optimo';
   };
 
   return (
@@ -56,7 +56,7 @@ export default function MaterialesInventario({ materiales, onEdit, onDelete, use
                       </div>
                     </div>
                   </td>
-                  <td className={`stock-cell ${getCantidadStatus(material.cantidad)}`}>
+                  <td className={`stock-cell ${getStockStatusClass(material.cantidad)}`}>
                     {material.cantidad} <span className="stock-unit">unid</span>
                   </td>
                   <td>{material.categoria}</td>

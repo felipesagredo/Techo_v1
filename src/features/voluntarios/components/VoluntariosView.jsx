@@ -17,8 +17,24 @@ import {
 } from 'lucide-react';
 import { voluntarioService } from '../services/voluntarioService';
 import '../../../styles/VoluntariosView.css';
+import Swal from 'sweetalert2';
+
+const showToast = (message, type = 'info') => {
+  Swal.fire({
+    title: type === 'success' ? '¡Éxito!' : type === 'error' ? '¡Error!' : type === 'warning' ? '¡Advertencia!' : 'Información',
+    text: message,
+    icon: type,
+    confirmButtonText: 'Aceptar',
+    confirmButtonColor: '#004785',
+    customClass: {
+      popup: 'premium-swal-popup',
+      confirmButton: 'premium-swal-confirm-btn'
+    }
+  });
+};
 
 const VoluntariosView = () => {
+
   const [voluntarios, setVoluntarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,10 +89,10 @@ const VoluntariosView = () => {
       await voluntarioService.update(selectedVoluntario.id, editData);
       await fetchVoluntarios();
       setShowEditModal(false);
-      alert('Voluntario actualizado con éxito');
+      showToast('Voluntario actualizado con éxito', 'success');
     } catch (err) {
       console.error(err);
-      alert('Error al actualizar voluntario');
+      showToast('Error al actualizar voluntario', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -87,10 +103,10 @@ const VoluntariosView = () => {
     try {
       await voluntarioService.delete(id);
       await fetchVoluntarios();
-      alert('Voluntario eliminado correctamente');
+      showToast('Voluntario eliminado correctamente', 'success');
     } catch (err) {
       console.error(err);
-      alert('Error al eliminar voluntario');
+      showToast('Error al eliminar voluntario', 'error');
     }
   };
 
@@ -195,8 +211,8 @@ const VoluntariosView = () => {
                 </div>
                 <div className="form-group">
                   <label>Rol de Sistema</label>
-                  <select 
-                    value={editData.role_id} 
+                  <select
+                    value={editData.role_id}
                     onChange={e => setEditData({ ...editData, role_id: parseInt(e.target.value) })}
                     style={{ width: '100%', padding: '0.6rem', border: '1px solid #ddd', borderRadius: '8px', fontSize: '0.85rem', background: '#fff' }}
                   >

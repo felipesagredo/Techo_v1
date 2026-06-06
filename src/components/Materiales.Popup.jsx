@@ -77,7 +77,7 @@ export default function MaterialesPopup({ material, mode = 'create', onClose, on
   };
 
   return (
-    <div className="herramientas-modal-overlay" onClick={onClose}>
+    <div className="herramientas-modal-overlay">
       <div className="herramientas-modal" onClick={(e) => e.stopPropagation()}>
         <div className="herramientas-modal-header">
           <h2>{mode === 'edit' ? 'Editar Material' : 'Nuevo Material'}</h2>

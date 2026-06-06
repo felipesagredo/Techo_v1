@@ -14,10 +14,10 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete,
     }
   };
 
-  const getStockStatus = (stock) => {
+  const getStockStatusClass = (stock) => {
     if (stock === 0) return 'sin-stock';
-    if (stock <= 5) return 'bajo-stock';
-    return 'stock-ok';
+    if (stock < 50) return 'bajo-stock';
+    return 'stock-optimo';
   };
 
   return (
@@ -52,7 +52,7 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete,
                       <div className="descripcion">{herramienta.descripcion}</div>
                     </div>
                   </td>
-                  <td className={`stock-cell ${getStockStatus(herramienta.stock)}`}>
+                  <td className={`stock-cell ${getStockStatusClass(herramienta.stock)}`}>
                     {herramienta.stock} <span className="stock-unit">unid</span>
                   </td>
                   <td>{herramienta.categoria_herramienta}</td>

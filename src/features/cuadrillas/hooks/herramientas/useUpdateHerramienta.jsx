@@ -28,8 +28,10 @@ export function useUpdateHerramienta(){
                 });
             }
             setHerramienta(response.data);
+            return response;
         } catch (error){
             setError(error);
+            return error.response?.data || error;
         } finally {
             setLoading(false);
         }

@@ -64,7 +64,7 @@ export default function HerramientasPopup({ herramienta, mode = 'create', onClos
   };
 
   return (
-    <div className="herramientas-modal-overlay" onClick={onClose}>
+    <div className="herramientas-modal-overlay">
       <div className="herramientas-modal" onClick={(e) => e.stopPropagation()}>
         <div className="herramientas-modal-header">
           <h2>{mode === 'edit' ? 'Editar Herramienta' : 'Nueva Herramienta'}</h2>

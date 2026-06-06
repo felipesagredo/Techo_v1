@@ -30,8 +30,24 @@ import CuadrillasView from './features/cuadrillas/components/CuadrillasView'
 import VoluntariosView from './features/voluntarios/components/VoluntariosView'
 import Herramientas from './pages/Herramientas'
 import Materiales from './pages/Materiales'
+import Swal from 'sweetalert2'
+
+const showToast = (message, type = 'info') => {
+  Swal.fire({
+    title: type === 'success' ? '¡Éxito!' : type === 'error' ? '¡Error!' : type === 'warning' ? '¡Advertencia!' : 'Información',
+    text: message,
+    icon: type,
+    confirmButtonText: 'Aceptar',
+    confirmButtonColor: '#004785',
+    customClass: {
+      popup: 'premium-swal-popup',
+      confirmButton: 'premium-swal-confirm-btn'
+    }
+  });
+};
 
 function App() {
+
   const isJwtValid = (token) => {
     if (!token) return false;
 
@@ -95,7 +111,7 @@ function App() {
   const [herramientasList, setHerramientasList] = useState([])
   const [materialesList, setMaterialesList] = useState([])
   const [loadingInventario, setLoadingInventario] = useState(false)
-  
+
   // Herramientas/Materiales Modals
   const [showCreateItemModal, setShowCreateItemModal] = useState(false)
   const [showEditItemModal, setShowEditItemModal] = useState(false)
@@ -167,11 +183,11 @@ function App() {
         setShowNewCuadrillaModal(false);
         setNewCuadrillaData({ nombre: '', zona: '' });
       } else {
-        alert('Error al crear cuadrilla');
+        showToast('Error al crear cuadrilla', 'error');
       }
     } catch (err) {
       console.error(err);
-      alert('Error de red al crear cuadrilla');
+      showToast('Error de red al crear cuadrilla', 'error');
     } finally {
       setCreatingCuadrilla(false);
     }
@@ -180,18 +196,18 @@ function App() {
   const handleOpenAssignModal = async (cuadrilla) => {
     setSelectedCuadrilla(cuadrilla);
     setShowAssignModal(true);
-    
+
     try {
       const [membersRes, usersRes, rolesRes] = await Promise.all([
         fetch(`http://localhost:5000/api/cuadrillas/${cuadrilla.id}/miembros`),
         fetch(`http://localhost:5000/api/users`),
         fetch(`http://localhost:5000/api/cuadrillas/roles`)
       ]);
-      
+
       const membersData = await membersRes.json();
       const usersData = await usersRes.json();
       const rolesData = await rolesRes.json();
-      
+
       setCurrentMembers(membersData);
       setUsersList(usersData);
       setRolesList(rolesData);
@@ -200,28 +216,28 @@ function App() {
       }
     } catch (err) {
       console.error(err);
-      alert('Error cargando datos de asignación');
+      showToast('Error cargando datos de asignación', 'error');
     }
   };
 
   const handleOpenViewMembersModal = async (cuadrilla) => {
     setSelectedCuadrilla(cuadrilla);
     setShowViewMembersModal(true);
-    
+
     try {
       const membersRes = await fetch(`http://localhost:5000/api/cuadrillas/${cuadrilla.id}/miembros`);
       const membersData = await membersRes.json();
       setCurrentMembers(membersData);
     } catch (err) {
       console.error(err);
-      alert('Error cargando miembros');
+      showToast('Error cargando miembros', 'error');
     }
   };
 
   const handleAssignMember = async (e) => {
     e.preventDefault();
     if (!assignData.userId || !assignData.rolCuadrillaId) return;
-    
+
     setAssigningMember(true);
     try {
       const response = await fetch('http://localhost:5000/api/cuadrillas/add-member', {
@@ -235,19 +251,19 @@ function App() {
           rolCuadrillaId: Number(assignData.rolCuadrillaId)
         })
       });
-      
+
       if (response.ok) {
         const membersRes = await fetch(`http://localhost:5000/api/cuadrillas/${selectedCuadrilla.id}/miembros`);
         setCurrentMembers(await membersRes.json());
       } else {
         const errorData = await response.json().catch(() => null);
-        alert(errorData?.error || 'El voluntario ya está asignado a esta cuadrilla o hubo un error.');
+        showToast(errorData?.error || 'El voluntario ya está asignado a esta cuadrilla o hubo un error.', 'error');
       }
     } catch(err) {
        console.error(err);
-       alert('Error de conexión al asignar voluntario.');
+       showToast('Error de conexión al asignar voluntario.', 'error');
     } finally {
-       setAssigningMember(false);
+      setAssigningMember(false);
     }
   };
 
@@ -284,7 +300,7 @@ function App() {
     e.preventDefault()
     setSubmitting(true)
     const endpoint = itemType === 'herramienta' ? '/api/herramientas' : '/api/materiales'
-    
+
     try {
       const response = await fetch(`http://localhost:5000${endpoint}`, {
         method: 'POST',
@@ -294,9 +310,9 @@ function App() {
         },
         body: JSON.stringify(formData)
       })
-      
+
       if (response.ok) {
-        alert(`${itemType === 'herramienta' ? 'Herramienta' : 'Material'} creado exitosamente`)
+        showToast(`${itemType === 'herramienta' ? 'Herramienta' : 'Material'} creado exitosamente`, 'success')
         setShowCreateItemModal(false)
         // Reload inventory
         const [herramientas, materiales] = await Promise.all([
@@ -306,11 +322,11 @@ function App() {
         setHerramientasList(unwrapApiList(herramientas))
         setMaterialesList(unwrapApiList(materiales))
       } else {
-        alert('Error al crear item')
+        showToast('Error al crear item', 'error')
       }
     } catch (err) {
       console.error(err)
-      alert('Error de conexión')
+      showToast('Error de conexión', 'error')
     } finally {
       setSubmitting(false)
     }
@@ -320,7 +336,7 @@ function App() {
     e.preventDefault()
     setSubmitting(true)
     const endpoint = itemType === 'herramienta' ? `/api/herramientas/${selectedItem.id}` : `/api/materiales/${selectedItem.id}`
-    
+
     try {
       const response = await fetch(`http://localhost:5000${endpoint}`, {
         method: 'PUT',
@@ -330,9 +346,9 @@ function App() {
         },
         body: JSON.stringify(formData)
       })
-      
+
       if (response.ok) {
-        alert(`${itemType === 'herramienta' ? 'Herramienta' : 'Material'} actualizado exitosamente`)
+        showToast(`${itemType === 'herramienta' ? 'Herramienta' : 'Material'} actualizado exitosamente`, 'success')
         setShowEditItemModal(false)
         // Reload inventory
         const [herramientas, materiales] = await Promise.all([
@@ -342,11 +358,11 @@ function App() {
         setHerramientasList(unwrapApiList(herramientas))
         setMaterialesList(unwrapApiList(materiales))
       } else {
-        alert('Error al actualizar item')
+        showToast('Error al actualizar item', 'error')
       }
     } catch (err) {
       console.error(err)
-      alert('Error de conexión')
+      showToast('Error de conexión', 'error')
     } finally {
       setSubmitting(false)
     }
@@ -354,9 +370,9 @@ function App() {
 
   const handleDeleteItem = async (id, type) => {
     if (!window.confirm(`¿Estás seguro de que deseas eliminar este ${type === 'herramienta' ? 'herramienta' : 'material'}?`)) return
-    
+
     const endpoint = type === 'herramienta' ? `/api/herramientas/${id}` : `/api/materiales/${id}`
-    
+
     try {
       const response = await fetch(`http://localhost:5000${endpoint}`, {
         method: 'DELETE',
@@ -364,9 +380,9 @@ function App() {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       })
-      
+
       if (response.ok) {
-        alert(`${type === 'herramienta' ? 'Herramienta' : 'Material'} eliminado exitosamente`)
+        showToast(`${type === 'herramienta' ? 'Herramienta' : 'Material'} eliminado exitosamente`, 'success')
         // Reload inventory
         const [herramientas, materiales] = await Promise.all([
           fetch('http://localhost:5000/api/herramientas').then(r => r.json()),
@@ -375,11 +391,11 @@ function App() {
         setHerramientasList(unwrapApiList(herramientas))
         setMaterialesList(unwrapApiList(materiales))
       } else {
-        alert('Error al eliminar item')
+        showToast('Error al eliminar item', 'error')
       }
     } catch (err) {
       console.error(err)
-      alert('Error de conexión')
+      showToast('Error de conexión', 'error')
     }
   }
 
@@ -418,14 +434,36 @@ function App() {
 
       if (response.ok) {
         if (mode === 'register') {
-          alert('¡Registro exitoso! Ahora puedes iniciar sesión.')
+          Swal.fire({
+            title: '¡Registro Exitoso!',
+            text: '¡Registro exitoso! Ahora puedes iniciar sesión.',
+            icon: 'success',
+            confirmButtonText: 'Aceptar',
+            confirmButtonColor: '#004785',
+            customClass: {
+              popup: 'premium-swal-popup',
+              confirmButton: 'premium-swal-confirm-btn'
+            }
+          });
           setMode('login')
           setName('')
         } else {
           localStorage.setItem('token', data.token)
           localStorage.setItem('user', JSON.stringify(data.user))
-          setUser(data.user)
-          alert('¡Bienvenido, ' + data.user.name + '!')
+          
+          Swal.fire({
+            title: '¡Inicio de Sesión Exitoso!',
+            text: `¡Bienvenido, ${data.user.name}!`,
+            icon: 'success',
+            confirmButtonText: 'Entrar al Portal',
+            confirmButtonColor: '#004785',
+            customClass: {
+              popup: 'premium-swal-popup',
+              confirmButton: 'premium-swal-confirm-btn'
+            }
+          }).then(() => {
+            setUser(data.user)
+          });
         }
       } else {
         setError(data.error || 'Ocurrió un error')
@@ -832,7 +870,7 @@ function App() {
 
             {/* MATERIALES VIEW */}
             {currentView === 'materiales' && <Materiales user={user} />}
-            
+
             {/* Modal Nueva Cuadrilla */}
             {showNewCuadrillaModal && (
               <div className="modal-overlay">
@@ -846,22 +884,22 @@ function App() {
                   <form onSubmit={handleCreateCuadrilla}>
                     <div className="form-group">
                       <label>Nombre del Equipo</label>
-                      <input 
-                        type="text" 
-                        placeholder="Ej. Cuadrilla Los Pinos" 
+                      <input
+                        type="text"
+                        placeholder="Ej. Cuadrilla Los Pinos"
                         value={newCuadrillaData.nombre}
-                        onChange={e => setNewCuadrillaData({...newCuadrillaData, nombre: e.target.value})}
+                        onChange={e => setNewCuadrillaData({ ...newCuadrillaData, nombre: e.target.value })}
                         required
                         className="modal-input"
                       />
                     </div>
                     <div className="form-group">
                       <label>Zona / Ubicación</label>
-                      <input 
-                        type="text" 
-                        placeholder="Ej. Campamento Esperanza, Maipú" 
+                      <input
+                        type="text"
+                        placeholder="Ej. Campamento Esperanza, Maipú"
                         value={newCuadrillaData.zona}
-                        onChange={e => setNewCuadrillaData({...newCuadrillaData, zona: e.target.value})}
+                        onChange={e => setNewCuadrillaData({ ...newCuadrillaData, zona: e.target.value })}
                         required
                         className="modal-input"
                       />
@@ -889,53 +927,53 @@ function App() {
                       <X size={20} />
                     </button>
                   </div>
-                  
+
                   <div className="assign-layout">
                     <div className="assign-form-section">
-                       <h3>Asignar Nuevo Miembro</h3>
-                       <form onSubmit={handleAssignMember} className="form-row-inline">
-                         <div className="form-group flex-2">
-                           <label>Voluntario</label>
-                           <select 
-                             className="modal-input" 
-                             value={assignData.userId} 
-                             onChange={e => setAssignData({...assignData, userId: e.target.value})}
-                           >
-                             {usersList.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                           </select>
-                         </div>
-                         <div className="form-group flex-1">
-                           <label>Rol</label>
-                           <select 
-                             className="modal-input" 
-                             value={assignData.rolCuadrillaId} 
-                             onChange={e => setAssignData({...assignData, rolCuadrillaId: e.target.value})}
-                           >
-                             {rolesList.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
-                           </select>
-                         </div>
-                         <div className="form-group submit-group">
-                           <button type="submit" className="btn-primary btn-add-member" disabled={assigningMember}>
-                             {assigningMember ? '...' : <Plus size={16}/>}
-                           </button>
-                         </div>
-                       </form>
+                      <h3>Asignar Nuevo Miembro</h3>
+                      <form onSubmit={handleAssignMember} className="form-row-inline">
+                        <div className="form-group flex-2">
+                          <label>Voluntario</label>
+                          <select
+                            className="modal-input"
+                            value={assignData.userId}
+                            onChange={e => setAssignData({ ...assignData, userId: e.target.value })}
+                          >
+                            {usersList.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                          </select>
+                        </div>
+                        <div className="form-group flex-1">
+                          <label>Rol</label>
+                          <select
+                            className="modal-input"
+                            value={assignData.rolCuadrillaId}
+                            onChange={e => setAssignData({ ...assignData, rolCuadrillaId: e.target.value })}
+                          >
+                            {rolesList.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                          </select>
+                        </div>
+                        <div className="form-group submit-group">
+                          <button type="submit" className="btn-primary btn-add-member" disabled={assigningMember}>
+                            {assigningMember ? '...' : <Plus size={16} />}
+                          </button>
+                        </div>
+                      </form>
                     </div>
 
                     <div className="members-list-section">
-                       <h3>Miembros Actuales ({currentMembers.length})</h3>
-                       <div className="members-list">
-                         {currentMembers.length === 0 ? <p className="text-muted text-center py-1">No hay miembros asignados.</p> : null}
-                         {currentMembers.map((m, idx) => (
-                           <div key={idx} className="member-item">
-                             <div className="member-avatar">{m.name.charAt(0).toUpperCase()}</div>
-                             <div className="member-info">
-                               <h4>{m.name}</h4>
-                               <span className={`member-role ${m.cargo.includes('Capataz') ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
-                             </div>
-                           </div>
-                         ))}
-                       </div>
+                      <h3>Miembros Actuales ({currentMembers.length})</h3>
+                      <div className="members-list">
+                        {currentMembers.length === 0 ? <p className="text-muted text-center py-1">No hay miembros asignados.</p> : null}
+                        {currentMembers.map((m, idx) => (
+                          <div key={idx} className="member-item">
+                            <div className="member-avatar">{m.name.charAt(0).toUpperCase()}</div>
+                            <div className="member-info">
+                              <h4>{m.name}</h4>
+                              <span className={`member-role ${m.cargo.includes('Capataz') ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                   <div className="modal-footer">
@@ -957,20 +995,20 @@ function App() {
                       <X size={20} />
                     </button>
                   </div>
-                  
+
                   <div className="members-list-section mt-1">
-                     <div className="members-list">
-                       {currentMembers.length === 0 ? <p className="text-muted">No hay miembros asignados a esta cuadrilla.</p> : null}
-                       {currentMembers.map((m, idx) => (
-                         <div key={idx} className="member-item">
-                           <div className="member-avatar">{m.name.charAt(0).toUpperCase()}</div>
-                           <div className="member-info">
-                             <h4>{m.name}</h4>
-                             <span className={`member-role ${m.cargo.includes('Capataz') ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
-                           </div>
-                         </div>
-                       ))}
-                     </div>
+                    <div className="members-list">
+                      {currentMembers.length === 0 ? <p className="text-muted">No hay miembros asignados a esta cuadrilla.</p> : null}
+                      {currentMembers.map((m, idx) => (
+                        <div key={idx} className="member-item">
+                          <div className="member-avatar">{m.name.charAt(0).toUpperCase()}</div>
+                          <div className="member-info">
+                            <h4>{m.name}</h4>
+                            <span className={`member-role ${m.cargo.includes('Capataz') ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   <div className="modal-footer">
                     <button type="button" className="btn-primary" onClick={() => setShowViewMembersModal(false)}>
@@ -994,21 +1032,21 @@ function App() {
                   <form onSubmit={handleCreateItem}>
                     <div className="form-group">
                       <label>Nombre</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         placeholder={itemType === 'herramienta' ? 'Ej. Martillo' : 'Ej. Cemento'}
                         value={formData.nombre}
-                        onChange={e => setFormData({...formData, nombre: e.target.value})}
+                        onChange={e => setFormData({ ...formData, nombre: e.target.value })}
                         required
                         className="modal-input"
                       />
                     </div>
                     <div className="form-group">
                       <label>Descripción</label>
-                      <textarea 
+                      <textarea
                         placeholder="Descripción del item"
                         value={formData.descripcion}
-                        onChange={e => setFormData({...formData, descripcion: e.target.value})}
+                        onChange={e => setFormData({ ...formData, descripcion: e.target.value })}
                         className="modal-input"
                         rows="3"
                       />
@@ -1016,19 +1054,19 @@ function App() {
                     <div className="form-row">
                       <div className="form-group">
                         <label>Cantidad</label>
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           placeholder="0"
                           value={formData.cantidad}
-                          onChange={e => setFormData({...formData, cantidad: e.target.value})}
+                          onChange={e => setFormData({ ...formData, cantidad: e.target.value })}
                           className="modal-input"
                         />
                       </div>
                       <div className="form-group">
                         <label>Estado</label>
-                        <select 
+                        <select
                           value={formData.estado}
-                          onChange={e => setFormData({...formData, estado: e.target.value})}
+                          onChange={e => setFormData({ ...formData, estado: e.target.value })}
                           className="modal-input"
                         >
                           <option value="bueno">Bueno</option>
@@ -1040,11 +1078,11 @@ function App() {
                     </div>
                     <div className="form-group">
                       <label>Responsable</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         placeholder="Nombre del responsable"
                         value={formData.responsable}
-                        onChange={e => setFormData({...formData, responsable: e.target.value})}
+                        onChange={e => setFormData({ ...formData, responsable: e.target.value })}
                         className="modal-input"
                       />
                     </div>
@@ -1074,19 +1112,19 @@ function App() {
                   <form onSubmit={handleEditItem}>
                     <div className="form-group">
                       <label>Nombre</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={formData.nombre}
-                        onChange={e => setFormData({...formData, nombre: e.target.value})}
+                        onChange={e => setFormData({ ...formData, nombre: e.target.value })}
                         required
                         className="modal-input"
                       />
                     </div>
                     <div className="form-group">
                       <label>Descripción</label>
-                      <textarea 
+                      <textarea
                         value={formData.descripcion}
-                        onChange={e => setFormData({...formData, descripcion: e.target.value})}
+                        onChange={e => setFormData({ ...formData, descripcion: e.target.value })}
                         className="modal-input"
                         rows="3"
                       />
@@ -1094,18 +1132,18 @@ function App() {
                     <div className="form-row">
                       <div className="form-group">
                         <label>Cantidad</label>
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           value={formData.cantidad}
-                          onChange={e => setFormData({...formData, cantidad: e.target.value})}
+                          onChange={e => setFormData({ ...formData, cantidad: e.target.value })}
                           className="modal-input"
                         />
                       </div>
                       <div className="form-group">
                         <label>Estado</label>
-                        <select 
+                        <select
                           value={formData.estado}
-                          onChange={e => setFormData({...formData, estado: e.target.value})}
+                          onChange={e => setFormData({ ...formData, estado: e.target.value })}
                           className="modal-input"
                         >
                           <option value="bueno">Bueno</option>
@@ -1117,10 +1155,10 @@ function App() {
                     </div>
                     <div className="form-group">
                       <label>Responsable</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={formData.responsable}
-                        onChange={e => setFormData({...formData, responsable: e.target.value})}
+                        onChange={e => setFormData({ ...formData, responsable: e.target.value })}
                         className="modal-input"
                       />
                     </div>

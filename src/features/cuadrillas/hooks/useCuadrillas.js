@@ -1,5 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { cuadrillaService } from '../services/cuadrillaService';
+import Swal from 'sweetalert2';
+
+const showToast = (message, type = 'info') => {
+  Swal.fire({
+    title: type === 'success' ? '¡Éxito!' : type === 'error' ? '¡Error!' : type === 'warning' ? '¡Advertencia!' : 'Información',
+    text: message,
+    icon: type,
+    confirmButtonText: 'Aceptar',
+    confirmButtonColor: '#004785',
+    customClass: {
+      popup: 'premium-swal-popup',
+      confirmButton: 'premium-swal-confirm-btn'
+    }
+  });
+};
 
 export const useCuadrillas = (user, currentView) => {
   const [cuadrillasList, setCuadrillasList] = useState([]);
@@ -8,12 +23,12 @@ export const useCuadrillas = (user, currentView) => {
 
   // Unified Create Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createData, setCreateData] = useState({ 
-    nombre: '', 
-    zona: '', 
-    latitud: '', 
+  const [createData, setCreateData] = useState({
+    nombre: '',
+    zona: '',
+    latitud: '',
     longitud: '',
-    count: 5 
+    count: 5
   });
   const [isCreating, setIsCreating] = useState(false);
 
@@ -53,18 +68,18 @@ export const useCuadrillas = (user, currentView) => {
 
   const handleCreateCuadrilla = async (e) => {
     e.preventDefault();
-    
+
     // Validación de seguridad
     if (!createData.latitud || !createData.longitud) {
-      alert('Por favor, selecciona una ubicación en el mapa haciendo clic sobre él.');
+      showToast('Por favor, selecciona una ubicación en el mapa haciendo clic sobre él.', 'warning');
       return;
     }
 
     if (createData.count > availableVolunteersCount) {
-      alert('No hay suficientes voluntarios disponibles');
+      showToast('No hay suficientes voluntarios disponibles', 'error');
       return;
     }
-    
+
     setIsCreating(true);
     try {
       // Aseguramos que lat/long viajen como números
@@ -78,10 +93,10 @@ export const useCuadrillas = (user, currentView) => {
       await fetchCuadrillas();
       setShowCreateModal(false);
       setCreateData({ nombre: '', zona: '', latitud: '', longitud: '', count: 5 });
-      alert('¡Cuadrilla creada y asignada exitosamente!');
+      showToast('¡Cuadrilla creada y asignada exitosamente!', 'success');
     } catch (err) {
       console.error(err);
-      alert(err.message || 'Error al crear cuadrilla');
+      showToast(err.message || 'Error al crear cuadrilla', 'error');
     } finally {
       setIsCreating(false);
     }
@@ -106,7 +121,7 @@ export const useCuadrillas = (user, currentView) => {
       }
     } catch (err) {
       console.error(err);
-      alert('Error cargando datos de asignación');
+      showToast('Error cargando datos de asignación', 'error');
     }
   };
 
@@ -119,7 +134,7 @@ export const useCuadrillas = (user, currentView) => {
       setCurrentMembers(membersData);
     } catch (err) {
       console.error(err);
-      alert('Error cargando miembros');
+      showToast('Error cargando miembros', 'error');
     }
   };
 
@@ -141,12 +156,12 @@ export const useCuadrillas = (user, currentView) => {
       setCurrentMembers(membersData);
       setUsersList(usersData);
       setAssignData(prev => ({ ...prev, userId: usersData.length > 0 ? usersData[0].id : '' }));
-      
+
       const available = await cuadrillaService.getAvailableCount();
       setAvailableVolunteersCount(available.count);
     } catch (err) {
       console.error(err);
-      alert(err.message);
+      showToast(err.message, 'error');
     } finally {
       setAssigningMember(false);
     }
@@ -154,12 +169,12 @@ export const useCuadrillas = (user, currentView) => {
 
   const handleRemoveMember = async (userId) => {
     if (!selectedCuadrilla || !selectedCuadrilla.id) {
-      alert('Error: No se ha seleccionado una cuadrilla válida.');
+      showToast('Error: No se ha seleccionado una cuadrilla válida.', 'error');
       return;
     }
 
     if (!window.confirm('¿Deseas desasignar a este miembro de la cuadrilla?')) return;
-    
+
     try {
       await cuadrillaService.removeMember({
         userId,
@@ -171,12 +186,12 @@ export const useCuadrillas = (user, currentView) => {
       ]);
       setCurrentMembers(membersData);
       setUsersList(usersData);
-      
+
       const available = await cuadrillaService.getAvailableCount();
       setAvailableVolunteersCount(available.count);
     } catch (err) {
       console.error(err);
-      alert('Error al remover miembro');
+      showToast('Error al remover miembro', 'error');
     }
   };
 
@@ -192,18 +207,18 @@ export const useCuadrillas = (user, currentView) => {
       console.log('Deletion cancelled by user');
       return;
     }
-    
+
     try {
       console.log('Calling delete service...');
       await cuadrillaService.delete(id);
       console.log('Delete successful, fetching list...');
       await fetchCuadrillas();
-      alert('Cuadrilla eliminada correctamente');
+      showToast('Cuadrilla eliminada correctamente', 'success');
     } catch (err) {
       console.error('Error in handleDeleteCuadrilla:', err);
-      alert('Error al eliminar cuadrilla: ' + err.message);
+      showToast('Error al eliminar cuadrilla: ' + err.message, 'error');
     }
-  };  const [showEditModal, setShowEditModal] = useState(false);
+  }; const [showEditModal, setShowEditModal] = useState(false);
   const [editData, setEditData] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -219,10 +234,10 @@ export const useCuadrillas = (user, currentView) => {
       await cuadrillaService.update(editData.id, editData);
       await fetchCuadrillas();
       setShowEditModal(false);
-      alert('Cuadrilla actualizada correctamente');
+      showToast('Cuadrilla actualizada correctamente', 'success');
     } catch (err) {
       console.error(err);
-      alert('Error al actualizar la cuadrilla');
+      showToast('Error al actualizar la cuadrilla', 'error');
     } finally {
       setIsUpdating(false);
     }
