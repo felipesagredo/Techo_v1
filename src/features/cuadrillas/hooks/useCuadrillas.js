@@ -28,13 +28,9 @@ export const useCuadrillas = (user, currentView) => {
     zona: '',
     latitud: '',
     longitud: '',
-<<<<<<< HEAD
-    count: 5
-=======
     count: 0,
     meta_herramientas: 5,
     herramientas_requeridas: ''
->>>>>>> origin/pipefs_prueba
   });
   const [isCreating, setIsCreating] = useState(false);
 
@@ -74,21 +70,14 @@ export const useCuadrillas = (user, currentView) => {
 
   const handleCreateCuadrilla = async (e) => {
     e.preventDefault();
-<<<<<<< HEAD
-
     // Validación de seguridad
     if (!createData.latitud || !createData.longitud) {
       showToast('Por favor, selecciona una ubicación en el mapa haciendo clic sobre él.', 'warning');
       return;
     }
 
-    if (createData.count > availableVolunteersCount) {
-      showToast('No hay suficientes voluntarios disponibles', 'error');
-=======
-
     if (createData.count && createData.count > availableVolunteersCount) {
-      alert('No hay suficientes voluntarios disponibles');
->>>>>>> origin/pipefs_prueba
+      showToast('No hay suficientes voluntarios disponibles', 'error');
       return;
     }
 
@@ -105,13 +94,8 @@ export const useCuadrillas = (user, currentView) => {
       await cuadrillaService.autoGenerate(payload);
       await fetchCuadrillas();
       setShowCreateModal(false);
-<<<<<<< HEAD
-      setCreateData({ nombre: '', zona: '', latitud: '', longitud: '', count: 5 });
-      showToast('¡Cuadrilla creada y asignada exitosamente!', 'success');
-=======
       setCreateData({ nombre: '', zona: '', latitud: '', longitud: '', count: 0, meta_herramientas: 5, herramientas_requeridas: '' });
-      alert('¡Cuadrilla creada exitosamente!');
->>>>>>> origin/pipefs_prueba
+      showToast('¡Cuadrilla creada exitosamente!', 'success');
     } catch (err) {
       console.error(err);
       showToast(err.message || 'Error al crear cuadrilla', 'error');
