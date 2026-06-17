@@ -1,9 +1,11 @@
 .herramientas-container {
-  padding: 0;
-  background: transparent;
-  min-height: auto;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e1effe 100%);
+  border-radius: 16px;
+  min-height: calc(100vh - 120px);
+  box-shadow: 0 4px 15px rgba(0, 71, 133, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.8);
 }
-
 .herramientas-header {
   margin-bottom: 1.5rem;
 }

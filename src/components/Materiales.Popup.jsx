@@ -7,7 +7,7 @@ export default function MaterialesPopup({ material, mode = 'create', onClose, on
   const [formData, setFormData] = useState({
     nombre_material: '',
     cantidad: '',
-    categoria: '',
+    categoria: 'construccion',
     largo: '',
     ancho: '',
     peso: '',
@@ -22,7 +22,7 @@ export default function MaterialesPopup({ material, mode = 'create', onClose, on
       setFormData({
         nombre_material: material.nombre_material || '',
         cantidad: material.cantidad ?? '',
-        categoria: material.categoria || '',
+        categoria: material.categoria || 'construccion',
         largo: material.largo ?? '',
         ancho: material.ancho ?? '',
         peso: material.peso ?? '',
@@ -32,7 +32,7 @@ export default function MaterialesPopup({ material, mode = 'create', onClose, on
       setFormData({
         nombre_material: '',
         cantidad: '',
-        categoria: '',
+        categoria: 'construccion',
         largo: '',
         ancho: '',
         peso: '',
@@ -116,15 +116,16 @@ export default function MaterialesPopup({ material, mode = 'create', onClose, on
 
               <div className="form-group">
                 <label htmlFor="categoria">Categoría *</label>
-                <input
+                <select
                   id="categoria"
-                  type="text"
                   name="categoria"
                   value={formData.categoria}
                   onChange={handleChange}
-                  placeholder="Ej: Construcción"
                   required
-                />
+                >
+                  <option value="construccion">Construcción</option>
+                  <option value="fijador">Fijador</option>
+                </select>
               </div>
             </div>
 
