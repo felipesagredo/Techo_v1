@@ -25,7 +25,6 @@ export default function MaterialesInventario({ materiales, onEdit, onDelete, use
       <div className="inventario-header">
         <h2>Detalle de Materiales</h2>
         <div className="inventario-filters">
-          <button className="filter-btn">Filtro</button>
           <button className="export-btn">Exportar</button>
         </div>
       </div>
