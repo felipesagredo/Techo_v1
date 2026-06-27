@@ -669,7 +669,7 @@ function App() {
                                   <p>Tipo: {isTool ? 'Herramienta' : 'Material'}</p>
                                 </div>
                                 <div className="item-status">
-                                  <h4>{isTool ? '1 Unidad' : `${item.cantidad} Unidades`}</h4>
+                                  <h4>{isTool ? `${item.cantidad} Unidades` : `${item.cantidad} Unidades`}</h4>
                                   <span className={isCritical ? 'text-red' : 'text-green'}>
                                     {isCritical ? 'ESTADO CRÍTICO' : 'STOCK DISPONIBLE'}
                                   </span>

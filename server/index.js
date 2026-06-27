@@ -55,7 +55,7 @@ app.get('/api/dashboard/stats', async (req, res) => {
     const recentInventoryRes = await pool.query(`
       (SELECT id, nombre_material as nombre, cantidad, estado, 'material' as tipo FROM materiales)
       UNION ALL
-      (SELECT id, nombre, 1 as cantidad, estado, 'herramienta' as tipo FROM herramientas)
+      (SELECT id, nombre, stock as cantidad, estado, 'herramienta' as tipo FROM herramientas)
       ORDER BY id DESC
       LIMIT 3
     `);
