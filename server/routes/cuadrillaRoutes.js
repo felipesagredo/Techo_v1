@@ -10,6 +10,10 @@ router.post('/add-member', cuadrillaController.addMember);
 router.post('/remove-member', cuadrillaController.removeMember);
 router.get('/available-count', cuadrillaController.getAvailableCount);
 router.post('/auto-generate', cuadrillaController.autoGenerate);
+router.get('/available-tools', cuadrillaController.getAvailableTools);
+router.post('/assign-tool', cuadrillaController.assignTool);
+router.post('/return-tool', cuadrillaController.returnTool);
+
 router.get('/:id/miembros', cuadrillaController.getDetails);
 router.post('/:id/auto-assign-tools', cuadrillaController.autoAssignTools);
 router.put('/:id', cuadrillaController.update);

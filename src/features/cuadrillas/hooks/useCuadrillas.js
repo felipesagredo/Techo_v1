@@ -25,6 +25,7 @@ export const useCuadrillas = (user, currentView) => {
   const [usersList, setUsersList] = useState([]);
   const [rolesList, setRolesList] = useState([]);
   const [currentMembers, setCurrentMembers] = useState([]);
+  const [availableTools, setAvailableTools] = useState([]);
   const [assignData, setAssignData] = useState({ userId: '', rolCuadrillaId: '' });
   const [assigningMember, setAssigningMember] = useState(false);
 
@@ -89,15 +90,17 @@ export const useCuadrillas = (user, currentView) => {
     setShowAssignModal(true);
 
     try {
-      const [membersData, usersData, rolesData] = await Promise.all([
+      const [membersData, usersData, rolesData, toolsData] = await Promise.all([
         cuadrillaService.getMembers(cuadrilla.id),
         cuadrillaService.getUsers(),
-        cuadrillaService.getRoles()
+        cuadrillaService.getRoles(),
+        cuadrillaService.getAvailableTools()
       ]);
 
       setCurrentMembers(membersData);
       setUsersList(usersData);
       setRolesList(rolesData);
+      setAvailableTools(toolsData);
       if (usersData.length > 0 && rolesData.length > 0) {
         setAssignData({ userId: usersData[0].id, rolCuadrillaId: rolesData[0].id });
       }
@@ -240,6 +243,42 @@ export const useCuadrillas = (user, currentView) => {
     }
   };
 
+  const handleAssignTool = async (userId, toolId) => {
+    if (!userId || !toolId) return;
+    try {
+      await cuadrillaService.assignTool({ userId: Number(userId), herramientaId: Number(toolId) });
+      alert('Herramienta asignada correctamente.');
+      const [membersData, toolsData] = await Promise.all([
+        cuadrillaService.getMembers(selectedCuadrilla.id),
+        cuadrillaService.getAvailableTools()
+      ]);
+      setCurrentMembers(membersData);
+      setAvailableTools(toolsData);
+      await fetchCuadrillas();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Error al asignar herramienta');
+    }
+  };
+
+  const handleReturnTool = async (toolId) => {
+    if (!toolId) return;
+    try {
+      await cuadrillaService.returnTool({ herramientaId: Number(toolId) });
+      alert('Herramienta devuelta correctamente.');
+      const [membersData, toolsData] = await Promise.all([
+        cuadrillaService.getMembers(selectedCuadrilla.id),
+        cuadrillaService.getAvailableTools()
+      ]);
+      setCurrentMembers(membersData);
+      setAvailableTools(toolsData);
+      await fetchCuadrillas();
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Error al devolver herramienta');
+    }
+  };
+
   return {
     cuadrillasList,
     loadingCuadrillas,
@@ -255,6 +294,7 @@ export const useCuadrillas = (user, currentView) => {
     usersList,
     rolesList,
     currentMembers,
+    availableTools,
     assignData,
     setAssignData,
     assigningMember,
@@ -274,6 +314,8 @@ export const useCuadrillas = (user, currentView) => {
     handleRemoveMember,
     handleCloseAssignModal,
     handleDeleteCuadrilla,
-    handleAutoAssignTools
+    handleAutoAssignTools,
+    handleAssignTool,
+    handleReturnTool
   };
 };

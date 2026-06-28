@@ -1,14 +1,12 @@
 "use strict"
-import pool from "../config/db.js";
+import AppDataSource from "../config/db.js";
+import HerramientasSchema from "../entity/Herramientas.entity.js";
 
 export async function createHerramientasService(body){
     try {
-        const { nombre, descripcion, stock, categoria_herramienta, estado = 'disponible' } = body;
-        const result = await pool.query(
-            'INSERT INTO herramientas (nombre, descripcion, stock, categoria_herramienta, estado) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [nombre, descripcion, stock, categoria_herramienta, estado]
-        );
-        return result.rows[0];
+        const herramientasRepository = AppDataSource.getRepository(HerramientasSchema);
+        const newTool = herramientasRepository.create(body);
+        return await herramientasRepository.save(newTool);
     } catch(error){
         throw new Error(`Error al crear la herramienta: ${error.message}`);
     }
@@ -16,56 +14,68 @@ export async function createHerramientasService(body){
 
 export async function getHerramientasService(){
     try{
-        const result = await pool.query(`
-            SELECT h.*, u.name AS voluntario_nombre, u.email AS voluntario_email
-            FROM herramientas h
-            LEFT JOIN users u ON h.assigned_to = u.id
-            ORDER BY h.nombre ASC
-        `);
-        return result.rows;
+        const herramientasRepository = AppDataSource.getRepository(HerramientasSchema);
+        const tools = await herramientasRepository.find({
+            relations: ["assignedUser"],
+            order: { nombre: "ASC" }
+        });
+        return tools.map(h => ({
+            ...h,
+            voluntario_nombre: h.assignedUser ? h.assignedUser.name : null,
+            voluntario_email: h.assignedUser ? h.assignedUser.email : null
+        }));
     } catch(error){
-        throw new Error("Error, no se han podido obtener las herramientas")
+        throw new Error("Error, no se han podido obtener las herramientas");
     }
 }
 
 export async function getHerramientasByIdService(id) {
-  try {
-        const result = await pool.query(`
-            SELECT h.*, u.name AS voluntario_nombre, u.email AS voluntario_email
-            FROM herramientas h
-            LEFT JOIN users u ON h.assigned_to = u.id
-            WHERE h.id = $1
-        `, [id]);
-        return result.rows[0];
-  } catch (error) {
-    throw new Error("Error al obtener la herramienta por ID");
-  }
+    try {
+        const herramientasRepository = AppDataSource.getRepository(HerramientasSchema);
+        const tool = await herramientasRepository.findOne({
+            where: { id: parseInt(id, 10) },
+            relations: ["assignedUser"]
+        });
+        if (!tool) return null;
+        return {
+            ...tool,
+            voluntario_nombre: tool.assignedUser ? tool.assignedUser.name : null,
+            voluntario_email: tool.assignedUser ? tool.assignedUser.email : null
+        };
+    } catch (error) {
+        throw new Error("Error al obtener la herramienta por ID");
+    }
 }
 
 export async function updateHerramientasService(id, body) {
     try{
-        const { nombre, descripcion, stock, categoria_herramienta, estado } = body;
-        const result = await pool.query(
-            'UPDATE herramientas SET nombre = $1, descripcion = $2, stock = $3, categoria_herramienta = $4, estado = $5 WHERE id = $6 RETURNING *',
-            [nombre, descripcion, stock, categoria_herramienta, estado, id]
-        );
-        const herramienta = result.rows[0];
-        if (!herramienta) {
+        const herramientasRepository = AppDataSource.getRepository(HerramientasSchema);
+        const tool = await herramientasRepository.findOneBy({ id: parseInt(id, 10) });
+        if (!tool) {
             throw new Error("Herramienta no encontrada");
         }
-        return herramienta;
+        
+        // Si assigned_to viene como string o null, nos aseguramos de guardarlo
+        if (body.assigned_to !== undefined) {
+            tool.assigned_to = body.assigned_to ? parseInt(body.assigned_to, 10) : null;
+        }
+
+        herramientasRepository.merge(tool, body);
+        return await herramientasRepository.save(tool);
     } catch (error){
-        throw new Error("Error, no se ha podido actualizar la herramienta");
+        throw new Error("Error, no se ha podido actualizar la herramienta: " + error.message);
     }
 }
 
 export async function deleteHerramientasService(id) {
     try{
-        const result = await pool.query('DELETE FROM herramientas WHERE id = $1 RETURNING *', [id]);
-        if(result.rows.length === 0){
+        const herramientasRepository = AppDataSource.getRepository(HerramientasSchema);
+        const tool = await herramientasRepository.findOneBy({ id: parseInt(id, 10) });
+        if (!tool) {
             throw new Error("Herramienta no encontrada");
         }
-        return result.rows[0];
+        await herramientasRepository.remove(tool);
+        return tool;
     } catch (error){
         throw new Error("Error, no se ha podido eliminar la herramienta");
     }

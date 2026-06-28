@@ -1,106 +1,115 @@
-import pool from '../config/db.js';
+import AppDataSource from '../config/db.js';
+import PrestamoHerramientaSchema from '../entity/PrestamoHerramienta.entity.js';
+import HerramientasSchema from '../entity/Herramientas.entity.js';
 
 export async function createPrestamoService(herramientaId, userId, notas = '') {
-    const client = await pool.connect();
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
     try {
-        await client.query('BEGIN');
+        const hId = parseInt(herramientaId, 10);
+        const uId = parseInt(userId, 10);
+
+        const herramientasRepository = queryRunner.manager.getRepository(HerramientasSchema);
+        const prestamosRepository = queryRunner.manager.getRepository(PrestamoHerramientaSchema);
 
         // 1. Verificar si la herramienta existe y está disponible
-        const herrCheck = await client.query('SELECT estado, assigned_to FROM herramientas WHERE id = $1', [herramientaId]);
-        if (herrCheck.rows.length === 0) {
+        const herramienta = await herramientasRepository.findOneBy({ id: hId });
+        if (!herramienta) {
             throw new Error('La herramienta no existe.');
         }
 
-        const herramienta = herrCheck.rows[0];
         if (herramienta.assigned_to) {
             throw new Error('La herramienta ya está prestada a otro voluntario.');
         }
 
         // 2. Registrar el préstamo en la bitácora
-        const prestamoQuery = `
-            INSERT INTO prestamos_herramientas (herramienta_id, user_id, estado_prestamo, notas)
-            VALUES ($1, $2, 'prestado', $3)
-            RETURNING *
-        `;
-        const prestamoResult = await client.query(prestamoQuery, [herramientaId, userId, notas]);
+        const newPrestamo = prestamosRepository.create({
+            herramienta_id: hId,
+            user_id: uId,
+            estado_prestamo: 'prestado',
+            notas
+        });
+        const savedPrestamo = await prestamosRepository.save(newPrestamo);
 
         // 3. Actualizar el estado de la herramienta
-        await client.query(
-            "UPDATE herramientas SET assigned_to = $1, estado = 'no-disponible', updated_at = CURRENT_TIMESTAMP WHERE id = $2",
-            [userId, herramientaId]
-        );
+        herramienta.assigned_to = uId;
+        herramienta.estado = 'no-disponible';
+        herramienta.updated_at = new Date();
+        await herramientasRepository.save(herramienta);
 
-        await client.query('COMMIT');
-        return prestamoResult.rows[0];
+        await queryRunner.commitTransaction();
+        return savedPrestamo;
     } catch (error) {
-        await client.query('ROLLBACK');
+        await queryRunner.rollbackTransaction();
         throw error;
     } finally {
-        client.release();
+        await queryRunner.release();
     }
 }
 
 export async function registrarDevolucionService(prestamoId, notas = '') {
-    const client = await pool.connect();
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
     try {
-        await client.query('BEGIN');
+        const pId = parseInt(prestamoId, 10);
+        const prestamosRepository = queryRunner.manager.getRepository(PrestamoHerramientaSchema);
+        const herramientasRepository = queryRunner.manager.getRepository(HerramientasSchema);
 
         // 1. Obtener detalles del préstamo activo
-        const prestamoCheck = await client.query(
-            "SELECT herramienta_id, user_id FROM prestamos_herramientas WHERE id = $1 AND estado_prestamo = 'prestado'",
-            [prestamoId]
-        );
-
-        if (prestamoCheck.rows.length === 0) {
+        const prestamo = await prestamosRepository.findOneBy({ id: pId, estado_prestamo: 'prestado' });
+        if (!prestamo) {
             throw new Error('Préstamo no encontrado o ya devuelto.');
         }
 
-        const { herramienta_id } = prestamoCheck.rows[0];
-
         // 2. Actualizar el registro del préstamo a devuelto
-        const updatePrestamo = `
-            UPDATE prestamos_herramientas 
-            SET fecha_devolucion = CURRENT_TIMESTAMP, estado_prestamo = 'devuelto', notas = COALESCE(NULLIF($1, ''), notas)
-            WHERE id = $2
-            RETURNING *
-        `;
-        const prestamoResult = await client.query(updatePrestamo, [notas, prestamoId]);
+        prestamo.fecha_devolucion = new Date();
+        prestamo.estado_prestamo = 'devuelto';
+        if (notas && notas.trim() !== '') {
+            prestamo.notas = notas;
+        }
+        const savedPrestamo = await prestamosRepository.save(prestamo);
 
         // 3. Actualizar la herramienta para que vuelva a estar disponible y sin asignación
-        await client.query(
-            "UPDATE herramientas SET assigned_to = NULL, estado = 'disponible', updated_at = CURRENT_TIMESTAMP WHERE id = $1",
-            [herramienta_id]
-        );
+        const herramienta = await herramientasRepository.findOneBy({ id: prestamo.herramienta_id });
+        if (herramienta) {
+            herramienta.assigned_to = null;
+            herramienta.estado = 'disponible';
+            herramienta.updated_at = new Date();
+            await herramientasRepository.save(herramienta);
+        }
 
-        await client.query('COMMIT');
-        return prestamoResult.rows[0];
+        await queryRunner.commitTransaction();
+        return savedPrestamo;
     } catch (error) {
-        await client.query('ROLLBACK');
+        await queryRunner.rollbackTransaction();
         throw error;
     } finally {
-        client.release();
+        await queryRunner.release();
     }
 }
 
 export async function getHistorialByHerramientaService(herramientaId) {
-    const query = `
-        SELECT 
-            ph.id,
-            ph.herramienta_id,
-            ph.user_id,
-            u.name AS voluntario_nombre,
-            u.email AS voluntario_email,
-            ph.fecha_prestamo,
-            ph.fecha_devolucion,
-            ph.estado_prestamo,
-            ph.notas
-        FROM prestamos_herramientas ph
-        LEFT JOIN users u ON ph.user_id = u.id
-        WHERE ph.herramienta_id = $1
-        ORDER BY ph.fecha_prestamo DESC
-    `;
-    const result = await pool.query(query, [herramientaId]);
-    return result.rows;
+    const prestamoRepository = AppDataSource.getRepository(PrestamoHerramientaSchema);
+    const rows = await prestamoRepository.createQueryBuilder("ph")
+        .leftJoin("users", "u", "ph.user_id = u.id")
+        .select([
+            "ph.id AS id",
+            "ph.herramienta_id AS herramienta_id",
+            "ph.user_id AS user_id",
+            "u.name AS voluntario_nombre",
+            "u.email AS voluntario_email",
+            "ph.fecha_prestamo AS fecha_prestamo",
+            "ph.fecha_devolucion AS fecha_devolucion",
+            "ph.estado_prestamo AS estado_prestamo",
+            "ph.notas AS notas"
+        ])
+        .where("ph.herramienta_id = :herramientaId", { herramientaId: parseInt(herramientaId, 10) })
+        .orderBy("ph.fecha_prestamo", "DESC")
+        .getRawMany();
+
+    return rows;
 }
 
 export default {

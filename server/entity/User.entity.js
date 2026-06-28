@@ -1,4 +1,3 @@
-"use strict";
 import { EntitySchema } from "typeorm";
 
 const UserSchema = new EntitySchema({
@@ -24,7 +23,26 @@ const UserSchema = new EntitySchema({
             length: 255
         },
         role_id: {
-            type: "int"
+            type: "int",
+            default: 2
+        },
+        telefono: {
+            type: "varchar",
+            length: 20,
+            nullable: true
+        },
+        comuna: {
+            type: "varchar",
+            length: 100,
+            nullable: true
+        },
+        habilidades: {
+            type: "text",
+            nullable: true
+        },
+        created_at: {
+            type: "timestamp",
+            default: () => "CURRENT_TIMESTAMP"
         }
     },
     relations: {

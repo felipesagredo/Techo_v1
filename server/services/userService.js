@@ -1,4 +1,7 @@
-import pool from '../config/db.js';
+import AppDataSource from '../config/db.js';
+import UserSchema from '../entity/User.entity.js';
+import RoleSchema from '../entity/Role.entity.js';
+import CuadrillaMiembroSchema from '../entity/CuadrillaMiembro.entity.js';
 import bcrypt from 'bcrypt';
 
 const createUser = async (userData) => {
@@ -10,15 +13,14 @@ const createUser = async (userData) => {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    const query = `
-        INSERT INTO users (name, email, password, role_id) 
-        VALUES ($1, $2, $3, $4) 
-        RETURNING id, name, email, role_id
-    `;
-    const values = [name, email, hashedPassword, finalRoleId];
-
-    const result = await pool.query(query, values);
-    return result.rows[0];
+    const userRepository = AppDataSource.getRepository(UserSchema);
+    const newUser = userRepository.create({
+        name,
+        email,
+        password: hashedPassword,
+        role_id: finalRoleId
+    });
+    return await userRepository.save(newUser);
 };
 
 const mapUserRow = (row) => {
@@ -32,6 +34,7 @@ const mapUserRow = (row) => {
         telefono: row.telefono,
         comuna: row.comuna,
         habilidades: row.habilidades,
+        herramientas: typeof row.herramientas === 'string' ? JSON.parse(row.herramientas) : (row.herramientas || []),
         cuadrilla: row.cuadrilla_id ? {
             id: row.cuadrilla_id,
             nombre: row.cuadrilla_nombre,
@@ -44,91 +47,128 @@ const mapUserRow = (row) => {
 };
 
 const getAllUsers = async () => {
-    const query = `
-        SELECT 
-            u.id, 
-            u.name, 
-            u.email, 
-            u.role_id, 
-            r.nombre AS role_nombre, 
-            u.telefono, 
-            u.comuna, 
-            u.habilidades,
-            c.id AS cuadrilla_id,
-            c.nombre AS cuadrilla_nombre,
-            rc.id AS rol_cuadrilla_id,
-            rc.nombre AS rol_cuadrilla_nombre,
-            c.latitud AS cuadrilla_latitud,
-            c.longitud AS cuadrilla_longitud
-        FROM users u
-        LEFT JOIN roles r ON u.role_id = r.id
-        LEFT JOIN cuadrilla_miembros cm ON u.id = cm.user_id
-        LEFT JOIN cuadrillas c ON cm.cuadrilla_id = c.id
-        LEFT JOIN roles_cuadrilla rc ON cm.rol_cuadrilla_id = rc.id
-        ORDER BY u.name ASC
-    `;
-    const result = await pool.query(query);
-    return result.rows.map(mapUserRow);
+    const userRepository = AppDataSource.getRepository(UserSchema);
+    const result = await userRepository.createQueryBuilder("user")
+        .leftJoin("roles", "r", "user.role_id = r.id")
+        .leftJoin("cuadrilla_miembros", "cm", "user.id = cm.user_id")
+        .leftJoin("cuadrillas", "c", "cm.cuadrilla_id = c.id")
+        .leftJoin("roles_cuadrilla", "rc", "cm.rol_cuadrilla_id = rc.id")
+        .select([
+            "user.id AS id",
+            "user.name AS name",
+            "user.email AS email",
+            "user.role_id AS role_id",
+            "r.nombre AS role_nombre",
+            "user.telefono AS telefono",
+            "user.comuna AS comuna",
+            "user.habilidades AS habilidades",
+            "c.id AS cuadrilla_id",
+            "c.nombre AS cuadrilla_nombre",
+            "rc.id AS rol_cuadrilla_id",
+            "rc.nombre AS rol_cuadrilla_nombre",
+            "c.latitud AS cuadrilla_latitud",
+            "c.longitud AS cuadrilla_longitud",
+            `COALESCE(
+                (SELECT json_agg(json_build_object('id', h.id, 'nombre', h.nombre, 'estado', h.estado)) 
+                 FROM herramientas h 
+                 WHERE h.assigned_to = user.id),
+                '[]'::json
+            ) AS herramientas`
+        ])
+        .orderBy("user.name", "ASC")
+        .getRawMany();
+
+    return result.map(mapUserRow);
 };
 
 const getUserById = async (id) => {
-    const query = `
-        SELECT 
-            u.id, 
-            u.name, 
-            u.email, 
-            u.role_id, 
-            r.nombre AS role_nombre, 
-            u.telefono, 
-            u.comuna, 
-            u.habilidades,
-            c.id AS cuadrilla_id,
-            c.nombre AS cuadrilla_nombre,
-            rc.id AS rol_cuadrilla_id,
-            rc.nombre AS rol_cuadrilla_nombre,
-            c.latitud AS cuadrilla_latitud,
-            c.longitud AS cuadrilla_longitud
-        FROM users u
-        LEFT JOIN roles r ON u.role_id = r.id
-        LEFT JOIN cuadrilla_miembros cm ON u.id = cm.user_id
-        LEFT JOIN cuadrillas c ON cm.cuadrilla_id = c.id
-        LEFT JOIN roles_cuadrilla rc ON cm.rol_cuadrilla_id = rc.id
-        WHERE u.id = $1
-    `;
-    const result = await pool.query(query, [id]);
-    return mapUserRow(result.rows[0]);
+    const userRepository = AppDataSource.getRepository(UserSchema);
+    const row = await userRepository.createQueryBuilder("user")
+        .leftJoin("roles", "r", "user.role_id = r.id")
+        .leftJoin("cuadrilla_miembros", "cm", "user.id = cm.user_id")
+        .leftJoin("cuadrillas", "c", "cm.cuadrilla_id = c.id")
+        .leftJoin("roles_cuadrilla", "rc", "cm.rol_cuadrilla_id = rc.id")
+        .select([
+            "user.id AS id",
+            "user.name AS name",
+            "user.email AS email",
+            "user.role_id AS role_id",
+            "r.nombre AS role_nombre",
+            "user.telefono AS telefono",
+            "user.comuna AS comuna",
+            "user.habilidades AS habilidades",
+            "c.id AS cuadrilla_id",
+            "c.nombre AS cuadrilla_nombre",
+            "rc.id AS rol_cuadrilla_id",
+            "rc.nombre AS rol_cuadrilla_nombre",
+            "c.latitud AS cuadrilla_latitud",
+            "c.longitud AS cuadrilla_longitud",
+            `COALESCE(
+                (SELECT json_agg(json_build_object('id', h.id, 'nombre', h.nombre, 'estado', h.estado)) 
+                 FROM herramientas h 
+                 WHERE h.assigned_to = user.id),
+                '[]'::json
+            ) AS herramientas`
+        ])
+        .where("user.id = :id", { id: parseInt(id, 10) })
+        .getRawOne();
+
+    return mapUserRow(row);
 };
 
 const deleteUser = async (id) => {
-    await pool.query('DELETE FROM cuadrilla_miembros WHERE user_id = $1', [id]);
-    await pool.query('DELETE FROM users WHERE id = $1', [id]);
+    const userId = parseInt(id, 10);
+    // Eliminar membresía de cuadrilla
+    await AppDataSource.createQueryBuilder()
+        .delete()
+        .from("cuadrilla_miembros")
+        .where("user_id = :userId", { userId })
+        .execute();
+
+    const userRepository = AppDataSource.getRepository(UserSchema);
+    await userRepository.delete(userId);
     return { message: 'Usuario eliminado' };
 };
 
 const updateUser = async (id, userData) => {
-    const { name, email, role_id, telefono, comuna, habilidades } = userData;
-    const result = await pool.query(
-        'UPDATE users SET name = $1, email = $2, role_id = $3, telefono = $4, comuna = $5, habilidades = $6 WHERE id = $7 RETURNING id, name, email, role_id, telefono, comuna, habilidades',
-        [name, email, role_id, telefono, comuna, habilidades, id]
-    );
-    return result.rows[0];
+    const userRepository = AppDataSource.getRepository(UserSchema);
+    const user = await userRepository.findOneBy({ id: parseInt(id, 10) });
+    if (!user) {
+        throw new Error("Usuario no encontrado");
+    }
+    userRepository.merge(user, userData);
+    return await userRepository.save(user);
 };
 
 const getSystemRoles = async () => {
-    const result = await pool.query('SELECT id, nombre, descripcion FROM roles ORDER BY id');
-    return result.rows;
+    const roleRepository = AppDataSource.getRepository(RoleSchema);
+    return await roleRepository.find({
+        order: { id: "ASC" }
+    });
 };
 
 const getAvailableVolunteers = async () => {
-    const query = `
-        SELECT u.id, u.name, u.email, u.role_id, r.nombre AS role_nombre, u.telefono, u.comuna, u.habilidades 
-        FROM users u
-        LEFT JOIN roles r ON u.role_id = r.id
-        WHERE u.role_id = 2 AND u.id NOT IN (SELECT user_id FROM cuadrilla_miembros)
-        ORDER BY u.name ASC
-    `;
-    const result = await pool.query(query);
-    return result.rows;
+    const userRepository = AppDataSource.getRepository(UserSchema);
+    const subQuery = AppDataSource.getRepository(CuadrillaMiembroSchema)
+        .createQueryBuilder("cm")
+        .select("cm.user_id");
+
+    return await userRepository.createQueryBuilder("user")
+        .leftJoin("roles", "r", "user.role_id = r.id")
+        .select([
+            "user.id AS id",
+            "user.name AS name",
+            "user.email AS email",
+            "user.role_id AS role_id",
+            "r.nombre AS role_nombre",
+            "user.telefono AS telefono",
+            "user.comuna AS comuna",
+            "user.habilidades AS habilidades"
+        ])
+        .where("user.role_id = 2")
+        .andWhere("user.id NOT IN (" + subQuery.getQuery() + ")")
+        .orderBy("user.name", "ASC")
+        .getRawMany();
 };
 
 const userService = {
