@@ -39,6 +39,7 @@ const VoluntariosView = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('compact'); // 'compact' o 'list'
+  const [availableTools, setAvailableTools] = useState([]);
 
   // Edit Modal State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -65,8 +66,71 @@ const VoluntariosView = () => {
     }
   };
 
+  const fetchAvailableTools = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/cuadrillas/available-tools', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      setAvailableTools(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAssignTool = async (userId, toolId) => {
+    if (!userId || !toolId) return;
+    try {
+      const res = await fetch('http://localhost:5000/api/cuadrillas/assign-tool', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ userId: Number(userId), herramientaId: Number(toolId) })
+      });
+      if (res.ok) {
+        alert('Herramienta asignada correctamente.');
+        await fetchVoluntarios();
+        await fetchAvailableTools();
+      } else {
+        const errorData = await res.json().catch(() => null);
+        alert(errorData?.error || 'Error al asignar herramienta');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error de red al asignar herramienta');
+    }
+  };
+
+  const handleReturnTool = async (toolId) => {
+    if (!toolId) return;
+    try {
+      const res = await fetch('http://localhost:5000/api/cuadrillas/return-tool', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ herramientaId: Number(toolId) })
+      });
+      if (res.ok) {
+        alert('Herramienta devuelta correctamente.');
+        await fetchVoluntarios();
+        await fetchAvailableTools();
+      } else {
+        const errorData = await res.json().catch(() => null);
+        alert(errorData?.error || 'Error al devolver herramienta');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error de red al devolver herramienta');
+    }
+  };
+
   useEffect(() => {
     fetchVoluntarios();
+    fetchAvailableTools();
   }, []);
 
   const handleOpenEdit = (v) => {
@@ -178,6 +242,47 @@ const VoluntariosView = () => {
                   <span title="Comuna"><MapPin size={12} /> {v.comuna || 'N/A'}</span>
                   <span title="Habilidades"><Star size={12} /> {v.habilidades ? (v.habilidades.length > 20 ? v.habilidades.substring(0, 20) + '...' : v.habilidades) : 'Sin habilidades'}</span>
                 </div>
+
+                {/* Herramientas asignadas */}
+                <div style={{ marginTop: '0.6rem', paddingTop: '0.6rem', borderTop: '1px solid #f1f3f5' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.4rem' }}>
+                    {v.herramientas && v.herramientas.length > 0 ? (
+                      v.herramientas.map((h, hIdx) => (
+                        <span key={hIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.15rem 0.4rem', background: '#eef4f9', borderRadius: '4px', fontSize: '0.7rem', color: '#0066cc', fontWeight: '500' }}>
+                          🔧 {h.nombre}
+                          <button 
+                            type="button" 
+                            onClick={() => handleReturnTool(h.id)} 
+                            style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', padding: 0, marginLeft: '0.2rem', display: 'flex', alignItems: 'center' }}
+                            title="Devolver Herramienta"
+                          >
+                            <X size={10} />
+                          </button>
+                        </span>
+                      ))
+                    ) : (
+                      <span style={{ fontSize: '0.7rem', color: '#868e96', fontStyle: 'italic' }}>Sin herramientas</span>
+                    )}
+                  </div>
+                  {/* Selector para asignar */}
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <select 
+                      defaultValue=""
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          handleAssignTool(v.id, e.target.value);
+                          e.target.value = "";
+                        }
+                      }}
+                      style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', borderRadius: '6px', border: '1px solid #cbd5e0', background: '#fff', width: '100%', maxWidth: '200px' }}
+                    >
+                      <option value="">+ Asignar Herramienta...</option>
+                      {availableTools.map(t => (
+                        <option key={t.id} value={t.id}>{t.nombre} ({t.categoria_herramienta})</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
@@ -191,38 +296,40 @@ const VoluntariosView = () => {
               <h2>Editar Voluntario</h2>
               <button className="close-btn" onClick={() => setShowEditModal(false)}><X /></button>
             </div>
-            <form onSubmit={handleSave}>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>Nombre</label>
-                  <input type="text" value={editData.name} onChange={e => setEditData({ ...editData, name: e.target.value })} required />
-                </div>
-                <div className="form-group">
-                  <label>Email</label>
-                  <input type="email" value={editData.email} onChange={e => setEditData({ ...editData, email: e.target.value })} required />
-                </div>
-                <div className="form-group">
-                  <label>Teléfono</label>
-                  <input type="text" value={editData.telefono} onChange={e => setEditData({ ...editData, telefono: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label>Comuna</label>
-                  <input type="text" value={editData.comuna} onChange={e => setEditData({ ...editData, comuna: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label>Rol de Sistema</label>
-                  <select
-                    value={editData.role_id}
-                    onChange={e => setEditData({ ...editData, role_id: parseInt(e.target.value) })}
-                    style={{ width: '100%', padding: '0.6rem', border: '1px solid #ddd', borderRadius: '8px', fontSize: '0.85rem', background: '#fff' }}
-                  >
-                    <option value={1}>Administrador</option>
-                    <option value={2}>Voluntario</option>
-                  </select>
-                </div>
-                <div className="form-group full-width">
-                  <label>Habilidades</label>
-                  <textarea value={editData.habilidades} onChange={e => setEditData({ ...editData, habilidades: e.target.value })} rows="2" />
+            <form onSubmit={handleSave} className="modal-form">
+              <div className="modal-body">
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>Nombre</label>
+                    <input type="text" value={editData.name} onChange={e => setEditData({ ...editData, name: e.target.value })} required />
+                  </div>
+                  <div className="form-group">
+                    <label>Email</label>
+                    <input type="email" value={editData.email} onChange={e => setEditData({ ...editData, email: e.target.value })} required />
+                  </div>
+                  <div className="form-group">
+                    <label>Teléfono</label>
+                    <input type="text" value={editData.telefono} onChange={e => setEditData({ ...editData, telefono: e.target.value })} />
+                  </div>
+                  <div className="form-group">
+                    <label>Comuna</label>
+                    <input type="text" value={editData.comuna} onChange={e => setEditData({ ...editData, comuna: e.target.value })} />
+                  </div>
+                  <div className="form-group">
+                    <label>Rol de Sistema</label>
+                    <select
+                      value={editData.role_id}
+                      onChange={e => setEditData({ ...editData, role_id: parseInt(e.target.value) })}
+                      style={{ width: '100%', padding: '0.6rem', border: '1px solid #ddd', borderRadius: '8px', fontSize: '0.85rem', background: '#fff' }}
+                    >
+                      <option value={1}>Administrador</option>
+                      <option value={2}>Voluntario</option>
+                    </select>
+                  </div>
+                  <div className="form-group full-width">
+                    <label>Habilidades</label>
+                    <textarea value={editData.habilidades} onChange={e => setEditData({ ...editData, habilidades: e.target.value })} rows="2" />
+                  </div>
                 </div>
               </div>
               <div className="modal-footer">

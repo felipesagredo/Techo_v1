@@ -1,5 +1,12 @@
-import pool from '../config/db.js';
-import { createPrestamoService } from './prestamosService.js';
+import AppDataSource from '../config/db.js';
+import { IsNull } from 'typeorm';
+import CuadrillaSchema from '../entity/Cuadrilla.entity.js';
+import RoleCuadrillaSchema from '../entity/RoleCuadrilla.entity.js';
+import CuadrillaMiembroSchema from '../entity/CuadrillaMiembro.entity.js';
+import UserSchema from '../entity/User.entity.js';
+import HerramientasSchema from '../entity/Herramientas.entity.js';
+import { createPrestamoService, registrarDevolucionService } from './prestamosService.js';
+import PrestamoHerramientaSchema from '../entity/PrestamoHerramienta.entity.js';
 
 const getAllCuadrillas = async () => {
     const query = `
@@ -63,56 +70,67 @@ const getAllCuadrillas = async () => {
         GROUP BY c.id, c.nombre, c.zona, c.estado, c.latitud, c.longitud, c.meta_voluntarios, c.meta_herramientas, c.herramientas_requeridas
         ORDER BY c.id;
     `;
-    const res = await pool.query(query);
-    return res.rows;
+    return await AppDataSource.query(query);
 };
 
 const createCuadrilla = async (nombre, zona, latitud = null, longitud = null) => {
-    const res = await pool.query(
-        'INSERT INTO cuadrillas (nombre, zona, latitud, longitud) VALUES ($1, $2, $3, $4) RETURNING *',
-        [nombre, zona, latitud, longitud]
-    );
-    return res.rows[0];
+    const cuadrillaRepo = AppDataSource.getRepository(CuadrillaSchema);
+    const newCuadrilla = cuadrillaRepo.create({
+        nombre,
+        zona,
+        latitud: latitud ? parseFloat(latitud) : null,
+        longitud: longitud ? parseFloat(longitud) : null
+    });
+    return await cuadrillaRepo.save(newCuadrilla);
 };
 
 const assignMember = async (userId, cuadrillaId, rolCuadrillaId) => {
-    // Verificar si el rol que se quiere asignar es Capataz de Zona o Voluntario Senior
-    const roleRes = await pool.query('SELECT nombre FROM roles_cuadrilla WHERE id = $1', [rolCuadrillaId]);
-    if (roleRes.rows.length > 0) {
-        const roleName = roleRes.rows[0].nombre;
+    const uId = parseInt(userId, 10);
+    const cId = parseInt(cuadrillaId, 10);
+    const rcId = parseInt(rolCuadrillaId, 10);
+
+    const roleCuadrillaRepo = AppDataSource.getRepository(RoleCuadrillaSchema);
+    const role = await roleCuadrillaRepo.findOneBy({ id: rcId });
+    if (role) {
+        const roleName = role.nombre;
         if (roleName === 'Capataz de Zona' || roleName === 'Voluntario Senior') {
-            // Buscar si ya existe algún Capataz de Zona o Voluntario Senior en la cuadrilla
-            const existingRes = await pool.query(`
-                SELECT u.name, rc.nombre as cargo
-                FROM cuadrilla_miembros cm
-                JOIN users u ON cm.user_id = u.id
-                JOIN roles_cuadrilla rc ON cm.rol_cuadrilla_id = rc.id
-                WHERE cm.cuadrilla_id = $1 AND rc.nombre IN ('Capataz de Zona', 'Voluntario Senior')
-            `, [cuadrillaId]);
+            const memberRepo = AppDataSource.getRepository(CuadrillaMiembroSchema);
+            const existingLeaders = await memberRepo.createQueryBuilder("cm")
+                .leftJoin("users", "u", "cm.user_id = u.id")
+                .leftJoin("roles_cuadrilla", "rc", "cm.rol_cuadrilla_id = rc.id")
+                .select(["u.name AS name", "rc.nombre AS cargo"])
+                .where("cm.cuadrilla_id = :cId", { cId })
+                .andWhere("rc.nombre IN ('Capataz de Zona', 'Voluntario Senior')")
+                .getRawMany();
             
-            if (existingRes.rows.length > 0) {
-                throw new Error(`Esta cuadrilla ya cuenta con un líder asignado: ${existingRes.rows[0].name} (${existingRes.rows[0].cargo}).`);
+            if (existingLeaders.length > 0) {
+                throw new Error(`Esta cuadrilla ya cuenta con un líder asignado: ${existingLeaders[0].name} (${existingLeaders[0].cargo}).`);
             }
         }
     }
 
-    const res = await pool.query(
-        'INSERT INTO cuadrilla_miembros (user_id, cuadrilla_id, rol_cuadrilla_id) VALUES ($1, $2, $3) RETURNING *',
-        [userId, cuadrillaId, rolCuadrillaId]
-    );
-    return res.rows[0];
+    const memberRepo = AppDataSource.getRepository(CuadrillaMiembroSchema);
+    const newMember = memberRepo.create({
+        user_id: uId,
+        cuadrilla_id: cId,
+        rol_cuadrilla_id: rcId
+    });
+    return await memberRepo.save(newMember);
 };
 
 const unassignMember = async (userId, cuadrillaId) => {
-    const res = await pool.query(
-        'DELETE FROM cuadrilla_miembros WHERE user_id = $1 AND cuadrilla_id = $2 RETURNING *',
-        [userId, cuadrillaId]
-    );
-    return res.rows[0];
+    const uId = parseInt(userId, 10);
+    const cId = parseInt(cuadrillaId, 10);
+    const memberRepo = AppDataSource.getRepository(CuadrillaMiembroSchema);
+    const member = await memberRepo.findOneBy({ user_id: uId, cuadrilla_id: cId });
+    if (member) {
+        await memberRepo.remove(member);
+    }
+    return member;
 };
 
 const getMiembrosByCuadrilla = async (cuadrillaId) => {
-    const res = await pool.query(`
+    const query = `
         SELECT u.id as user_id, u.name, u.email, rc.nombre as cargo,
           COALESCE(
             (SELECT json_agg(json_build_object('id', h.id, 'nombre', h.nombre, 'estado', h.estado)) 
@@ -123,37 +141,58 @@ const getMiembrosByCuadrilla = async (cuadrillaId) => {
         FROM cuadrilla_miembros cm
         JOIN users u ON cm.user_id = u.id
         JOIN roles_cuadrilla rc ON cm.rol_cuadrilla_id = rc.id
-        WHERE cm.cuadrilla_id = $1`,
-        [cuadrillaId]
-    );
-    return res.rows;
+        WHERE cm.cuadrilla_id = $1`;
+    return await AppDataSource.query(query, [parseInt(cuadrillaId, 10)]);
 };
 
 const getRolesCuadrilla = async () => {
-    const res = await pool.query('SELECT id, nombre FROM roles_cuadrilla ORDER BY id');
-    return res.rows;
+    const roleCuadrillaRepo = AppDataSource.getRepository(RoleCuadrillaSchema);
+    return await roleCuadrillaRepo.find({
+        order: { id: "ASC" }
+    });
 };
 
 const getAvailableVolunteersCount = async () => {
-    const query = `
-        SELECT COUNT(*) 
-        FROM users u
-        LEFT JOIN cuadrilla_miembros cm ON u.id = cm.user_id
-        WHERE cm.user_id IS NULL AND u.role_id = 2
-    `;
-    const res = await pool.query(query);
-    return parseInt(res.rows[0].count);
+    const userRepo = AppDataSource.getRepository(UserSchema);
+    const subQuery = AppDataSource.getRepository(CuadrillaMiembroSchema)
+        .createQueryBuilder("cm")
+        .select("cm.user_id");
+
+    const countRes = await userRepo.createQueryBuilder("user")
+        .select("COUNT(*)", "count")
+        .where("user.role_id = 2")
+        .andWhere("user.id NOT IN (" + subQuery.getQuery() + ")")
+        .getRawOne();
+    
+    return parseInt(countRes.count, 10);
 };
 
 const autoGenerateCuadrilla = async (nombre, zona, count, latitud, longitud, meta_herramientas = 5, herramientas_requeridas = null) => {
+    const cuadrillaRepo = AppDataSource.getRepository(CuadrillaSchema);
+    const memberRepo = AppDataSource.getRepository(CuadrillaMiembroSchema);
+    const roleCuadrillaRepo = AppDataSource.getRepository(RoleCuadrillaSchema);
+    const userRepo = AppDataSource.getRepository(UserSchema);
+
+    const targetCount = count ? parseInt(count, 10) : 0;
+    const lat = latitud ? parseFloat(latitud) : null;
+    const lng = longitud ? parseFloat(longitud) : null;
+    const metaHerr = meta_herramientas ? parseInt(meta_herramientas, 10) : 5;
+
     // Si la cantidad es 0 o menor, creamos la cuadrilla sin miembros asociados.
-    if (!count || count <= 0) {
-        const newCuadrillaRes = await pool.query(
-            'INSERT INTO cuadrillas (nombre, zona, estado, latitud, longitud, meta_voluntarios, meta_herramientas, herramientas_requeridas) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-            [nombre, zona, 'PENDIENTE', latitud || null, longitud || null, 5, meta_herramientas, herramientas_requeridas || null]
-        );
+    if (targetCount <= 0) {
+        const newCuadrilla = cuadrillaRepo.create({
+            nombre,
+            zona,
+            estado: 'PENDIENTE',
+            latitud: lat,
+            longitud: lng,
+            meta_voluntarios: 5,
+            meta_herramientas: metaHerr,
+            herramientas_requeridas: herramientas_requeridas || null
+        });
+        const saved = await cuadrillaRepo.save(newCuadrilla);
         return {
-            ...newCuadrillaRes.rows[0],
+            ...saved,
             miembros_count: 0,
             capataz_nombre: null,
             capataz_rol: null,
@@ -162,43 +201,54 @@ const autoGenerateCuadrilla = async (nombre, zona, count, latitud, longitud, met
     }
 
     // 1. Obtener voluntarios disponibles (incluyendo 1 potencial capataz)
-    const volunteerQuery = `
-        SELECT id FROM users 
-        WHERE role_id = 2 AND id NOT IN (SELECT user_id FROM cuadrilla_miembros)
-        LIMIT $1
-    `;
-    const volunteersRes = await pool.query(volunteerQuery, [count]);
-    const availableVolunteers = volunteersRes.rows;
+    const subQuery = memberRepo.createQueryBuilder("cm").select("cm.user_id");
+    const availableVolunteers = await userRepo.createQueryBuilder("user")
+        .select("user.id", "id")
+        .where("user.role_id = 2")
+        .andWhere("user.id NOT IN (" + subQuery.getQuery() + ")")
+        .limit(targetCount)
+        .getRawMany();
 
     if (availableVolunteers.length < 1) {
         throw new Error('No hay suficientes voluntarios disponibles');
     }
 
     // 2. Crear la nueva cuadrilla con nombre personalizado, coordenadas, META y meta de herramientas
-    const newCuadrillaRes = await pool.query(
-        'INSERT INTO cuadrillas (nombre, zona, estado, latitud, longitud, meta_voluntarios, meta_herramientas, herramientas_requeridas) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-        [nombre, zona, 'PENDIENTE', latitud || null, longitud || null, count, meta_herramientas, herramientas_requeridas || null]
-    );
-    const newCuadrilla = newCuadrillaRes.rows[0];
+    const newCuadrilla = cuadrillaRepo.create({
+        nombre,
+        zona,
+        estado: 'PENDIENTE',
+        latitud: lat,
+        longitud: lng,
+        meta_voluntarios: targetCount,
+        meta_herramientas: metaHerr,
+        herramientas_requeridas: herramientas_requeridas || null
+    });
+    const savedCuadrilla = await cuadrillaRepo.save(newCuadrilla);
 
     // 3. Obtener IDs de roles (Capataz y Voluntario)
-    const rolesRes = await pool.query("SELECT id, nombre FROM roles_cuadrilla WHERE nombre IN ('Capataz de Zona', 'Voluntario')");
-    const capatazRole = rolesRes.rows.find(r => r.nombre === 'Capataz de Zona');
-    const voluntarioRole = rolesRes.rows.find(r => r.nombre === 'Voluntario');
+    const roles = await roleCuadrillaRepo.createQueryBuilder("rc")
+        .where("rc.nombre IN ('Capataz de Zona', 'Voluntario')")
+        .getMany();
+    
+    const capatazRole = roles.find(r => r.nombre === 'Capataz de Zona');
+    const voluntarioRole = roles.find(r => r.nombre === 'Voluntario');
 
     // 4. Asignar los voluntarios: El primero será Capataz, el resto Voluntarios
     for (let i = 0; i < availableVolunteers.length; i++) {
         const v = availableVolunteers[i];
         const roleId = (i === 0) ? capatazRole.id : voluntarioRole.id;
 
-        await pool.query(
-            'INSERT INTO cuadrilla_miembros (user_id, cuadrilla_id, rol_cuadrilla_id) VALUES ($1, $2, $3)',
-            [v.id, newCuadrilla.id, roleId]
-        );
+        const newMember = memberRepo.create({
+            user_id: v.id,
+            cuadrilla_id: savedCuadrilla.id,
+            rol_cuadrilla_id: roleId
+        });
+        await memberRepo.save(newMember);
     }
 
     return {
-        ...newCuadrilla,
+        ...savedCuadrilla,
         miembros_count: availableVolunteers.length,
         capataz_nombre: availableVolunteers.length > 0 ? 'Asignado' : null,
         capataz_rol: availableVolunteers.length > 0 ? 'Capataz de Zona' : null,
@@ -207,35 +257,61 @@ const autoGenerateCuadrilla = async (nombre, zona, count, latitud, longitud, met
 };
 
 const deleteCuadrilla = async (id) => {
-    await pool.query('DELETE FROM cuadrilla_miembros WHERE cuadrilla_id = $1', [id]);
-    const res = await pool.query('DELETE FROM cuadrillas WHERE id = $1 RETURNING *', [id]);
-    return res.rows[0];
+    const cId = parseInt(id, 10);
+    const cuadrillaRepo = AppDataSource.getRepository(CuadrillaSchema);
+    const memberRepo = AppDataSource.getRepository(CuadrillaMiembroSchema);
+
+    // Eliminar miembros
+    await memberRepo.createQueryBuilder()
+        .delete()
+        .where("cuadrilla_id = :cId", { cId })
+        .execute();
+
+    const cuadrilla = await cuadrillaRepo.findOneBy({ id: cId });
+    if (cuadrilla) {
+        await cuadrillaRepo.remove(cuadrilla);
+    }
+    return cuadrilla;
 };
 
 const updateCuadrilla = async (id, data) => {
+    const cId = parseInt(id, 10);
+    const cuadrillaRepo = AppDataSource.getRepository(CuadrillaSchema);
+    const cuadrilla = await cuadrillaRepo.findOneBy({ id: cId });
+    if (!cuadrilla) {
+        throw new Error("Cuadrilla no encontrada");
+    }
+
     const { nombre, zona, latitud, longitud, meta_voluntarios, meta_herramientas, estado, herramientas_requeridas } = data;
-    const lat = (latitud === '' || latitud === undefined || latitud === null) ? null : parseFloat(latitud);
-    const lng = (longitud === '' || longitud === undefined || longitud === null) ? null : parseFloat(longitud);
-    const res = await pool.query(
-        `UPDATE cuadrillas 
-         SET nombre = $1, zona = $2, latitud = $3, longitud = $4, meta_voluntarios = $5, meta_herramientas = $6, estado = $7, herramientas_requeridas = $8 
-         WHERE id = $9 RETURNING *`,
-        [nombre, zona, lat, lng, meta_voluntarios || 5, meta_herramientas || 5, estado || 'PENDIENTE', herramientas_requeridas || null, id]
-    );
-    return res.rows[0];
+    
+    cuadrilla.nombre = nombre;
+    cuadrilla.zona = zona;
+    cuadrilla.latitud = (latitud === '' || latitud === undefined || latitud === null) ? null : parseFloat(latitud);
+    cuadrilla.longitud = (longitud === '' || longitud === undefined || longitud === null) ? null : parseFloat(longitud);
+    cuadrilla.meta_voluntarios = meta_voluntarios ? parseInt(meta_voluntarios, 10) : 5;
+    cuadrilla.meta_herramientas = meta_herramientas ? parseInt(meta_herramientas, 10) : 5;
+    cuadrilla.estado = estado || 'PENDIENTE';
+    cuadrilla.herramientas_requeridas = herramientas_requeridas || null;
+
+    return await cuadrillaRepo.save(cuadrilla);
 };
 
 const autoAssignToolsToCuadrilla = async (cuadrillaId) => {
+    const cId = parseInt(cuadrillaId, 10);
+    const cuadrillaRepo = AppDataSource.getRepository(CuadrillaSchema);
+    const toolRepo = AppDataSource.getRepository(HerramientasSchema);
+
     // 1. Obtener la cuadrilla para saber la meta y requerimientos específicos
-    const cuadrillaRes = await pool.query('SELECT meta_herramientas, herramientas_requeridas FROM cuadrillas WHERE id = $1', [cuadrillaId]);
-    if (cuadrillaRes.rows.length === 0) {
+    const cuadrilla = await cuadrillaRepo.findOneBy({ id: cId });
+    if (!cuadrilla) {
         throw new Error('Cuadrilla no encontrada');
     }
-    const { meta_herramientas: metaHerramientas, herramientas_requeridas: herramientasRequeridas } = cuadrillaRes.rows[0];
-    const targetMeta = metaHerramientas || 5;
+    
+    const targetMeta = cuadrilla.meta_herramientas || 5;
+    const herramientasRequeridas = cuadrilla.herramientas_requeridas;
 
     // 2. Obtener miembros de la cuadrilla
-    const miembros = await getMiembrosByCuadrilla(cuadrillaId);
+    const miembros = await getMiembrosByCuadrilla(cId);
     if (miembros.length === 0) {
         throw new Error('No hay miembros asignados a esta cuadrilla.');
     }
@@ -254,10 +330,10 @@ const autoAssignToolsToCuadrilla = async (cuadrillaId) => {
     }
 
     // 4. Buscar herramientas libres (disponibles)
-    const herramientasLibresRes = await pool.query(
-        "SELECT id, nombre FROM herramientas WHERE assigned_to IS NULL AND estado = 'disponible' ORDER BY id"
-    );
-    let herramientasLibres = herramientasLibresRes.rows;
+    const herramientasLibres = await toolRepo.find({
+        where: { assigned_to: IsNull(), estado: 'disponible' },
+        order: { id: 'ASC' }
+    });
 
     if (herramientasLibres.length === 0) {
         throw new Error('No hay herramientas libres y disponibles en el inventario para asignar.');
@@ -334,6 +410,30 @@ const autoAssignToolsToCuadrilla = async (cuadrillaId) => {
     };
 };
 
+const getAvailableTools = async () => {
+    const toolRepo = AppDataSource.getRepository(HerramientasSchema);
+    return await toolRepo.find({
+        where: { assigned_to: IsNull(), estado: 'disponible' },
+        order: { nombre: 'ASC' }
+    });
+};
+
+const assignToolToUser = async (userId, toolId) => {
+    return await createPrestamoService(parseInt(toolId, 10), parseInt(userId, 10), 'Asignado manualmente');
+};
+
+const returnTool = async (toolId) => {
+    const prestamoRepo = AppDataSource.getRepository(PrestamoHerramientaSchema);
+    const activePrestamo = await prestamoRepo.findOneBy({
+        herramienta_id: parseInt(toolId, 10),
+        estado_prestamo: 'prestado'
+    });
+    if (!activePrestamo) {
+        throw new Error('No se encontró un préstamo activo para esta herramienta.');
+    }
+    return await registrarDevolucionService(activePrestamo.id, 'Devuelto manualmente');
+};
+
 const cuadrillaService = {
     getAllCuadrillas,
     createCuadrilla,
@@ -345,7 +445,10 @@ const cuadrillaService = {
     autoGenerateCuadrilla,
     deleteCuadrilla,
     updateCuadrilla,
-    autoAssignToolsToCuadrilla
+    autoAssignToolsToCuadrilla,
+    getAvailableTools,
+    assignToolToUser,
+    returnTool
 };
 
 export {
@@ -359,7 +462,10 @@ export {
     autoGenerateCuadrilla,
     deleteCuadrilla,
     updateCuadrilla,
-    autoAssignToolsToCuadrilla
+    autoAssignToolsToCuadrilla,
+    getAvailableTools,
+    assignToolToUser,
+    returnTool
 };
 
 export default cuadrillaService;

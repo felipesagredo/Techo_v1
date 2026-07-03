@@ -107,6 +107,44 @@ export const update = async (req, res) => {
     }
 };
 
+export const getAvailableTools = async (req, res) => {
+    try {
+        const tools = await cuadrillaService.getAvailableTools();
+        res.json(tools);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error al obtener herramientas disponibles' });
+    }
+};
+
+export const assignTool = async (req, res) => {
+    try {
+        const { userId, herramientaId } = req.body;
+        if (!userId || !herramientaId) {
+            return res.status(400).json({ error: 'userId y herramientaId son requeridos' });
+        }
+        const prestamo = await cuadrillaService.assignToolToUser(userId, herramientaId);
+        res.status(201).json(prestamo);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message || 'Error al asignar herramienta' });
+    }
+};
+
+export const returnTool = async (req, res) => {
+    try {
+        const { herramientaId } = req.body;
+        if (!herramientaId) {
+            return res.status(400).json({ error: 'herramientaId es requerido' });
+        }
+        const devolucion = await cuadrillaService.returnTool(herramientaId);
+        res.json(devolucion);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message || 'Error al devolver herramienta' });
+    }
+};
+
 const cuadrillaController = {
     getAll,
     getRoles,
@@ -118,7 +156,10 @@ const cuadrillaController = {
     autoGenerate,
     autoAssignTools,
     remove,
-    update
+    update,
+    getAvailableTools,
+    assignTool,
+    returnTool
 };
 
 export default cuadrillaController;

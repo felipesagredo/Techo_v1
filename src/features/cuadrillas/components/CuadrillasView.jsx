@@ -30,6 +30,7 @@ const CuadrillasView = ({ user, currentView }) => {
     usersList,
     rolesList,
     currentMembers,
+    availableTools,
     assignData,
     setAssignData,
     assigningMember,
@@ -49,10 +50,64 @@ const CuadrillasView = ({ user, currentView }) => {
     handleRemoveMember,
     handleCloseAssignModal,
     handleDeleteCuadrilla,
-    handleAutoAssignTools
+    handleAutoAssignTools,
+    handleAssignTool,
+    handleReturnTool
   } = useCuadrillas(user, currentView);
 
   const [viewMode, setViewMode] = useState('cards');
+
+  const parseRequerimientos = (reqString) => {
+    if (!reqString) return [];
+    return reqString.split(',').map(item => {
+      const match = item.trim().match(/^(\d+)\s+(.+)$/);
+      if (match) {
+        return {
+          qty: parseInt(match[1], 10),
+          name: match[2].trim()
+        };
+      }
+      return {
+        qty: 1,
+        name: item.trim()
+      };
+    }).filter(Boolean);
+  };
+
+  const countAssignedOfType = (cuadrillaTools, reqName) => {
+    const cleanReq = reqName.replace(/s$/i, '').toLowerCase(); // singularized basic
+    return cuadrillaTools.filter(t => t.nombre.toLowerCase().includes(cleanReq)).length;
+  };
+
+  const handleAssignToolByNeed = async (reqName) => {
+    if (!selectedCuadrilla || currentMembers.length === 0) {
+      alert('Debe haber miembros asignados en la cuadrilla');
+      return;
+    }
+    
+    // Find matching tool in availableTools
+    const cleanReq = reqName.replace(/s$/i, '').toLowerCase();
+    const matchingTool = availableTools.find(t => t.nombre.toLowerCase().includes(cleanReq));
+    if (!matchingTool) {
+      alert(`No hay herramientas de tipo "${reqName}" disponibles en el inventario.`);
+      return;
+    }
+
+    // Find member with fewest tools
+    let bestMember = currentMembers[0];
+    let minTools = bestMember.herramientas ? bestMember.herramientas.length : 0;
+    
+    for (const m of currentMembers) {
+      const toolsCount = m.herramientas ? m.herramientas.length : 0;
+      if (toolsCount < minTools) {
+        minTools = toolsCount;
+        bestMember = m;
+      }
+    }
+
+    // Assign tool to that member
+    await handleAssignTool(bestMember.user_id, matchingTool.id);
+  };
 
   return (
     <div className="cuadrillas-view-container">
@@ -94,6 +149,10 @@ const CuadrillasView = ({ user, currentView }) => {
         <div className="cv-kpi-card cv-kpi-blue">
           <p>VOLUNTARIOS DISPONIBLES</p>
           <h2>{availableVolunteersCount < 10 ? `0${availableVolunteersCount}` : availableVolunteersCount}</h2>
+        </div>
+        <div className="cv-kpi-card cv-kpi-green">
+          <p>HERRAMIENTAS LIBRES</p>
+          <h2>{availableTools.length < 10 ? `0${availableTools.length}` : availableTools.length}</h2>
         </div>
         <div className="cv-kpi-card cv-kpi-red">
           <p>SIN CAPATACES</p>
@@ -171,9 +230,17 @@ const CuadrillasView = ({ user, currentView }) => {
                     ) : (
                       <span className="no-tools-text">🔧 0 / {cuadrilla.meta_herramientas || 5}</span>
                     )}
-                    {cuadrilla.herramientas_requeridas && (
-                      <div className="table-required-tools-hint" style={{ fontSize: '0.7rem', color: '#868e96', marginTop: '0.2rem' }}>
-                        Req: {cuadrilla.herramientas_requeridas}
+                     {cuadrilla.herramientas_requeridas && (
+                      <div className="table-required-tools-hint" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.2rem', marginTop: '0.25rem' }}>
+                        {parseRequerimientos(cuadrilla.herramientas_requeridas).map((req, rIdx) => {
+                          const assigned = countAssignedOfType(cuadrilla.herramientas || [], req.name);
+                          const isComplete = assigned >= req.qty;
+                          return (
+                            <span key={rIdx} style={{ fontSize: '0.6rem', color: isComplete ? '#27ae60' : '#e67e22', background: isComplete ? '#eafaf1' : '#fffbeb', padding: '0.05rem 0.2rem', borderRadius: '3px', border: `1px solid ${isComplete ? '#2ecc71' : '#fde68a'}`, textTransform: 'capitalize' }}>
+                              {req.name}: {assigned}/{req.qty}
+                            </span>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -301,10 +368,27 @@ const CuadrillasView = ({ user, currentView }) => {
                       </div>
                     </div>
 
-                    {cuadrilla.herramientas_requeridas && (
-                      <div className="card-required-tools" style={{ marginTop: '0.8rem', paddingTop: '0.8rem', borderTop: '1px dashed #e9ecef', fontSize: '0.8rem' }}>
-                        <span style={{ fontWeight: 600, color: '#495057', display: 'block', marginBottom: '0.2rem' }}>🔧 Requeridas Específicamente:</span>
-                        <span style={{ color: '#666' }}>{cuadrilla.herramientas_requeridas}</span>
+                     {cuadrilla.herramientas_requeridas && (
+                      <div className="card-required-tools-progress" style={{ marginTop: '0.8rem', paddingTop: '0.8rem', borderTop: '1px dashed #e9ecef' }}>
+                        <span style={{ fontWeight: 700, color: '#495057', fontSize: '0.7rem', display: 'block', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                          🎯 Requerimiento de Herramientas:
+                        </span>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                          {parseRequerimientos(cuadrilla.herramientas_requeridas).map((req, rIdx) => {
+                            const assigned = countAssignedOfType(cuadrilla.herramientas || [], req.name);
+                            const isComplete = assigned >= req.qty;
+                            return (
+                              <div key={rIdx} style={{ background: isComplete ? '#eafaf1' : '#fef9e7', border: `1px solid ${isComplete ? '#2ecc71' : '#f39c12'}`, padding: '0.25rem 0.4rem', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
+                                <span style={{ fontWeight: 600, color: isComplete ? '#27ae60' : '#d35400', textTransform: 'capitalize' }}>
+                                  🛠️ {req.name}
+                                </span>
+                                <span style={{ fontWeight: 700, color: isComplete ? '#27ae60' : '#d35400' }}>
+                                  {assigned} / {req.qty}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -342,91 +426,93 @@ const CuadrillasView = ({ user, currentView }) => {
             </div>
             <p className="modal-subtitle">Define el nombre, ubicación y la cantidad de voluntarios para asignación automática.</p>
             
-            <form onSubmit={handleCreateCuadrilla}>
-              <div className="form-group">
-                <label>Nombre de la Cuadrilla</label>
-                <input
-                  type="text"
-                  placeholder="Ej. Cuadrilla Los Pinos - Fase 1"
-                  value={createData.nombre}
-                  onChange={e => setCreateData({ ...createData, nombre: e.target.value })}
-                  required
-                  className="modal-input"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Zona / Proyecto</label>
-                <input
-                  type="text"
-                  placeholder="Ej. Campamento Esperanza, Maipú"
-                  value={createData.zona}
-                  onChange={e => setCreateData({ ...createData, zona: e.target.value })}
-                  required
-                  className="modal-input"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Ubicación en el Mapa</label>
-                <LocationPicker 
-                  lat={createData.latitud} 
-                  lng={createData.longitud} 
-                  onChange={(lat, lng) => setCreateData({ ...createData, latitud: lat, longitud: lng })} 
-                />
-              </div>
-
-              <div className="form-row">
+            <form onSubmit={handleCreateCuadrilla} className="modal-form">
+              <div className="modal-body">
                 <div className="form-group">
-                  <label>Latitud</label>
-                  <input type="text" value={createData.latitud} readOnly placeholder="..." className="modal-input readonly-input" />
-                </div>
-                <div className="form-group">
-                  <label>Longitud</label>
-                  <input type="text" value={createData.longitud} readOnly placeholder="..." className="modal-input readonly-input" />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group flex-1">
-                  <label>Voluntarios a Asignar (Libres: {availableVolunteersCount})</label>
+                  <label>Nombre de la Cuadrilla</label>
                   <input
-                    type="number"
-                    min="0"
-                    max={availableVolunteersCount}
-                    value={createData.count || 0}
-                    onChange={e => {
-                      const val = parseInt(e.target.value);
-                      setCreateData({ ...createData, count: isNaN(val) ? 0 : val });
-                    }}
-                    className="modal-input"
-                  />
-                </div>
-                <div className="form-group flex-1">
-                  <label>Meta de Herramientas</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={createData.meta_herramientas || 5}
-                    onChange={e => {
-                      const val = parseInt(e.target.value);
-                      setCreateData({ ...createData, meta_herramientas: isNaN(val) ? 5 : val });
-                    }}
+                    type="text"
+                    placeholder="Ej. Cuadrilla Los Pinos - Fase 1"
+                    value={createData.nombre}
+                    onChange={e => setCreateData({ ...createData, nombre: e.target.value })}
                     required
                     className="modal-input"
                   />
                 </div>
-              </div>
 
-              <div className="form-group">
-                <label>Herramientas Requeridas Específicamente</label>
-                <input
-                  type="text"
-                  placeholder="Ej. 2 Martillos, 1 Sierra, 1 Pala"
-                  value={createData.herramientas_requeridas || ''}
-                  onChange={e => setCreateData({ ...createData, herramientas_requeridas: e.target.value })}
-                  className="modal-input"
-                />
+                <div className="form-group">
+                  <label>Zona / Proyecto</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Campamento Esperanza, Maipú"
+                    value={createData.zona}
+                    onChange={e => setCreateData({ ...createData, zona: e.target.value })}
+                    required
+                    className="modal-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Ubicación en el Mapa</label>
+                  <LocationPicker 
+                    lat={createData.latitud} 
+                    lng={createData.longitud} 
+                    onChange={(lat, lng) => setCreateData({ ...createData, latitud: lat, longitud: lng })} 
+                  />
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Latitud</label>
+                    <input type="text" value={createData.latitud} readOnly placeholder="..." className="modal-input readonly-input" />
+                  </div>
+                  <div className="form-group">
+                    <label>Longitud</label>
+                    <input type="text" value={createData.longitud} readOnly placeholder="..." className="modal-input readonly-input" />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group flex-1">
+                    <label>Voluntarios a Asignar (Libres: {availableVolunteersCount})</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max={availableVolunteersCount}
+                      value={createData.count || 0}
+                      onChange={e => {
+                        const val = parseInt(e.target.value);
+                        setCreateData({ ...createData, count: isNaN(val) ? 0 : val });
+                      }}
+                      className="modal-input"
+                    />
+                  </div>
+                  <div className="form-group flex-1">
+                    <label>Meta de Herramientas</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={createData.meta_herramientas || 5}
+                      onChange={e => {
+                        const val = parseInt(e.target.value);
+                        setCreateData({ ...createData, meta_herramientas: isNaN(val) ? 5 : val });
+                      }}
+                      required
+                      className="modal-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Herramientas Requeridas Específicamente</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. 2 Martillos, 1 Sierra, 1 Pala"
+                    value={createData.herramientas_requeridas || ''}
+                    onChange={e => setCreateData({ ...createData, herramientas_requeridas: e.target.value })}
+                    className="modal-input"
+                  />
+                </div>
               </div>
 
               <div className="modal-footer">
@@ -453,106 +539,182 @@ const CuadrillasView = ({ user, currentView }) => {
               </button>
             </div>
 
-            {(() => {
-              const leaders = currentMembers.filter(m => m.cargo === 'Capataz de Zona' || m.cargo === 'Voluntario Senior');
-              return leaders.length === 0 ? (
-                <div className="leadership-alert alert-warning">
-                  <AlertTriangle size={16} /> Falta asignar un líder a esta cuadrilla (Capataz de Zona o Voluntario Senior).
-                </div>
-              ) : (
-                <div className="leadership-alert alert-success">
-                  <span>✓</span> Líder asignado: {leaders.map(l => `${l.name} (${l.cargo})`).join(', ')}
-                </div>
-              );
-            })()}
+            <div className="modal-body">
+              {(() => {
+                const leaders = currentMembers.filter(m => m.cargo === 'Capataz de Zona' || m.cargo === 'Voluntario Senior');
+                return leaders.length === 0 ? (
+                  <div className="leadership-alert alert-warning">
+                    <AlertTriangle size={16} /> Falta asignar un líder a esta cuadrilla (Capataz de Zona o Voluntario Senior).
+                  </div>
+                ) : (
+                  <div className="leadership-alert alert-success">
+                    <span>✓</span> Líder asignado: {leaders.map(l => `${l.name} (${l.cargo})`).join(', ')}
+                  </div>
+                );
+              })()}
 
-            <div className="assign-layout">
-              <div className="assign-form-section">
-                <h3>Añadir Miembro Manualmente</h3>
-                <form onSubmit={handleAssignMember} className="form-row-inline">
-                  <div className="form-group flex-2">
-                    <label>Voluntario</label>
-                    <select
-                      className="modal-input"
-                      value={assignData.userId}
-                      onChange={e => setAssignData({ ...assignData, userId: e.target.value })}
+              <div className="assign-layout">
+                <div className="assign-form-section">
+                  <h3>Añadir Miembro Manualmente</h3>
+                  <form onSubmit={handleAssignMember} className="form-row-inline">
+                    <div className="form-group flex-2">
+                      <label>Voluntario</label>
+                      <select
+                        className="modal-input"
+                        value={assignData.userId}
+                        onChange={e => setAssignData({ ...assignData, userId: e.target.value })}
+                      >
+                        <option value="">Seleccionar voluntario...</option>
+                        {usersList.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group flex-1">
+                      <label>Rol</label>
+                      <select
+                        className="modal-input"
+                        value={assignData.rolCuadrillaId}
+                        onChange={e => setAssignData({ ...assignData, rolCuadrillaId: e.target.value })}
+                      >
+                        {rolesList.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group submit-group">
+                      <button type="submit" className="btn-primary btn-add-member" disabled={assigningMember}>
+                        {assigningMember ? '...' : <Plus size={16} />}
+                      </button>
+                    </div>
+                  </form>
+
+                  {selectedCuadrilla.herramientas_requeridas && (
+                    <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #f1f3f5' }}>
+                      <h3 style={{ marginBottom: '0.5rem' }}>Necesidades de la Cuadrilla</h3>
+                      <p style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.75rem', lineHeight: '1.4' }}>
+                        Asigna herramientas del inventario basadas en los requerimientos del equipo.
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
+                        {parseRequerimientos(selectedCuadrilla.herramientas_requeridas).map((req, rIdx) => {
+                          const assigned = countAssignedOfType(selectedCuadrilla.herramientas || [], req.name);
+                          const isComplete = assigned >= req.qty;
+                          const matchingAvailable = availableTools.filter(t => t.nombre.toLowerCase().includes(req.name.replace(/s$/i, '').toLowerCase()));
+                          
+                          return (
+                            <div key={rIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isComplete ? '#f0fdf4' : '#fffbeb', padding: '0.4rem 0.6rem', borderRadius: '6px', border: `1px solid ${isComplete ? '#bbf7d0' : '#fde68a'}`, fontSize: '0.75rem' }}>
+                              <div>
+                                <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>🛠️ {req.name}</span>
+                                <span style={{ marginLeft: '0.4rem', color: isComplete ? '#15803d' : '#b45309', fontWeight: 700 }}>
+                                  {assigned} / {req.qty}
+                                </span>
+                                <span style={{ display: 'block', fontSize: '0.6rem', color: '#64748b', marginTop: '0.05rem' }}>
+                                  ({matchingAvailable.length} disponibles)
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleAssignToolByNeed(req.name)}
+                                disabled={isComplete || matchingAvailable.length === 0 || currentMembers.length === 0}
+                                className="btn-primary"
+                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.65rem', height: 'auto', background: isComplete ? '#15803d' : 'var(--primary-blue)' }}
+                              >
+                                + Asignar
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #f1f3f5' }}>
+                    <h3 style={{ marginBottom: '0.5rem' }}>Asignación de Herramientas Automática</h3>
+                    <p style={{ fontSize: '0.75rem', color: '#666', marginBottom: '1rem', lineHeight: '1.4' }}>
+                      Asigna herramientas disponibles de forma equitativa a los miembros actuales del equipo para cumplir con la meta establecida (Meta: {selectedCuadrilla.meta_herramientas || 5} herramientas).
+                    </p>
+                    <button 
+                      type="button" 
+                      className="btn-outline"
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                      onClick={handleAutoAssignTools}
+                      disabled={currentMembers.length === 0}
                     >
-                      <option value="">Seleccionar voluntario...</option>
-                      {usersList.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="form-group flex-1">
-                    <label>Rol</label>
-                    <select
-                      className="modal-input"
-                      value={assignData.rolCuadrillaId}
-                      onChange={e => setAssignData({ ...assignData, rolCuadrillaId: e.target.value })}
-                    >
-                      {rolesList.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
-                    </select>
-                  </div>
-                  <div className="form-group submit-group">
-                    <button type="submit" className="btn-primary btn-add-member" disabled={assigningMember}>
-                      {assigningMember ? '...' : <Plus size={16} />}
+                      🔧 Asignar Automáticamente
                     </button>
                   </div>
-                </form>
-
-                <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #f1f3f5' }}>
-                  <h3 style={{ marginBottom: '0.5rem' }}>Asignación de Herramientas</h3>
-                  <p style={{ fontSize: '0.75rem', color: '#666', marginBottom: '1rem', lineHeight: '1.4' }}>
-                    Asigna herramientas disponibles de forma equitativa a los miembros actuales del equipo para cumplir con la meta establecida (Meta: {selectedCuadrilla.meta_herramientas || 5} herramientas).
-                  </p>
-                  <button 
-                    type="button" 
-                    className="btn-outline"
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                    onClick={handleAutoAssignTools}
-                    disabled={currentMembers.length === 0}
-                  >
-                    🔧 Asignar Automáticamente
-                  </button>
                 </div>
-              </div>
 
-              <div className="members-list-section">
-                <h3>Miembros Actuales ({currentMembers.length})</h3>
-                <div className="members-list">
-                  {currentMembers.length === 0 ? <p className="text-muted text-center py-1">No hay miembros asignados.</p> : null}
-                    {currentMembers.map((m) => (
-                      <div key={m.user_id} className="member-item">
-                        <div className="member-avatar">{m.name ? m.name.charAt(0).toUpperCase() : '?'}</div>
-                        <div className="member-info">
-                          <h4>{m.name}</h4>
-                          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.2rem' }}>
-                            <span className={`member-role ${m.cargo && (m.cargo.includes('Capataz') || m.cargo.includes('Senior')) ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
-                            {m.herramientas && m.herramientas.length > 0 && (
-                              <span style={{ fontSize: '0.65rem', color: '#1d8cf8', fontWeight: 600 }} title={m.herramientas.map(h => h.nombre).join(', ')}>
-                                🔧 {m.herramientas.length} herr.
-                              </span>
-                            )}
+                <div className="members-list-section">
+                  <h3>Miembros Actuales ({currentMembers.length})</h3>
+                  <div className="members-list">
+                    {currentMembers.length === 0 ? <p className="text-muted text-center py-1">No hay miembros asignados.</p> : null}
+                      {currentMembers.map((m) => (
+                        <div key={m.user_id} className="member-item" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.5rem', padding: '1rem', borderBottom: '1px solid #f1f3f5' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
+                              <div className="member-avatar">{m.name ? m.name.charAt(0).toUpperCase() : '?'}</div>
+                              <div className="member-info">
+                                <h4 style={{ margin: 0 }}>{m.name}</h4>
+                                <span className={`member-role ${m.cargo && (m.cargo.includes('Capataz') || m.cargo.includes('Senior')) ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
+                              </div>
+                            </div>
+                            <button 
+                              className="btn-liberar" 
+                              type="button"
+                              title="Quitar de la cuadrilla" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveMember(m.user_id);
+                              }}
+                            >
+                              <Trash2 size={12} />
+                              <span>Liberar</span>
+                            </button>
+                          </div>
+
+                          {/* Herramientas del voluntario */}
+                          <div style={{ paddingLeft: '2.8rem', marginTop: '0.3rem' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.5rem' }}>
+                              {m.herramientas && m.herramientas.length > 0 ? (
+                                m.herramientas.map((h, hIdx) => (
+                                  <span key={hIdx} className="member-tool-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.5rem', background: '#eef4f9', borderRadius: '4px', fontSize: '0.7rem', color: '#0066cc', fontWeight: '500' }}>
+                                    🔧 {h.nombre}
+                                    <button 
+                                      type="button" 
+                                      onClick={() => handleReturnTool(h.id)} 
+                                      style={{ background: 'none', border: 'none', color: '#ff4d4d', cursor: 'pointer', padding: 0, marginLeft: '0.2rem', display: 'flex', alignItems: 'center' }}
+                                      title="Devolver Herramienta"
+                                    >
+                                      <X size={10} />
+                                    </button>
+                                  </span>
+                                ))
+                              ) : (
+                                <span style={{ fontSize: '0.7rem', color: '#868e96', fontStyle: 'italic' }}>Sin herramientas asignadas</span>
+                              )}
+                            </div>
+
+                            {/* Dropdown de asignación */}
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                              <select 
+                                defaultValue=""
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    handleAssignTool(m.user_id, e.target.value);
+                                    e.target.value = ""; // reset dropdown
+                                  }
+                                }}
+                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid #cbd5e0', background: '#fff', flex: 1 }}
+                              >
+                                <option value="">+ Asignar Herramienta...</option>
+                                {availableTools.map(t => (
+                                  <option key={t.id} value={t.id}>{t.nombre} ({t.categoria_herramienta})</option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
                         </div>
-                        <button 
-                          className="btn-liberar" 
-                          title="Quitar de la cuadrilla" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveMember(m.user_id);
-                          }}
-                        >
-                          <Trash2 size={12} />
-                          <span>Liberar</span>
-                        </button>
-                      </div>
-                    ))}
+                      ))}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="btn-primary" onClick={handleCloseAssignModal}>
-                Listo
-              </button>
             </div>
           </div>
         </div>
@@ -569,29 +731,31 @@ const CuadrillasView = ({ user, currentView }) => {
               </button>
             </div>
 
-            <div className="members-list-section mt-1">
-              <div className="members-list">
-                {currentMembers.length === 0 ? <p className="text-muted">No hay miembros asignados a esta cuadrilla.</p> : null}
-                {currentMembers.map((m, idx) => (
-                  <div key={idx} className="member-item">
-                    <div className="member-avatar">{m.name.charAt(0).toUpperCase()}</div>
-                    <div className="member-info">
-                      <h4>{m.name}</h4>
-                      <span className={`member-role ${m.cargo.includes('Capataz') || m.cargo.includes('Senior') ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
+            <div className="modal-body">
+              <div className="members-list-section mt-1">
+                <div className="members-list">
+                  {currentMembers.length === 0 ? <p className="text-muted">No hay miembros asignados a esta cuadrilla.</p> : null}
+                  {currentMembers.map((m, idx) => (
+                    <div key={idx} className="member-item">
+                      <div className="member-avatar">{m.name.charAt(0).toUpperCase()}</div>
+                      <div className="member-info">
+                        <h4>{m.name}</h4>
+                        <span className={`member-role ${m.cargo.includes('Capataz') || m.cargo.includes('Senior') ? 'role-capataz' : 'role-normal'}`}>{m.cargo}</span>
+                      </div>
+                      <div className="member-tools">
+                        {m.herramientas && m.herramientas.length > 0 ? (
+                          m.herramientas.map((h, hIdx) => (
+                            <span key={hIdx} className="tool-mini-badge" title={`Estado: ${h.estado}`}>
+                              🔧 {h.nombre}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="no-tools-text-small">Sin herramientas</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="member-tools">
-                      {m.herramientas && m.herramientas.length > 0 ? (
-                        m.herramientas.map((h, hIdx) => (
-                          <span key={hIdx} className="tool-mini-badge" title={`Estado: ${h.estado}`}>
-                            🔧 {h.nombre}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="no-tools-text-small">Sin herramientas</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
             <div className="modal-footer">
@@ -613,7 +777,7 @@ const CuadrillasView = ({ user, currentView }) => {
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleUpdateCuadrilla}>
+            <form onSubmit={handleUpdateCuadrilla} className="modal-form">
               <div className="modal-body">
                 <div className="form-group">
                   <label>Nombre de la Cuadrilla</label>

@@ -111,5 +111,37 @@ export const cuadrillaService = {
       throw new Error(errorData?.error || 'Error auto-assigning tools');
     }
     return res.json();
+  },
+
+  getAvailableTools: async () => {
+    const res = await fetch(`${API_URL}/cuadrillas/available-tools`, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Error fetching available tools');
+    return res.json();
+  },
+
+  assignTool: async (data) => {
+    const res = await fetch(`${API_URL}/cuadrillas/assign-tool`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => null);
+      throw new Error(errorData?.error || 'Error assigning tool');
+    }
+    return res.json();
+  },
+
+  returnTool: async (data) => {
+    const res = await fetch(`${API_URL}/cuadrillas/return-tool`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => null);
+      throw new Error(errorData?.error || 'Error returning tool');
+    }
+    return res.json();
   }
 };
