@@ -2,7 +2,7 @@ import React from 'react';
 import '../../../styles/HerramientasInventario.css';
 import { Wrench, Edit2, Trash2 } from 'lucide-react';
 
-export default function HerramientasInventario({ herramientas, onEdit, onDelete, user, emptyMessage = 'No hay herramientas registradas' }) {
+export default function HerramientasInventario({ herramientas, onEdit, onDelete, user, onAssignCuadrilla, emptyMessage = 'No hay herramientas registradas' }) {
   const getEstadoClass = (estado) => {
     switch (estado) {
       case 'disponible':
@@ -25,6 +25,11 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete,
       <div className="inventario-header">
         <h2>Detalle de Existencias</h2>
         <div className="inventario-filters">
+          {user?.role_id === 1 && (
+            <button className="btn-outline" onClick={onAssignCuadrilla}>
+              Asignar a Cuadrilla
+            </button>
+          )}
           <button className="btn-outline">Exportar</button>
         </div>
       </div>

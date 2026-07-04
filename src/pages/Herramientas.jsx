@@ -3,6 +3,7 @@ import { useGetHerramientas } from '../features/cuadrillas/hooks/herramientas/us
 import { useDeleteHerramienta } from '../features/cuadrillas/hooks/herramientas/useDeleteHerramienta';
 import HerramientasInventario from '../features/cuadrillas/components/HerramientasInventario';
 import HerramientasPopup from '../components/Herramientas.Popup';
+import AsignarCuadrillaPopup from '../components/AsignarCuadrilla.Popup';
 import { Search, X } from 'lucide-react';
 import '../styles/Herramientas.css';
 
@@ -10,6 +11,7 @@ export default function Herramientas({ user }) {
   const [showPopup, setShowPopup] = useState(false);
   const [popupMode, setPopupMode] = useState('create');
   const [editingHerramienta, setEditingHerramienta] = useState(null);
+  const [showAssignPopup, setShowAssignPopup] = useState(false);
   const { herramientas, loading, error, refetch } = useGetHerramientas();
   const { deleteHerramienta } = useDeleteHerramienta();
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,6 +48,19 @@ export default function Herramientas({ user }) {
   const handleSaveSuccess = () => {
     refetch();
     handleClosePopup();
+  };
+
+  const handleOpenAssignPopup = () => {
+    setShowAssignPopup(true);
+  };
+
+  const handleCloseAssignPopup = () => {
+    setShowAssignPopup(false);
+  };
+
+  const handleAssignSuccess = () => {
+    refetch();
+    handleCloseAssignPopup();
   };
 
   // Calcular estadísticas
@@ -127,6 +142,7 @@ export default function Herramientas({ user }) {
             user={user}
             onEdit={handleEditHerramienta}
             onDelete={handleDeleteHerramienta}
+            onAssignCuadrilla={handleOpenAssignPopup}
             emptyMessage={searchTerm.trim() ? 'No se encontraron herramientas con ese nombre' : 'No hay herramientas registradas'}
           />
       )}
@@ -138,6 +154,15 @@ export default function Herramientas({ user }) {
           mode={popupMode}
           onClose={handleClosePopup}
           onSaveSuccess={handleSaveSuccess}
+        />
+      )}
+
+      {/* Asignar a Cuadrilla Popup */}
+      {showAssignPopup && (
+        <AsignarCuadrillaPopup
+          herramientas={herramientas}
+          onClose={handleCloseAssignPopup}
+          onSaveSuccess={handleAssignSuccess}
         />
       )}
     </div>
