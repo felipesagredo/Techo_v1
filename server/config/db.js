@@ -8,6 +8,7 @@ import CuadrillaSchema from '../entity/Cuadrilla.entity.js';
 import RoleCuadrillaSchema from '../entity/RoleCuadrilla.entity.js';
 import CuadrillaMiembroSchema from '../entity/CuadrillaMiembro.entity.js';
 import PrestamoHerramientaSchema from '../entity/PrestamoHerramienta.entity.js';
+import AsignacionMaterialSchema from '../entity/AsignacionMaterial.entity.js';
 
 dotenv.config();
 
@@ -28,7 +29,8 @@ const AppDataSource = new DataSource({
     CuadrillaSchema,
     RoleCuadrillaSchema,
     CuadrillaMiembroSchema,
-    PrestamoHerramientaSchema
+    PrestamoHerramientaSchema,
+    AsignacionMaterialSchema
   ]
 });
 

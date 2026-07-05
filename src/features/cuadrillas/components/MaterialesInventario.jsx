@@ -2,7 +2,7 @@ import React from 'react';
 import '../../../styles/HerramientasInventario.css';
 import { Package, Edit2, Trash2 } from 'lucide-react';
 
-export default function MaterialesInventario({ materiales, onEdit, onDelete, user, emptyMessage = 'No hay materiales registrados' }) {
+export default function MaterialesInventario({ materiales, onEdit, onDelete, user, onAssignCuadrilla, emptyMessage = 'No hay materiales registrados' }) {
   const getEstadoClass = (estado) => {
     switch (estado) {
       case 'disponible':
@@ -26,6 +26,11 @@ export default function MaterialesInventario({ materiales, onEdit, onDelete, use
         <h2>Detalle de Materiales</h2>
         <div className="inventario-filters">
           <button className="export-btn">Exportar</button>
+          {user?.role_id === 1 && (
+            <button className="export-btn" onClick={onAssignCuadrilla} style={{ marginLeft: '10px' }}>
+              Asignar a Cuadrilla
+            </button>
+          )}
         </div>
       </div>
 

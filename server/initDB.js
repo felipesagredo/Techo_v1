@@ -87,6 +87,14 @@ const initDB = async () => {
       fecha_devolucion TIMESTAMP,
       estado_prestamo VARCHAR(30) DEFAULT 'prestado',
       notes TEXT
+    );`,
+    `CREATE TABLE IF NOT EXISTS asignacion_materiales (
+      id SERIAL PRIMARY KEY,
+      material_id INTEGER REFERENCES materiales(id) ON DELETE CASCADE,
+      cuadrilla_id INTEGER REFERENCES cuadrillas(id) ON DELETE CASCADE,
+      cantidad_asignada INTEGER NOT NULL,
+      fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      notas TEXT
     );`
   ];
 

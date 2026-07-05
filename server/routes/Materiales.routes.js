@@ -9,8 +9,16 @@ import {
     updateMateriales,
     deleteMaterial
 } from "../controllers/Materiales.controller.js";
+import {
+    createAsignacion,
+    getHistorialByMaterial
+} from "../controllers/asignacionMaterialController.js";
 
 const router = express.Router();
+
+// RUTAS DE ASIGNACIONES Y HISTORIAL
+router.get("/:id/asignaciones", [authMiddleware, authorizeRoles('admin', 'voluntario')], getHistorialByMaterial);
+router.post("/asignaciones", [authMiddleware, authorizeRoles('admin')], createAsignacion);
 
 // RUTAS DE LECTURA - Acceso: admin y voluntario
 router.get("/", [authMiddleware, authorizeRoles('admin', 'voluntario')], getMateriales);

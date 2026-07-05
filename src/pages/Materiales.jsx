@@ -3,11 +3,13 @@ import { useGetMateriales } from '../features/cuadrillas/hooks/materiales/useGet
 import { useDeleteMaterial } from '../features/cuadrillas/hooks/materiales/useDeleteMaterial';
 import MaterialesInventario from '../features/cuadrillas/components/MaterialesInventario';
 import MaterialesPopup from '../components/Materiales.Popup';
+import AsignarCuadrillaMaterialPopup from '../components/AsignarCuadrillaMaterial.Popup';
 import { Search, X } from 'lucide-react';
 import '../styles/Herramientas.css';
 
 export default function Materiales({ user }) {
   const [showPopup, setShowPopup] = useState(false);
+  const [showAssignPopup, setShowAssignPopup] = useState(false);
   const [popupMode, setPopupMode] = useState('create');
   const [editingMaterial, setEditingMaterial] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -43,9 +45,18 @@ export default function Materiales({ user }) {
     setPopupMode('create');
   };
 
+  const handleCloseAssignPopup = () => {
+    setShowAssignPopup(false);
+  };
+
   const handleSaveSuccess = () => {
     refetch();
     handleClosePopup();
+  };
+
+  const handleAssignSuccess = () => {
+    refetch();
+    handleCloseAssignPopup();
   };
 
   const totalMateriales = materiales?.length || 0;
@@ -122,6 +133,7 @@ export default function Materiales({ user }) {
           user={user}
           onEdit={handleEditMaterial}
           onDelete={handleDeleteMaterial}
+          onAssignCuadrilla={() => setShowAssignPopup(true)}
           emptyMessage={searchTerm.trim()
             ? 'No se encontraron materiales con ese nombre'
             : 'No hay materiales registrados'}
@@ -134,6 +146,14 @@ export default function Materiales({ user }) {
           mode={popupMode}
           onClose={handleClosePopup}
           onSaveSuccess={handleSaveSuccess}
+        />
+      )}
+
+      {showAssignPopup && (
+        <AsignarCuadrillaMaterialPopup
+          materiales={materiales}
+          onClose={handleCloseAssignPopup}
+          onSaveSuccess={handleAssignSuccess}
         />
       )}
     </div>
