@@ -24,8 +24,12 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete,
   };
 
   const getStockStatusClass = (stock) => {
-    if (stock === 0) return 'sin-stock';
-    if (stock < 50) return 'bajo-stock';
+    const stockValue = Number(stock ?? 0);
+    const optimalStock = 100;
+    const halfOptimal = optimalStock / 2;
+
+    if (stockValue < 10) return 'sin-stock';
+    if (stockValue < halfOptimal) return 'bajo-stock';
     return 'stock-optimo';
   };
 
@@ -39,7 +43,6 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete,
               Asignar a Cuadrilla
             </button>
           )}
-          <button className="btn-outline">Exportar</button>
         </div>
       </div>
 

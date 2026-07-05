@@ -15,8 +15,12 @@ export default function MaterialesInventario({ materiales, onEdit, onDelete, use
   };
 
   const getStockStatusClass = (cantidad) => {
-    if (cantidad === 0) return 'sin-stock';
-    if (cantidad < 50) return 'bajo-stock';
+    const stockValue = Number(cantidad ?? 0);
+    const optimalStock = 100;
+    const halfOptimal = optimalStock / 2;
+
+    if (stockValue < 10) return 'sin-stock';
+    if (stockValue < halfOptimal) return 'bajo-stock';
     return 'stock-optimo';
   };
 
@@ -25,7 +29,6 @@ export default function MaterialesInventario({ materiales, onEdit, onDelete, use
       <div className="inventario-header">
         <h2>Detalle de Materiales</h2>
         <div className="inventario-filters">
-          <button className="export-btn">Exportar</button>
           {user?.role_id === 1 && (
             <button className="export-btn" onClick={onAssignCuadrilla} style={{ marginLeft: '10px' }}>
               Asignar a Cuadrilla

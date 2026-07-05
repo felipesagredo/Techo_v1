@@ -16,7 +16,7 @@
 
 .inventario-header h2 {
   font-size: 1.5rem;
-  color: #1e3a5f;
+  color: #004785;
   margin: 0;
 }
 
@@ -26,20 +26,24 @@
 }
 
 .filter-btn,
-.export-btn {
-  background: white;
-  border: 1px solid #ddd;
+.export-btn,
+.inventario-filters .btn-outline {
+  background: #f8fafc;
+  color: #004785;
+  border: 1px solid #cbd5e1;
   padding: 0.5rem 1rem;
-  border-radius: 4px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.3s;
+  transition: var(--transition);
 }
 
 .filter-btn:hover,
-.export-btn:hover {
-  background: #f5f5f5;
-  border-color: #999;
+.export-btn:hover,
+.inventario-filters .btn-outline:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
 }
 
 /* Tabla */
@@ -53,15 +57,15 @@
 }
 
 .inventario-table thead {
-  background: #f9f9f9;
-  border-bottom: 2px solid #ddd;
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
 }
 
 .inventario-table th {
   padding: 1rem;
   text-align: left;
   font-weight: 600;
-  color: #1e3a5f;
+  color: #004785;
   font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -112,7 +116,7 @@
   padding: 1rem;
 }
 
-.stock-cell.stock-ok {
+.stock-cell.stock-optimo {
   color: #28a745;
 }
 

@@ -4,7 +4,7 @@ import { useDeleteHerramienta } from '../features/cuadrillas/hooks/herramientas/
 import HerramientasInventario from '../features/cuadrillas/components/HerramientasInventario';
 import HerramientasPopup from '../components/Herramientas.Popup';
 import AsignarCuadrillaPopup from '../components/AsignarCuadrilla.Popup';
-import { Search, X } from 'lucide-react';
+import { Search, X, Plus } from 'lucide-react';
 import '../styles/Herramientas.css';
 
 export default function Herramientas({ user }) {
@@ -125,8 +125,8 @@ export default function Herramientas({ user }) {
       {/* Botón Nuevo Registro */}
       {user?.role_id === 1 && (
         <div className="herramientas-actions">
-          <button className="btn-nuevo-registro" onClick={handleOpenPopup}>
-            + Nuevo Registro
+          <button className="btn-primary" onClick={handleOpenPopup}>
+            <Plus size={16} /> Agregar Herramienta
           </button>
         </div>
       )}

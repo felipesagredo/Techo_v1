@@ -1,10 +1,10 @@
 .herramientas-container {
   padding: 2rem;
-  background: linear-gradient(135deg, #f0f7ff 0%, #e1effe 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #f3f4f6 100%);
   border-radius: 18px;
   min-height: calc(100vh - 120px);
-  box-shadow: 0 6px 24px rgba(0, 71, 133, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(226, 232, 240, 0.9);
   width: 100%;
   box-sizing: border-box;
   overflow: hidden;
@@ -17,7 +17,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(0, 71, 133, 0.08);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 .herramientas-header h1 {
@@ -75,7 +75,7 @@
 
 .materials-search-clear:hover {
   background: #eef2f7;
-  color: #1e3a5f;
+  color: #475569;
 }
 
 /* Estadísticas */
@@ -91,7 +91,7 @@
   padding: 1.25rem;
   border-radius: 10px;
   border: 1px solid var(--border-color, #e2e8f0);
-  border-left: 4px solid var(--primary-blue, #004785);
+  border-left: 4px solid #64748b;
   box-shadow: none;
   text-align: left;
   transition: var(--transition, all 0.2s);
@@ -147,7 +147,7 @@
 }
 
 .btn-nuevo-registro {
-  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
   color: white;
   border: none;
   padding: 0.8rem 1.4rem;
@@ -156,13 +156,13 @@
   font-weight: 700;
   font-size: 0.95rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
-  box-shadow: 0 4px 10px rgba(0, 86, 179, 0.2);
+  box-shadow: 0 4px 10px rgba(75, 85, 99, 0.2);
 }
 
 .btn-nuevo-registro:hover {
-  background: linear-gradient(135deg, #004085 0%, #00356b 100%);
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
   transform: translateY(-1px);
-  box-shadow: 0 6px 12px rgba(0, 86, 179, 0.25);
+  box-shadow: 0 6px 12px rgba(75, 85, 99, 0.25);
 }
 
 @media (max-width: 768px) {

@@ -4,7 +4,7 @@ import { useDeleteMaterial } from '../features/cuadrillas/hooks/materiales/useDe
 import MaterialesInventario from '../features/cuadrillas/components/MaterialesInventario';
 import MaterialesPopup from '../components/Materiales.Popup';
 import AsignarCuadrillaMaterialPopup from '../components/AsignarCuadrillaMaterial.Popup';
-import { Search, X } from 'lucide-react';
+import { Search, X, Plus } from 'lucide-react';
 import '../styles/Herramientas.css';
 
 export default function Materiales({ user }) {
@@ -117,8 +117,8 @@ export default function Materiales({ user }) {
 
       {user?.role_id === 1 && (
         <div className="herramientas-actions">
-          <button className="btn-nuevo-registro" onClick={handleOpenPopup}>
-            + Nuevo Registro
+          <button className="btn-primary" onClick={handleOpenPopup}>
+            <Plus size={16} /> Agregar Material
           </button>
         </div>
       )}
