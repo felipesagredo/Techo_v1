@@ -13,14 +13,14 @@ export async function createPrestamoService(herramientaId, userId, notas = '') {
         const herramientasRepository = queryRunner.manager.getRepository(HerramientasSchema);
         const prestamosRepository = queryRunner.manager.getRepository(PrestamoHerramientaSchema);
 
-        // 1. Verificar si la herramienta existe y está disponible
+        // 1. Verificar si la herramienta existe y tiene stock
         const herramienta = await herramientasRepository.findOneBy({ id: hId });
         if (!herramienta) {
             throw new Error('La herramienta no existe.');
         }
 
-        if (herramienta.assigned_to) {
-            throw new Error('La herramienta ya está prestada a otro voluntario.');
+        if (herramienta.stock <= 0) {
+            throw new Error('No hay stock disponible para prestar esta herramienta.');
         }
 
         // 2. Registrar el préstamo en la bitácora
@@ -32,9 +32,12 @@ export async function createPrestamoService(herramientaId, userId, notas = '') {
         });
         const savedPrestamo = await prestamosRepository.save(newPrestamo);
 
-        // 3. Actualizar el estado de la herramienta
-        herramienta.assigned_to = uId;
-        herramienta.estado = 'no-disponible';
+        // 3. Descontar stock y actualizar estado
+        herramienta.stock -= 1;
+        herramienta.assigned_to = uId; // Registra la última asignación
+        if (herramienta.stock === 0) {
+            herramienta.estado = 'no-disponible';
+        }
         herramienta.updated_at = new Date();
         await herramientasRepository.save(herramienta);
 
@@ -71,11 +74,12 @@ export async function registrarDevolucionService(prestamoId, notas = '') {
         }
         const savedPrestamo = await prestamosRepository.save(prestamo);
 
-        // 3. Actualizar la herramienta para que vuelva a estar disponible y sin asignación
+        // 3. Devolver 1 unidad al stock y restaurar disponibilidad
         const herramienta = await herramientasRepository.findOneBy({ id: prestamo.herramienta_id });
         if (herramienta) {
-            herramienta.assigned_to = null;
+            herramienta.stock += 1;
             herramienta.estado = 'disponible';
+            herramienta.assigned_to = null;
             herramienta.updated_at = new Date();
             await herramientasRepository.save(herramienta);
         }

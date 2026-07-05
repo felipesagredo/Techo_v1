@@ -2,6 +2,15 @@
 import AppDataSource from "../config/db.js";
 import HerramientasSchema from "../entity/Herramientas.entity.js";
 
+function getEffectiveToolState(tool) {
+    const stock = Number(tool?.stock ?? 0);
+    const estado = (tool?.estado || '').toLowerCase();
+    if (stock <= 0 || ['malo', 'dañado'].includes(estado)) {
+        return 'no-disponible';
+    }
+    return 'disponible';
+}
+
 export async function createHerramientasService(body){
     try {
         const herramientasRepository = AppDataSource.getRepository(HerramientasSchema);
@@ -21,6 +30,7 @@ export async function getHerramientasService(){
         });
         return tools.map(h => ({
             ...h,
+            estado: getEffectiveToolState(h),
             voluntario_nombre: h.assignedUser ? h.assignedUser.name : null,
             voluntario_email: h.assignedUser ? h.assignedUser.email : null
         }));
@@ -39,6 +49,7 @@ export async function getHerramientasByIdService(id) {
         if (!tool) return null;
         return {
             ...tool,
+            estado: getEffectiveToolState(tool),
             voluntario_nombre: tool.assignedUser ? tool.assignedUser.name : null,
             voluntario_email: tool.assignedUser ? tool.assignedUser.email : null
         };
@@ -60,7 +71,14 @@ export async function updateHerramientasService(id, body) {
             tool.assigned_to = body.assigned_to ? parseInt(body.assigned_to, 10) : null;
         }
 
+        const nextStock = body.stock !== undefined ? Number(body.stock) : Number(tool.stock ?? 0);
+        const nextEstado = nextStock <= 0 ? 'no-disponible' : (body.estado || tool.estado || 'disponible');
+        if (body.estado !== undefined) {
+            tool.estado = nextEstado;
+        }
+
         herramientasRepository.merge(tool, body);
+        tool.estado = getEffectiveToolState({ ...tool, stock: nextStock });
         return await herramientasRepository.save(tool);
     } catch (error){
         throw new Error("Error, no se ha podido actualizar la herramienta: " + error.message);

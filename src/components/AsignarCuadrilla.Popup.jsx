@@ -18,7 +18,7 @@ export default function AsignarCuadrillaPopup({ herramientas, onClose, onSaveSuc
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Filtrar herramientas disponibles
-  const availableTools = herramientas?.filter(h => h.estado === 'disponible' && !h.assigned_to) || [];
+  const availableTools = herramientas?.filter(h => h.estado === 'disponible' && h.stock > 0) || [];
 
   // Cargar cuadrillas al montar
   useEffect(() => {

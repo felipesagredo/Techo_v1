@@ -65,10 +65,10 @@ export default function Herramientas({ user }) {
 
   // Calcular estadísticas
   const totalHerramientas = herramientas?.length || 0;
-  const disponibles = herramientas?.filter(h => h.estado === 'disponible').length || 0;
-  const bajoStock = herramientas?.filter(h => h.stock < 50 && h.stock > 0).length || 0;
-  const porReponer = herramientas?.filter(h => h.stock === 0).length || 0;
-  const optimasCount = herramientas?.filter(h => h.estado === 'disponible' && h.stock >= 50).length || 0;
+  const disponibles = herramientas?.filter(h => Number(h.stock ?? 0) > 0 && !['malo', 'dañado'].includes((h.estado || '').toLowerCase())).length || 0;
+  const bajoStock = herramientas?.filter(h => Number(h.stock ?? 0) > 0 && Number(h.stock ?? 0) < 50).length || 0;
+  const porReponer = herramientas?.filter(h => Number(h.stock ?? 0) === 0).length || 0;
+  const optimasCount = herramientas?.filter(h => Number(h.stock ?? 0) >= 50 && !['malo', 'dañado'].includes((h.estado || '').toLowerCase())).length || 0;
   const optimo = totalHerramientas > 0 ? Math.round((optimasCount / totalHerramientas) * 100) : 0;
   const herramientasFiltradas = herramientas?.filter((h) => {
     const nombre = h.nombre || '';

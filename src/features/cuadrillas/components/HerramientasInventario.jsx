@@ -3,6 +3,15 @@ import '../../../styles/HerramientasInventario.css';
 import { Wrench, Edit2, Trash2 } from 'lucide-react';
 
 export default function HerramientasInventario({ herramientas, onEdit, onDelete, user, onAssignCuadrilla, emptyMessage = 'No hay herramientas registradas' }) {
+  const getDisplayEstado = (herramienta) => {
+    const stock = Number(herramienta?.stock ?? 0);
+    const estado = (herramienta?.estado || '').toLowerCase();
+    if (stock <= 0 || ['malo', 'dañado'].includes(estado)) {
+      return 'no-disponible';
+    }
+    return 'disponible';
+  };
+
   const getEstadoClass = (estado) => {
     switch (estado) {
       case 'disponible':
@@ -61,8 +70,8 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete,
                   </td>
                   <td>{herramienta.categoria_herramienta}</td>
                   <td>
-                    <span className={`estado-badge ${getEstadoClass(herramienta.estado)}`}>
-                      {herramienta.estado}
+                    <span className={`estado-badge ${getEstadoClass(getDisplayEstado(herramienta))}`}>
+                      {getDisplayEstado(herramienta)}
                     </span>
                   </td>
                   <td className="acciones-cell">
