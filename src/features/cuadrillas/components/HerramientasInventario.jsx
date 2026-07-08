@@ -50,6 +50,7 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete,
         <table>
           <thead>
             <tr>
+              <th>ID</th>
               <th>NOMBRE</th>
               <th>STOCK ACTUAL</th>
               <th>CATEGORÍA</th>
@@ -61,6 +62,7 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete,
             {herramientas && herramientas.length > 0 ? (
               herramientas.map((herramienta) => (
                 <tr key={herramienta.id}>
+                  <td className="id-cell">#{herramienta.id}</td>
                   <td className="nombre-cell">
                     <div className="nombre-icon"><Wrench size={20} /></div>
                     <div className="nombre-info">
@@ -101,7 +103,7 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete,
               ))
             ) : (
               <tr>
-                <td colSpan="5" className="sin-datos">
+                <td colSpan="6" className="sin-datos">
                   {emptyMessage}
                 </td>
               </tr>

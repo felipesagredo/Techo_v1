@@ -41,6 +41,7 @@ export default function MaterialesInventario({ materiales, onEdit, onDelete, use
         <table>
           <thead>
             <tr>
+              <th>ID</th>
               <th>NOMBRE</th>
               <th>CANTIDAD</th>
               <th>CATEGORÍA</th>
@@ -52,6 +53,7 @@ export default function MaterialesInventario({ materiales, onEdit, onDelete, use
             {materiales && materiales.length > 0 ? (
               materiales.map((material) => (
                 <tr key={material.id}>
+                  <td className="id-cell">#{material.id}</td>
                   <td className="nombre-cell">
                     <div className="nombre-icon"><Package size={20} /></div>
                     <div className="nombre-info">
@@ -96,7 +98,7 @@ export default function MaterialesInventario({ materiales, onEdit, onDelete, use
               ))
             ) : (
               <tr>
-                <td colSpan="5" className="sin-datos">
+                <td colSpan="6" className="sin-datos">
                   {emptyMessage}
                 </td>
               </tr>

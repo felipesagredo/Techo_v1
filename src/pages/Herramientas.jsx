@@ -6,6 +6,7 @@ import HerramientasPopup from '../components/Herramientas.Popup';
 import AsignarCuadrillaPopup from '../components/AsignarCuadrilla.Popup';
 import RestockPopup from '../components/RestockPopup';
 import { Search, X, Plus } from 'lucide-react';
+import Swal from 'sweetalert2';
 import '../styles/Herramientas.css';
 
 export default function Herramientas({ user }) {
@@ -35,7 +36,23 @@ export default function Herramientas({ user }) {
   };
 
   const handleDeleteHerramienta = async (id) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar esta herramienta?')) {
+    const result = await Swal.fire({
+      title: 'Eliminar herramienta',
+      text: '¿Estás seguro de que deseas eliminar esta herramienta? Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      reverseButtons: true,
+      customClass: {
+        popup: 'premium-swal-popup',
+        confirmButton: 'premium-swal-confirm-btn'
+      }
+    });
+
+    if (result.isConfirmed) {
       await deleteHerramienta(id);
       refetch();
     }
@@ -74,7 +91,9 @@ export default function Herramientas({ user }) {
   const optimo = totalHerramientas > 0 ? Math.round((optimasCount / totalHerramientas) * 100) : 0;
   const herramientasFiltradas = herramientas?.filter((h) => {
     const nombre = h.nombre || '';
-    return nombre.toLowerCase().includes(searchTerm.trim().toLowerCase());
+    const id = String(h.id ?? '');
+    const term = searchTerm.trim().toLowerCase();
+    return nombre.toLowerCase().includes(term) || id.includes(searchTerm.trim());
   }) || [];
 
   return (
@@ -89,7 +108,7 @@ export default function Herramientas({ user }) {
           <Search size={18} />
           <input
             type="text"
-            placeholder="Buscar por nombre de herramienta..."
+            placeholder="Buscar por nombre o ID de herramienta..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -148,7 +167,7 @@ export default function Herramientas({ user }) {
             onEdit={handleEditHerramienta}
             onDelete={handleDeleteHerramienta}
             onAssignCuadrilla={handleOpenAssignPopup}
-            emptyMessage={searchTerm.trim() ? 'No se encontraron herramientas con ese nombre' : 'No hay herramientas registradas'}
+            emptyMessage={searchTerm.trim() ? 'No se encontraron herramientas con ese nombre o ID' : 'No hay herramientas registradas'}
           />
       )}
 
