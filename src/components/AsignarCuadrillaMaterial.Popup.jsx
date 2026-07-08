@@ -1,26 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { cuadrillaService } from '../features/cuadrillas/services/cuadrillaService';
 import '../styles/HerramientasPopup.css';
 
-export default function AsignarCuadrillaMaterialPopup({ materiales, onClose, onSaveSuccess }) {
-  const [selectedMaterialId, setSelectedMaterialId] = useState('');
+export default function AsignarCuadrillaMaterialPopup({ onClose, onSaveSuccess }) {
   const [selectedCuadrillaId, setSelectedCuadrillaId] = useState('');
-  const [cantidad, setCantidad] = useState(1);
-  const [notas, setNotas] = useState('');
-  
   const [cuadrillas, setCuadrillas] = useState([]);
+  const [missingMaterials, setMissingMaterials] = useState([]);
   
   const [loadingCuadrillas, setLoadingCuadrillas] = useState(true);
+  const [loadingMissing, setLoadingMissing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Filtrar materiales disponibles (con stock mayor a 0)
-  const availableMaterials = materiales?.filter(m => m.estado === 'disponible' && m.cantidad > 0) || [];
-
-  // Encontrar el material seleccionado para saber su stock máximo
-  const selectedMaterial = availableMaterials.find(m => m.id === parseInt(selectedMaterialId, 10));
-  const maxStock = selectedMaterial ? selectedMaterial.cantidad : 1;
 
   // Cargar cuadrillas al montar
   useEffect(() => {
@@ -39,123 +30,75 @@ export default function AsignarCuadrillaMaterialPopup({ materiales, onClose, onS
     fetchCuadrillas();
   }, []);
 
-  // Limitar la cantidad si cambia el material seleccionado
+  // Cargar recursos faltantes al seleccionar una cuadrilla
   useEffect(() => {
-    if (cantidad > maxStock) {
-      setCantidad(maxStock);
-    }
-    if (cantidad < 1) {
-      setCantidad(1);
-    }
-  }, [selectedMaterialId, maxStock]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedMaterialId) {
-      Swal.fire('Atención', 'Debe seleccionar un material disponible.', 'warning');
+    if (!selectedCuadrillaId) {
+      setMissingMaterials([]);
       return;
     }
+
+    const fetchFaltantes = async () => {
+      try {
+        setLoadingMissing(true);
+        const res = await cuadrillaService.getRecursosFaltantes(selectedCuadrillaId);
+        setMissingMaterials(res.missingMaterials || []);
+      } catch (err) {
+        console.error(err);
+        Swal.fire('Error', 'No se pudieron cargar los materiales faltantes.', 'error');
+      } finally {
+        setLoadingMissing(false);
+      }
+    };
+
+    fetchFaltantes();
+  }, [selectedCuadrillaId]);
+
+  const handleRellenar = async (e) => {
+    e.preventDefault();
     if (!selectedCuadrillaId) {
       Swal.fire('Atención', 'Debe seleccionar una cuadrilla.', 'warning');
       return;
     }
-    if (cantidad <= 0 || cantidad > maxStock) {
-      Swal.fire('Atención', `La cantidad debe ser entre 1 y ${maxStock}.`, 'warning');
+
+    const totalFaltantes = missingMaterials.reduce((acc, m) => acc + m.faltante, 0);
+    if (totalFaltantes === 0) {
+      Swal.fire('Información', 'La cuadrilla ya tiene todos los materiales de medias aguas cubiertos.', 'info');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const res = await fetch('http://localhost:5000/api/materiales/asignaciones', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          materialId: parseInt(selectedMaterialId, 10),
-          cuadrillaId: parseInt(selectedCuadrillaId, 10),
-          cantidad: parseInt(cantidad, 10),
-          notas: notas.trim()
-        })
+      const data = await cuadrillaService.rellenarMateriales(selectedCuadrillaId);
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Materiales Asignados',
+        text: 'Se han rellenado los materiales faltantes para la cuadrilla con éxito.',
+        timer: 2000,
+        showConfirmButton: false
       });
-      
-      const data = await res.json();
-      
-      if (res.ok && data.status === 'Success') {
-        Swal.fire({
-          icon: 'success',
-          title: 'Asignación Exitosa',
-          text: 'Los materiales han sido asignados a la cuadrilla.',
-          timer: 2000,
-          showConfirmButton: false
-        });
-        onSaveSuccess();
-      } else {
-        Swal.fire('Error', data.error || data.message || 'No se pudo realizar la asignación del material.', 'error');
-      }
+      onSaveSuccess();
     } catch (err) {
       console.error(err);
-      Swal.fire('Error', 'Hubo un problema de conexión con el servidor.', 'error');
+      Swal.fire('Error', err.message || 'No se pudo realizar la asignación de materiales.', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const selectedCuadrilla = cuadrillas.find(c => c.id === parseInt(selectedCuadrillaId, 10));
+
   return (
     <div className="herramientas-modal-overlay" onClick={onClose}>
-      <div className="herramientas-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="herramientas-modal" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
         <div className="herramientas-modal-header">
-          <h2>Asignar Material a Cuadrilla</h2>
+          <h2>Equipar Materiales a Cuadrilla</h2>
           <button type="button" className="herramientas-modal-close" onClick={onClose}>
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="herramientas-modal-body popup-form">
-          {/* Selección de Material */}
-          <div className="form-group">
-            <label htmlFor="material-select">
-              Seleccionar Material <span className="required">*</span>
-            </label>
-            <select
-              id="material-select"
-              value={selectedMaterialId}
-              onChange={(e) => setSelectedMaterialId(e.target.value)}
-              required
-            >
-              <option value="">-- Selecciona un material disponible --</option>
-              {availableMaterials.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.nombre_material} ({m.categoria}) - Stock: {m.cantidad}
-                </option>
-              ))}
-            </select>
-            {availableMaterials.length === 0 && (
-              <small style={{ color: '#dc3545' }}>No hay materiales disponibles en el inventario.</small>
-            )}
-          </div>
-
-          {/* Cantidad a asignar */}
-          <div className="form-group">
-            <label htmlFor="cantidad-input">
-              Cantidad a Asignar <span className="required">*</span>
-            </label>
-            <input
-              type="number"
-              id="cantidad-input"
-              value={cantidad}
-              onChange={(e) => setCantidad(Number(e.target.value))}
-              min="1"
-              max={maxStock}
-              disabled={!selectedMaterialId}
-              required
-            />
-            {selectedMaterialId && (
-              <small style={{ color: '#6c757d' }}>Stock disponible: {maxStock}</small>
-            )}
-          </div>
-
+        <form onSubmit={handleRellenar} className="herramientas-modal-body popup-form">
           {/* Selección de Cuadrilla */}
           <div className="form-group">
             <label htmlFor="cuadrilla-select">
@@ -165,7 +108,7 @@ export default function AsignarCuadrillaMaterialPopup({ materiales, onClose, onS
               id="cuadrilla-select"
               value={selectedCuadrillaId}
               onChange={(e) => setSelectedCuadrillaId(e.target.value)}
-              disabled={loadingCuadrillas}
+              disabled={loadingCuadrillas || isSubmitting}
               required
             >
               <option value="">
@@ -179,20 +122,56 @@ export default function AsignarCuadrillaMaterialPopup({ materiales, onClose, onS
             </select>
           </div>
 
-          {/* Notas de Asignación */}
-          <div className="form-group">
-            <label htmlFor="notas-textarea">Notas / Observaciones</label>
-            <textarea
-              id="notas-textarea"
-              placeholder="Ej: Asignado para la construcción de los pisos."
-              value={notas}
-              onChange={(e) => setNotas(e.target.value)}
-              maxLength={500}
-            />
-          </div>
+          {selectedCuadrillaId && (
+            <div style={{ marginTop: '1.2rem' }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#004785', marginBottom: '0.8rem' }}>
+                Estado de Materiales: {selectedCuadrilla?.nombre}
+              </h3>
+
+              {loadingMissing ? (
+                <div style={{ textAlign: 'center', padding: '15px 0', color: '#6c757d' }}>
+                  <RefreshCw className="spinner" size={24} style={{ animation: 'spin 1s linear infinite' }} />
+                  <p style={{ marginTop: '5px', fontSize: '0.85rem' }}>Calculando materiales faltantes...</p>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: '#f8f9fa', padding: '12px', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+                    {missingMaterials.map((m, idx) => {
+                      const isComplete = m.faltante === 0;
+                      return (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', paddingBottom: '6px', borderBottom: idx < missingMaterials.length - 1 ? '1px dashed #dee2e6' : 'none' }}>
+                          <span style={{ fontWeight: '500', color: '#495057' }}>
+                            📦 {m.nombre}
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#6c757d' }}>
+                              Asignados: {m.asignado} / {m.requerido}
+                            </span>
+                            {isComplete ? (
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#2ecc71', fontWeight: 'bold', fontSize: '0.8rem' }}>
+                                <CheckCircle size={14} /> Cubierto
+                              </span>
+                            ) : (
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#e67e22', fontWeight: 'bold', fontSize: '0.8rem' }}>
+                                <AlertTriangle size={14} /> Falta: {m.faltante}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <p style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '0.8rem', lineHeight: '1.4' }}>
+                    * Al presionar "Rellenar Materiales", el sistema asignará automáticamente la cantidad faltante de cada material de construcción para cumplir con el estándar.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Acciones */}
-          <div className="popup-actions">
+          <div className="popup-actions" style={{ marginTop: '1.5rem' }}>
             <button
               type="button"
               className="btn-cancelar"
@@ -204,9 +183,10 @@ export default function AsignarCuadrillaMaterialPopup({ materiales, onClose, onS
             <button
               type="submit"
               className="btn-guardar"
-              disabled={isSubmitting || availableMaterials.length === 0}
+              disabled={isSubmitting || !selectedCuadrillaId || loadingMissing}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              {isSubmitting ? 'Asignando...' : 'Asignar Material'}
+              {isSubmitting ? 'Rellenando...' : 'Rellenar Materiales Faltantes'}
             </button>
           </div>
         </form>

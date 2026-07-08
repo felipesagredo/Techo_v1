@@ -7,6 +7,9 @@ import UserSchema from '../entity/User.entity.js';
 import HerramientasSchema from '../entity/Herramientas.entity.js';
 import { createPrestamoService, registrarDevolucionService } from './prestamosService.js';
 import PrestamoHerramientaSchema from '../entity/PrestamoHerramienta.entity.js';
+import MaterialesSchema from '../entity/Materiales.entity.js';
+import AsignacionMaterialSchema from '../entity/AsignacionMaterial.entity.js';
+import { autoAssignMaterialsToCuadrillaService } from './asignacionMaterialService.js';
 
 const getAllCuadrillas = async () => {
     const query = `
@@ -20,6 +23,7 @@ const getAllCuadrillas = async () => {
             c.meta_voluntarios,
             c.meta_herramientas,
             c.herramientas_requeridas,
+            c.materiales_requeridos,
             COUNT(cm.user_id) AS miembros_count,
             (
                 SELECT u.name 
@@ -42,10 +46,18 @@ const getAllCuadrillas = async () => {
                 (SELECT json_agg(json_build_object('id', h.id, 'nombre', h.nombre, 'voluntario', u.name))
                  FROM cuadrilla_miembros cm3
                  JOIN users u ON cm3.user_id = u.id
-                 JOIN herramientas h ON h.assigned_to = u.id
+                 JOIN prestamos_herramientas ph ON ph.user_id = u.id AND ph.estado_prestamo = 'prestado'
+                 JOIN herramientas h ON ph.herramienta_id = h.id
                  WHERE cm3.cuadrilla_id = c.id),
                 '[]'::json
             ) AS herramientas,
+            COALESCE(
+                (SELECT json_agg(json_build_object('nombre', m.nombre_material, 'cantidad', am.cantidad_asignada))
+                 FROM asignacion_materiales am
+                 JOIN materiales m ON am.material_id = m.id
+                 WHERE am.cuadrilla_id = c.id),
+                '[]'::json
+            ) AS materiales,
             COALESCE(
                 (SELECT json_agg(json_build_object(
                     'user_id', u.id,
@@ -54,8 +66,9 @@ const getAllCuadrillas = async () => {
                     'cargo', rc.nombre,
                     'herramientas', COALESCE(
                         (SELECT json_agg(json_build_object('id', h2.id, 'nombre', h2.nombre, 'estado', h2.estado)) 
-                         FROM herramientas h2 
-                         WHERE h2.assigned_to = u.id),
+                         FROM prestamos_herramientas ph2
+                         JOIN herramientas h2 ON ph2.herramienta_id = h2.id
+                         WHERE ph2.user_id = u.id AND ph2.estado_prestamo = 'prestado'),
                         '[]'::json
                     )
                  ))
@@ -67,7 +80,7 @@ const getAllCuadrillas = async () => {
             ) AS miembros
         FROM cuadrillas c
         LEFT JOIN cuadrilla_miembros cm ON c.id = cm.cuadrilla_id
-        GROUP BY c.id, c.nombre, c.zona, c.estado, c.latitud, c.longitud, c.meta_voluntarios, c.meta_herramientas, c.herramientas_requeridas
+        GROUP BY c.id, c.nombre, c.zona, c.estado, c.latitud, c.longitud, c.meta_voluntarios, c.meta_herramientas, c.herramientas_requeridas, c.materiales_requeridos
         ORDER BY c.id;
     `;
     return await AppDataSource.query(query);
@@ -134,8 +147,9 @@ const getMiembrosByCuadrilla = async (cuadrillaId) => {
         SELECT u.id as user_id, u.name, u.email, rc.nombre as cargo,
           COALESCE(
             (SELECT json_agg(json_build_object('id', h.id, 'nombre', h.nombre, 'estado', h.estado)) 
-             FROM herramientas h 
-             WHERE h.assigned_to = u.id), 
+             FROM prestamos_herramientas ph
+             JOIN herramientas h ON ph.herramienta_id = h.id
+             WHERE ph.user_id = u.id AND ph.estado_prestamo = 'prestado'), 
             '[]'::json
           ) AS herramientas
         FROM cuadrilla_miembros cm
@@ -167,40 +181,22 @@ const getAvailableVolunteersCount = async () => {
     return parseInt(countRes.count, 10);
 };
 
-const autoGenerateCuadrilla = async (nombre, zona, count, latitud, longitud, meta_herramientas = 5, herramientas_requeridas = null) => {
+const autoGenerateCuadrilla = async (nombre, zona, count, latitud, longitud, meta_herramientas = 14, herramientas_requeridas = null) => {
     const cuadrillaRepo = AppDataSource.getRepository(CuadrillaSchema);
     const memberRepo = AppDataSource.getRepository(CuadrillaMiembroSchema);
     const roleCuadrillaRepo = AppDataSource.getRepository(RoleCuadrillaSchema);
     const userRepo = AppDataSource.getRepository(UserSchema);
+    const toolRepo = AppDataSource.getRepository(HerramientasSchema);
+    const materialRepo = AppDataSource.getRepository(MaterialesSchema);
 
-    const targetCount = count ? parseInt(count, 10) : 0;
+    // Estandarizar parámetros para cuadrilla de medias aguas (1 jefe + 6 voluntarios)
+    const targetCount = 7; 
     const lat = latitud ? parseFloat(latitud) : null;
     const lng = longitud ? parseFloat(longitud) : null;
-    const metaHerr = meta_herramientas ? parseInt(meta_herramientas, 10) : 5;
+    const metaHerr = 14; // 1 Sierra + 6 Martillo + 6 Huincha + 1 Caja de Clavos
+    const reqHerr = '1 Sierra, 6 Martillo, 6 Huincha, 1 Caja de Clavos';
 
-    // Si la cantidad es 0 o menor, creamos la cuadrilla sin miembros asociados.
-    if (targetCount <= 0) {
-        const newCuadrilla = cuadrillaRepo.create({
-            nombre,
-            zona,
-            estado: 'PENDIENTE',
-            latitud: lat,
-            longitud: lng,
-            meta_voluntarios: 5,
-            meta_herramientas: metaHerr,
-            herramientas_requeridas: herramientas_requeridas || null
-        });
-        const saved = await cuadrillaRepo.save(newCuadrilla);
-        return {
-            ...saved,
-            miembros_count: 0,
-            capataz_nombre: null,
-            capataz_rol: null,
-            herramientas: []
-        };
-    }
-
-    // 1. Obtener voluntarios disponibles (incluyendo 1 potencial capataz)
+    // 1. Validar que existan suficientes voluntarios disponibles (7 libres)
     const subQuery = memberRepo.createQueryBuilder("cm").select("cm.user_id");
     const availableVolunteers = await userRepo.createQueryBuilder("user")
         .select("user.id", "id")
@@ -209,11 +205,62 @@ const autoGenerateCuadrilla = async (nombre, zona, count, latitud, longitud, met
         .limit(targetCount)
         .getRawMany();
 
-    if (availableVolunteers.length < 1) {
-        throw new Error('No hay suficientes voluntarios disponibles');
+    if (availableVolunteers.length < targetCount) {
+        throw new Error(`Voluntarios insuficientes. Se requieren exactamente 7 voluntarios libres (1 jefe y 6 voluntarios) para conformar la cuadrilla, pero solo hay ${availableVolunteers.length} disponibles.`);
     }
 
-    // 2. Crear la nueva cuadrilla con nombre personalizado, coordenadas, META y meta de herramientas
+    // 2. Validar stock de herramientas en el inventario
+    const allTools = await toolRepo.find({
+        where: { estado: 'disponible' }
+    });
+    const availableTools = allTools.filter(t => t.stock > 0);
+
+    const sumStock = (arr) => arr.reduce((acc, t) => acc + t.stock, 0);
+    const totalSierras = sumStock(availableTools.filter(t => t.nombre.toLowerCase().includes('sierra')));
+    const totalMartillos = sumStock(availableTools.filter(t => t.nombre.toLowerCase().includes('martillo')));
+    const totalHuinchas = sumStock(availableTools.filter(t => t.nombre.toLowerCase().includes('huincha')));
+    const totalClavos = sumStock(availableTools.filter(t => t.nombre.toLowerCase().includes('clavo') || t.nombre.toLowerCase().includes('caja de clavos')));
+
+    const missingTools = [];
+    if (totalSierras < 1) missingTools.push(`Sierra (1 necesaria, ${totalSierras} disponibles)`);
+    if (totalMartillos < 6) missingTools.push(`Martillo (6 necesarios, ${totalMartillos} disponibles)`);
+    if (totalHuinchas < 6) missingTools.push(`Huincha (6 necesarias, ${totalHuinchas} disponibles)`);
+    if (totalClavos < 1) missingTools.push(`Caja de Clavos (1 necesaria, ${totalClavos} disponibles)`);
+
+    // 3. Validar stock de materiales en el inventario
+    const materialsNeeded = [
+        { nombre: 'Plancha de zinc', qty: 12 },
+        { nombre: 'Madera de construcción', qty: 24 },
+        { nombre: 'Tabla', qty: 40 },
+        { nombre: 'Grava', qty: 5 },
+        { nombre: 'Arena', qty: 5 }
+    ];
+
+    const missingMaterials = [];
+    for (const m of materialsNeeded) {
+        const material = await materialRepo.findOne({
+            where: { nombre_material: m.nombre }
+        });
+        if (!material || material.cantidad < m.qty) {
+            const has = material ? material.cantidad : 0;
+            missingMaterials.push(`${m.nombre} (requerido: ${m.qty}, disponible: ${has})`);
+        }
+    }
+
+    // Si falta stock de herramientas o materiales, lanzar error explícito
+    if (missingTools.length > 0 || missingMaterials.length > 0) {
+        let errMsg = 'Stock insuficiente en el inventario. ';
+        if (missingTools.length > 0) {
+            errMsg += `Herramientas faltantes: ${missingTools.join(', ')}. `;
+        }
+        if (missingMaterials.length > 0) {
+            errMsg += `Materiales faltantes: ${missingMaterials.join(', ')}. `;
+        }
+        errMsg += 'Por favor, registre la llegada de nuevo stock en el inventario.';
+        throw new Error(errMsg);
+    }
+
+    // 4. Crear la cuadrilla estándar
     const newCuadrilla = cuadrillaRepo.create({
         nombre,
         zona,
@@ -222,19 +269,20 @@ const autoGenerateCuadrilla = async (nombre, zona, count, latitud, longitud, met
         longitud: lng,
         meta_voluntarios: targetCount,
         meta_herramientas: metaHerr,
-        herramientas_requeridas: herramientas_requeridas || null
+        herramientas_requeridas: reqHerr,
+        materiales_requeridos: 'plancha de zinc: 12, madera de construcción: 24, tabla: 40, grava: 5, arena: 5'
     });
     const savedCuadrilla = await cuadrillaRepo.save(newCuadrilla);
 
-    // 3. Obtener IDs de roles (Capataz y Voluntario)
+    // 5. Obtener roles de la base de datos
     const roles = await roleCuadrillaRepo.createQueryBuilder("rc")
         .where("rc.nombre IN ('Capataz de Zona', 'Voluntario')")
         .getMany();
     
-    const capatazRole = roles.find(r => r.nombre === 'Capataz de Zona');
-    const voluntarioRole = roles.find(r => r.nombre === 'Voluntario');
+    const capatazRole = roles.find(r => r.nombre === 'Capataz de Zona') || roles[0];
+    const voluntarioRole = roles.find(r => r.nombre === 'Voluntario') || roles[1] || roles[0];
 
-    // 4. Asignar los voluntarios: El primero será Capataz, el resto Voluntarios
+    // 6. Asignar los voluntarios: El primero será Capataz (Jefe), el resto Voluntarios
     for (let i = 0; i < availableVolunteers.length; i++) {
         const v = availableVolunteers[i];
         const roleId = (i === 0) ? capatazRole.id : voluntarioRole.id;
@@ -247,11 +295,17 @@ const autoGenerateCuadrilla = async (nombre, zona, count, latitud, longitud, met
         await memberRepo.save(newMember);
     }
 
+    // 7. Auto-asignar Herramientas por roles
+    await autoAssignToolsToCuadrilla(savedCuadrilla.id);
+
+    // 8. Auto-asignar Materiales para medias aguas
+    await autoAssignMaterialsToCuadrillaService(savedCuadrilla.id);
+
     return {
         ...savedCuadrilla,
         miembros_count: availableVolunteers.length,
-        capataz_nombre: availableVolunteers.length > 0 ? 'Asignado' : null,
-        capataz_rol: availableVolunteers.length > 0 ? 'Capataz de Zona' : null,
+        capataz_nombre: 'Asignado',
+        capataz_rol: 'Capataz de Zona',
         herramientas: []
     };
 };
@@ -282,7 +336,7 @@ const updateCuadrilla = async (id, data) => {
         throw new Error("Cuadrilla no encontrada");
     }
 
-    const { nombre, zona, latitud, longitud, meta_voluntarios, meta_herramientas, estado, herramientas_requeridas } = data;
+    const { nombre, zona, latitud, longitud, meta_voluntarios, meta_herramientas, estado, herramientas_requeridas, materiales_requeridos } = data;
     
     cuadrilla.nombre = nombre;
     cuadrilla.zona = zona;
@@ -292,6 +346,7 @@ const updateCuadrilla = async (id, data) => {
     cuadrilla.meta_herramientas = meta_herramientas ? parseInt(meta_herramientas, 10) : 5;
     cuadrilla.estado = estado || 'PENDIENTE';
     cuadrilla.herramientas_requeridas = herramientas_requeridas || null;
+    cuadrilla.materiales_requeridos = materiales_requeridos || null;
 
     return await cuadrillaRepo.save(cuadrilla);
 };
@@ -301,121 +356,95 @@ const autoAssignToolsToCuadrilla = async (cuadrillaId) => {
     const cuadrillaRepo = AppDataSource.getRepository(CuadrillaSchema);
     const toolRepo = AppDataSource.getRepository(HerramientasSchema);
 
-    // 1. Obtener la cuadrilla para saber la meta y requerimientos específicos
+    // 1. Obtener la cuadrilla
     const cuadrilla = await cuadrillaRepo.findOneBy({ id: cId });
     if (!cuadrilla) {
         throw new Error('Cuadrilla no encontrada');
     }
     
-    const targetMeta = cuadrilla.meta_herramientas || 5;
-    const herramientasRequeridas = cuadrilla.herramientas_requeridas;
-
     // 2. Obtener miembros de la cuadrilla
     const miembros = await getMiembrosByCuadrilla(cId);
     if (miembros.length === 0) {
         throw new Error('No hay miembros asignados a esta cuadrilla.');
     }
 
-    // 3. Contar herramientas ya asignadas
-    let herramientasAsignadasCount = 0;
-    for (const m of miembros) {
-        if (m.herramientas) {
-            herramientasAsignadasCount += m.herramientas.length;
-        }
-    }
+    // Separar miembros por roles
+    const jefe = miembros.find(m => m.cargo === 'Capataz de Zona' || m.cargo === 'Voluntario Senior');
+    const voluntarios = miembros.filter(m => m.cargo === 'Voluntario');
 
-    let herramientasNecesitadas = targetMeta - herramientasAsignadasCount;
-    if (herramientasNecesitadas <= 0) {
-        return { assignedCount: 0, message: 'La cuadrilla ya alcanzó o supera la meta de herramientas.' };
-    }
-
-    // 4. Buscar herramientas libres (disponibles)
-    const herramientasLibres = await toolRepo.find({
-        where: { assigned_to: IsNull(), estado: 'disponible' },
-        order: { id: 'ASC' }
-    });
-
-    if (herramientasLibres.length === 0) {
-        throw new Error('No hay herramientas libres y disponibles en el inventario para asignar.');
-    }
-
-    const toolsToAssign = [];
-
-    // 5. Si hay requerimientos específicos, intentar emparejarlos primero
-    if (herramientasRequeridas && herramientasRequeridas.trim()) {
-        const reqItems = herramientasRequeridas.split(',')
-            .map(item => item.trim())
-            .filter(Boolean);
-
-        for (const item of reqItems) {
-            // Regex para buscar cantidad opcional (ej: "2 Martillos" o "Martillo")
-            const match = item.match(/^(\d+)\s+(.+)$/);
-            let qty = 1;
-            let term = item;
-            if (match) {
-                qty = parseInt(match[1], 10) || 1;
-                term = match[2];
-            }
-            
-            // Limpiar plural básico
-            const cleanTerm = term.replace(/s$/i, '').trim().toLowerCase();
-            
-            // Buscar coincidencias
-            let matchedQty = 0;
-            for (let i = 0; i < herramientasLibres.length; i++) {
-                const herr = herramientasLibres[i];
-                if (herr.nombre.toLowerCase().includes(cleanTerm)) {
-                    toolsToAssign.push(herr);
-                    herramientasLibres.splice(i, 1); // Remover del listado general
-                    i--;
-                    matchedQty++;
-                    if (matchedQty >= qty) break;
-                }
-            }
-        }
-    }
-
-    // Truncar si la cantidad de herramientas específicas supera la necesidad actual
-    let finalAssignList = toolsToAssign.slice(0, herramientasNecesitadas);
-    let remainingNeeded = herramientasNecesitadas - finalAssignList.length;
-
-    // 6. Si aún faltan herramientas para cumplir con la meta general, rellenar con cualquier herramienta disponible
-    if (remainingNeeded > 0 && herramientasLibres.length > 0) {
-        const fillerTools = herramientasLibres.slice(0, remainingNeeded);
-        finalAssignList.push(...fillerTools);
-    }
-
-    if (finalAssignList.length === 0) {
-        throw new Error('No se encontraron herramientas disponibles que coincidan con los requerimientos específicos o generales.');
-    }
-
-    // 7. Registrar los préstamos distribuyendo equitativamente entre voluntarios
     let assignedCount = 0;
-    for (let i = 0; i < finalAssignList.length; i++) {
-        const herr = finalAssignList[i];
-        const voluntario = miembros[i % miembros.length];
-        
-        await createPrestamoService(herr.id, voluntario.user_id, 'Asignación automática por cuadrilla');
-        assignedCount++;
+
+    // Helper para realizar préstamos buscando en la BD la herramienta con stock
+    const loanToolByName = async (toolName, userId, notes) => {
+        // Verificar si el usuario ya tiene esta herramienta prestada y activa
+        const prestamoRepo = AppDataSource.getRepository(PrestamoHerramientaSchema);
+        const activeLoans = await prestamoRepo.createQueryBuilder("ph")
+            .leftJoinAndSelect("ph.herramienta", "h")
+            .where("ph.user_id = :userId", { userId })
+            .andWhere("ph.estado_prestamo = 'prestado'")
+            .getMany();
+
+        const hasTool = activeLoans.some(p => p.herramienta.nombre.toLowerCase().includes(toolName.toLowerCase()));
+        if (hasTool) {
+            return null; // Ya tiene asignada una herramienta de este tipo, omitimos
+        }
+
+        const tools = await toolRepo.find({
+            where: { estado: 'disponible' }
+        });
+        const matched = tools.find(t => t.nombre.toLowerCase().includes(toolName.toLowerCase()) && t.stock > 0);
+        if (!matched) {
+            throw new Error(`No hay stock disponible de la herramienta "${toolName}".`);
+        }
+        return await createPrestamoService(matched.id, userId, notes);
+    };
+
+    // Asignar al Jefe: 1 Sierra y 1 Caja de Clavos
+    if (jefe) {
+        try {
+            await loanToolByName('sierra', jefe.user_id, 'Asignación automática: Sierra para el Jefe');
+            assignedCount++;
+        } catch (e) {
+            console.error('Error al asignar Sierra al Jefe:', e.message);
+        }
+        try {
+            await loanToolByName('clavo', jefe.user_id, 'Asignación automática: Caja de Clavos para el Jefe');
+            assignedCount++;
+        } catch (e) {
+            console.error('Error al asignar Caja de Clavos al Jefe:', e.message);
+        }
     }
 
-    let msg = `Se asignaron automáticamente ${assignedCount} herramientas a los miembros de la cuadrilla.`;
-    if (herramientasRequeridas) {
-        msg += ` Se intentó priorizar: "${herramientasRequeridas}".`;
+    // Asignar a los Voluntarios: 1 Martillo y 1 Huincha cada uno
+    for (const vol of voluntarios) {
+        try {
+            await loanToolByName('martillo', vol.user_id, 'Asignación automática: Martillo');
+            assignedCount++;
+        } catch (e) {
+            console.error(`Error al asignar Martillo a ${vol.name}:`, e.message);
+        }
+
+        try {
+            await loanToolByName('huincha', vol.user_id, 'Asignación automática: Huincha');
+            assignedCount++;
+        } catch (e) {
+            console.error(`Error al asignar Huincha a ${vol.name}:`, e.message);
+        }
     }
 
     return {
         assignedCount,
-        message: msg
+        message: `Se asignaron automáticamente ${assignedCount} herramientas según la distribución de roles (Sierra y Clavos al Jefe; Martillo y Huincha a voluntarios).`
     };
 };
 
 const getAvailableTools = async () => {
     const toolRepo = AppDataSource.getRepository(HerramientasSchema);
-    return await toolRepo.find({
-        where: { assigned_to: IsNull(), estado: 'disponible' },
+    const tools = await toolRepo.find({
+        where: { estado: 'disponible' },
         order: { nombre: 'ASC' }
     });
+    return tools.filter(t => t.stock > 0);
 };
 
 const assignToolToUser = async (userId, toolId) => {
@@ -434,6 +463,137 @@ const returnTool = async (toolId) => {
     return await registrarDevolucionService(activePrestamo.id, 'Devuelto manualmente');
 };
 
+function parseRequirementsString(reqStr) {
+    if (!reqStr) return [];
+    return reqStr.split(',').map(item => {
+        const trimmed = item.trim();
+        let name = '';
+        let qty = 0;
+        if (trimmed.includes(':')) {
+            const parts = trimmed.split(':');
+            name = parts[0].trim();
+            qty = parseInt(parts[1].trim(), 10);
+        } else {
+            const match = trimmed.match(/^(\d+)\s+(.+)$/);
+            if (match) {
+                qty = parseInt(match[1], 10);
+                name = match[2].trim();
+            } else {
+                return null;
+            }
+        }
+        return { nombre: name, qty: isNaN(qty) ? 0 : qty };
+    }).filter(Boolean);
+}
+
+const getRecursosFaltantes = async (cuadrillaId) => {
+    const cId = parseInt(cuadrillaId, 10);
+    const cuadrillaRepo = AppDataSource.getRepository(CuadrillaSchema);
+    const asignacionRepo = AppDataSource.getRepository(AsignacionMaterialSchema);
+    const prestamoRepo = AppDataSource.getRepository(PrestamoHerramientaSchema);
+
+    // 1. Obtener la cuadrilla
+    const cuadrilla = await cuadrillaRepo.findOneBy({ id: cId });
+    if (!cuadrilla) {
+        throw new Error('Cuadrilla no encontrada');
+    }
+
+    // 2. Obtener miembros
+    const miembros = await getMiembrosByCuadrilla(cId);
+
+    // Parsear requerimientos de herramientas
+    let reqSierra = 1;
+    let reqMartillo = 6;
+    let reqHuincha = 6;
+    let reqClavo = 1;
+
+    if (cuadrilla.herramientas_requeridas) {
+        const parsed = parseRequirementsString(cuadrilla.herramientas_requeridas);
+        const sierraReq = parsed.find(p => p.nombre.toLowerCase().includes('sierra'));
+        const martilloReq = parsed.find(p => p.nombre.toLowerCase().includes('martillo'));
+        const huinchaReq = parsed.find(p => p.nombre.toLowerCase().includes('huincha'));
+        const clavoReq = parsed.find(p => p.nombre.toLowerCase().includes('clavo') || p.nombre.toLowerCase().includes('caja de clavos'));
+
+        if (sierraReq) reqSierra = sierraReq.qty;
+        if (martilloReq) reqMartillo = martilloReq.qty;
+        if (huinchaReq) reqHuincha = huinchaReq.qty;
+        if (clavoReq) reqClavo = clavoReq.qty;
+    }
+
+    // Contar cuántos tienen actualmente prestados
+    let asigSierra = 0;
+    let asigClavo = 0;
+    let asigMartillo = 0;
+    let asigHuincha = 0;
+
+    if (miembros.length > 0) {
+        const userLoans = await prestamoRepo.createQueryBuilder("ph")
+            .leftJoinAndSelect("ph.herramienta", "h")
+            .where("ph.user_id IN (:...userIds)", { userIds: miembros.map(m => m.user_id) })
+            .andWhere("ph.estado_prestamo = 'prestado'")
+            .getMany();
+
+        for (const p of userLoans) {
+            const name = p.herramienta.nombre.toLowerCase();
+            const member = miembros.find(m => m.user_id === p.user_id);
+            if (!member) continue;
+            const isJefe = member.cargo === 'Capataz de Zona' || member.cargo === 'Voluntario Senior';
+
+            if (name.includes('sierra') && isJefe) asigSierra++;
+            else if (name.includes('clavo') && isJefe) asigClavo++;
+            else if (name.includes('martillo') && !isJefe) asigMartillo++;
+            else if (name.includes('huincha') && !isJefe) asigHuincha++;
+        }
+    }
+
+    const missingTools = [
+        { nombre: 'Sierra', requerido: reqSierra, asignado: asigSierra, faltante: Math.max(0, reqSierra - asigSierra) },
+        { nombre: 'Martillo', requerido: reqMartillo, asignado: asigMartillo, faltante: Math.max(0, reqMartillo - asigMartillo) },
+        { nombre: 'Huincha', requerido: reqHuincha, asignado: asigHuincha, faltante: Math.max(0, reqHuincha - asigHuincha) },
+        { nombre: 'Caja de Clavos', requerido: reqClavo, asignado: asigClavo, faltante: Math.max(0, reqClavo - asigClavo) }
+    ];
+
+    // 3. Calcular materiales asignados y faltantes
+    let materialsNeeded = [
+        { nombre: 'Plancha de zinc', qty: 12 },
+        { nombre: 'Madera de construcción', qty: 24 },
+        { nombre: 'Tabla', qty: 40 },
+        { nombre: 'Grava', qty: 5 },
+        { nombre: 'Arena', qty: 5 }
+    ];
+
+    if (cuadrilla.materiales_requeridos) {
+        const parsedMats = parseRequirementsString(cuadrilla.materiales_requeridos);
+        if (parsedMats.length > 0) {
+            materialsNeeded = parsedMats;
+        }
+    }
+
+    const existingAssignments = await asignacionRepo.find({
+        where: { cuadrilla_id: cId },
+        relations: ['material']
+    });
+
+    const missingMaterials = [];
+    for (const item of materialsNeeded) {
+        const sumAssigned = existingAssignments
+            .filter(a => a.material && a.material.nombre_material.toLowerCase().includes(item.nombre.toLowerCase()))
+            .reduce((acc, a) => acc + a.cantidad_asignada, 0);
+
+        missingMaterials.push({
+            nombre: item.nombre,
+            requerido: item.qty,
+            asignado: sumAssigned,
+            faltante: Math.max(0, item.qty - sumAssigned)
+        });
+    }
+
+    return {
+        missingTools,
+        missingMaterials
+    };
+};
+
 const cuadrillaService = {
     getAllCuadrillas,
     createCuadrilla,
@@ -448,7 +608,8 @@ const cuadrillaService = {
     autoAssignToolsToCuadrilla,
     getAvailableTools,
     assignToolToUser,
-    returnTool
+    returnTool,
+    getRecursosFaltantes
 };
 
 export {
@@ -465,7 +626,8 @@ export {
     autoAssignToolsToCuadrilla,
     getAvailableTools,
     assignToolToUser,
-    returnTool
+    returnTool,
+    getRecursosFaltantes
 };
 
 export default cuadrillaService;

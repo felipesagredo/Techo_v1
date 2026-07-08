@@ -143,5 +143,23 @@ export const cuadrillaService = {
       throw new Error(errorData?.error || 'Error returning tool');
     }
     return res.json();
+  },
+
+  getRecursosFaltantes: async (id) => {
+    const res = await fetch(`${API_URL}/cuadrillas/${id}/recursos-faltantes`, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Error fetching missing resources');
+    return res.json();
+  },
+
+  rellenarMateriales: async (id) => {
+    const res = await fetch(`${API_URL}/cuadrillas/${id}/rellenar-materiales`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => null);
+      throw new Error(errorData?.error || 'Error refilling materials');
+    }
+    return res.json();
   }
 };

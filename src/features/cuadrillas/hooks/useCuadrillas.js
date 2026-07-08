@@ -28,9 +28,9 @@ export const useCuadrillas = (user, currentView) => {
     zona: '',
     latitud: '',
     longitud: '',
-    count: 0,
-    meta_herramientas: 5,
-    herramientas_requeridas: ''
+    count: 7,
+    meta_herramientas: 14,
+    herramientas_requeridas: '1 Sierra, 6 Martillo, 6 Huincha, 1 Caja de Clavos'
   });
   const [isCreating, setIsCreating] = useState(false);
 
@@ -77,25 +77,27 @@ export const useCuadrillas = (user, currentView) => {
       return;
     }
 
-    if (createData.count && createData.count > availableVolunteersCount) {
-      showToast('No hay suficientes voluntarios disponibles', 'error');
+    if (availableVolunteersCount < 7) {
+      showToast('No hay suficientes voluntarios disponibles libres. Se requieren mínimo 7 (1 jefe y 6 voluntarios).', 'error');
       return;
     }
 
     setIsCreating(true);
     try {
       const payload = {
-        ...createData,
+        nombre: createData.nombre,
+        zona: createData.zona,
         latitud: createData.latitud ? parseFloat(createData.latitud) : null,
         longitud: createData.longitud ? parseFloat(createData.longitud) : null,
-        count: parseInt(createData.count) || 0,
-        meta_herramientas: parseInt(createData.meta_herramientas) || 5
+        count: 7,
+        meta_herramientas: 14,
+        herramientas_requeridas: '1 Sierra, 6 Martillo, 6 Huincha, 1 Caja de Clavos'
       };
 
       await cuadrillaService.autoGenerate(payload);
       await fetchCuadrillas();
       setShowCreateModal(false);
-      setCreateData({ nombre: '', zona: '', latitud: '', longitud: '', count: 0, meta_herramientas: 5, herramientas_requeridas: '' });
+      setCreateData({ nombre: '', zona: '', latitud: '', longitud: '', count: 7, meta_herramientas: 14, herramientas_requeridas: '1 Sierra, 6 Martillo, 6 Huincha, 1 Caja de Clavos' });
       showToast('¡Cuadrilla creada exitosamente!', 'success');
     } catch (err) {
       console.error(err);
@@ -311,6 +313,8 @@ export const useCuadrillas = (user, currentView) => {
     showAssignModal,
     setShowAssignModal,
     selectedCuadrilla,
+    setSelectedCuadrilla,
+    setCuadrillasList,
     usersList,
     rolesList,
     currentMembers,

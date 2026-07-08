@@ -1976,13 +1976,22 @@ h4.text-orange {
 
 /* Assign Modal Styles */
 .assign-modal-content {
-  max-width: 600px;
+  max-width: 950px;
+  width: 95%;
 }
 
 .assign-layout {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .assign-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.6fr;
+    gap: 1.5rem;
+  }
 }
 
 .assign-form-section {
@@ -2032,9 +2041,8 @@ h4.text-orange {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: 250px;
-  overflow-y: auto;
-  padding-right: 0.5rem;
+  max-height: none;
+  overflow-y: visible;
 }
 
 .member-item {

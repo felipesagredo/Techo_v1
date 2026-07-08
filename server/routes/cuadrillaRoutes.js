@@ -15,7 +15,9 @@ router.post('/assign-tool', cuadrillaController.assignTool);
 router.post('/return-tool', cuadrillaController.returnTool);
 
 router.get('/:id/miembros', cuadrillaController.getDetails);
+router.get('/:id/recursos-faltantes', cuadrillaController.recursosFaltantes);
 router.post('/:id/auto-assign-tools', cuadrillaController.autoAssignTools);
+router.post('/:id/rellenar-materiales', cuadrillaController.rellenarMateriales);
 router.put('/:id', cuadrillaController.update);
 router.delete('/:id', cuadrillaController.remove);
 

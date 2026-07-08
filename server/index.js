@@ -8,6 +8,7 @@ import cuadrillaRoutes from './routes/cuadrillaRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import herramientasRoutes from './routes/Herramientas.routes.js';
 import materialesRoutes from './routes/Materiales.routes.js';
+import inventarioRoutes from './routes/inventario.routes.js';
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/herramientas', herramientasRoutes);
 app.use('/api/materiales', materialesRoutes);
 app.use('/api/material', materialesRoutes);
+app.use('/api/inventario', inventarioRoutes);
 
 // Endpoint de Estadísticas del Dashboard
 app.get('/api/dashboard/stats', async (req, res) => {

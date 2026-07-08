@@ -205,6 +205,11 @@ const initDB = async () => {
       console.log('✅ Columna herramientas_requeridas añadida a cuadrillas');
     }
 
+    if (!cuadrillaCols.includes('materiales_requeridos')) {
+      await AppDataSource.query('ALTER TABLE cuadrillas ADD COLUMN materiales_requeridos TEXT');
+      console.log('✅ Columna materiales_requeridos añadida a cuadrillas');
+    }
+
     console.log('✅ Sistema de base de datos listo y sincronizado');
   } catch (err) {
     console.error('❌ Error inicializando base de datos:', err);

@@ -4,6 +4,7 @@ import { useDeleteHerramienta } from '../features/cuadrillas/hooks/herramientas/
 import HerramientasInventario from '../features/cuadrillas/components/HerramientasInventario';
 import HerramientasPopup from '../components/Herramientas.Popup';
 import AsignarCuadrillaPopup from '../components/AsignarCuadrilla.Popup';
+import RestockPopup from '../components/RestockPopup';
 import { Search, X, Plus } from 'lucide-react';
 import '../styles/Herramientas.css';
 
@@ -12,6 +13,7 @@ export default function Herramientas({ user }) {
   const [popupMode, setPopupMode] = useState('create');
   const [editingHerramienta, setEditingHerramienta] = useState(null);
   const [showAssignPopup, setShowAssignPopup] = useState(false);
+  const [showRestockPopup, setShowRestockPopup] = useState(false);
   const { herramientas, loading, error, refetch } = useGetHerramientas();
   const { deleteHerramienta } = useDeleteHerramienta();
   const [searchTerm, setSearchTerm] = useState('');
@@ -124,9 +126,12 @@ export default function Herramientas({ user }) {
 
       {/* Botón Nuevo Registro */}
       {user?.role_id === 1 && (
-        <div className="herramientas-actions">
+        <div className="herramientas-actions" style={{ display: 'flex', gap: '10px' }}>
           <button className="btn-primary" onClick={handleOpenPopup}>
             <Plus size={16} /> Agregar Herramienta
+          </button>
+          <button className="btn-secondary" onClick={() => setShowRestockPopup(true)} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'bold' }}>
+            <Plus size={16} /> Registrar Entrada Stock
           </button>
         </div>
       )}
@@ -163,6 +168,18 @@ export default function Herramientas({ user }) {
           herramientas={herramientas}
           onClose={handleCloseAssignPopup}
           onSaveSuccess={handleAssignSuccess}
+        />
+      )}
+
+      {/* Registrar Entrada Stock Popup */}
+      {showRestockPopup && (
+        <RestockPopup
+          tipoInicial="herramienta"
+          onClose={() => setShowRestockPopup(false)}
+          onSuccess={() => {
+            setShowRestockPopup(false);
+            refetch();
+          }}
         />
       )}
     </div>

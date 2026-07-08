@@ -1,4 +1,5 @@
 import cuadrillaService from '../services/cuadrillaService.js';
+import { autoAssignMaterialsToCuadrillaService } from '../services/asignacionMaterialService.js';
 
 export const getAll = async (req, res) => {
     try {
@@ -145,6 +146,26 @@ export const returnTool = async (req, res) => {
     }
 };
 
+export const rellenarMateriales = async (req, res) => {
+    try {
+        await autoAssignMaterialsToCuadrillaService(req.params.id);
+        res.json({ message: 'Materiales rellenados con éxito' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message || 'Error al rellenar materiales' });
+    }
+};
+
+export const recursosFaltantes = async (req, res) => {
+    try {
+        const result = await cuadrillaService.getRecursosFaltantes(req.params.id);
+        res.json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message || 'Error al obtener recursos faltantes' });
+    }
+};
+
 const cuadrillaController = {
     getAll,
     getRoles,
@@ -159,7 +180,9 @@ const cuadrillaController = {
     update,
     getAvailableTools,
     assignTool,
-    returnTool
+    returnTool,
+    rellenarMateriales,
+    recursosFaltantes
 };
 
 export default cuadrillaController;

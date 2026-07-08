@@ -4,12 +4,14 @@ import { useDeleteMaterial } from '../features/cuadrillas/hooks/materiales/useDe
 import MaterialesInventario from '../features/cuadrillas/components/MaterialesInventario';
 import MaterialesPopup from '../components/Materiales.Popup';
 import AsignarCuadrillaMaterialPopup from '../components/AsignarCuadrillaMaterial.Popup';
+import RestockPopup from '../components/RestockPopup';
 import { Search, X, Plus } from 'lucide-react';
 import '../styles/Herramientas.css';
 
 export default function Materiales({ user }) {
   const [showPopup, setShowPopup] = useState(false);
   const [showAssignPopup, setShowAssignPopup] = useState(false);
+  const [showRestockPopup, setShowRestockPopup] = useState(false);
   const [popupMode, setPopupMode] = useState('create');
   const [editingMaterial, setEditingMaterial] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -116,9 +118,12 @@ export default function Materiales({ user }) {
       </div>
 
       {user?.role_id === 1 && (
-        <div className="herramientas-actions">
+        <div className="herramientas-actions" style={{ display: 'flex', gap: '10px' }}>
           <button className="btn-primary" onClick={handleOpenPopup}>
             <Plus size={16} /> Agregar Material
+          </button>
+          <button className="btn-secondary" onClick={() => setShowRestockPopup(true)} style={{ background: '#2ecc71', color: 'white', border: 'none', padding: '10px 15px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'bold' }}>
+            <Plus size={16} /> Registrar Entrada Stock
           </button>
         </div>
       )}
@@ -154,6 +159,17 @@ export default function Materiales({ user }) {
           materiales={materiales}
           onClose={handleCloseAssignPopup}
           onSaveSuccess={handleAssignSuccess}
+        />
+      )}
+
+      {showRestockPopup && (
+        <RestockPopup
+          tipoInicial="material"
+          onClose={() => setShowRestockPopup(false)}
+          onSuccess={() => {
+            setShowRestockPopup(false);
+            refetch();
+          }}
         />
       )}
     </div>

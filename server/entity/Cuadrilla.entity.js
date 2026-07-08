@@ -53,6 +53,10 @@ const CuadrillaSchema = new EntitySchema({
         herramientas_requeridas: {
             type: "text",
             nullable: true
+        },
+        materiales_requeridos: {
+            type: "text",
+            nullable: true
         }
     }
 });

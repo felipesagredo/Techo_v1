@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { 
   Users, 
   Plus, 
+  Minus,
   AlertTriangle, 
   Home, 
   Eye, 
@@ -12,7 +13,9 @@ import {
   LayoutGrid,
   List
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { useCuadrillas } from '../hooks/useCuadrillas';
+import { cuadrillaService } from '../services/cuadrillaService';
 import LocationPicker from './LocationPicker';
 
 const CuadrillasView = ({ user, currentView }) => {
@@ -27,6 +30,8 @@ const CuadrillasView = ({ user, currentView }) => {
     isCreating,
     showAssignModal,
     selectedCuadrilla,
+    setSelectedCuadrilla,
+    setCuadrillasList,
     usersList,
     rolesList,
     currentMembers,
@@ -107,6 +112,123 @@ const CuadrillasView = ({ user, currentView }) => {
 
     // Assign tool to that member
     await handleAssignTool(bestMember.user_id, matchingTool.id);
+  };
+
+  const handleAdjustToolQty = async (toolName, newQty) => {
+    if (newQty < 0) return;
+    try {
+      let reqs = parseRequerimientos(selectedCuadrilla.herramientas_requeridas || 'sierra: 1, martillo: 6, huincha: 6, caja de clavos: 1');
+      const matchIdx = reqs.findIndex(r => r.name.toLowerCase() === toolName.toLowerCase());
+      if (matchIdx !== -1) {
+        reqs[matchIdx].qty = newQty;
+      } else {
+        reqs.push({ name: toolName, qty: newQty });
+      }
+      const newStr = reqs.map(r => `${r.qty} ${r.name}`).join(', ');
+
+      const updateData = {
+        ...selectedCuadrilla,
+        herramientas_requeridas: newStr
+      };
+
+      await cuadrillaService.update(selectedCuadrilla.id, updateData);
+      
+      const refreshed = await cuadrillaService.getAll();
+      setCuadrillasList(refreshed);
+      const updatedC = refreshed.find(c => c.id === selectedCuadrilla.id);
+      setSelectedCuadrilla(updatedC);
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error', 'No se pudo actualizar el requerimiento.', 'error');
+    }
+  };
+
+  const handleAdjustMaterialQty = async (matName, newQty) => {
+    if (newQty < 0) return;
+    try {
+      let reqStr = selectedCuadrilla.materiales_requeridos || 'plancha de zinc: 12, madera de construcción: 24, tabla: 40, grava: 5, arena: 5';
+      let reqs = reqStr.split(',').map(item => {
+        const parts = item.split(':');
+        return {
+          name: parts[0].trim(),
+          qty: parseInt(parts[1].trim(), 10)
+        };
+      });
+
+      const matchIdx = reqs.findIndex(r => r.name.toLowerCase() === matName.toLowerCase());
+      if (matchIdx !== -1) {
+        reqs[matchIdx].qty = newQty;
+      } else {
+        reqs.push({ name: matName, qty: newQty });
+      }
+      const newStr = reqs.map(r => `${r.name}: ${r.qty}`).join(', ');
+
+      const updateData = {
+        ...selectedCuadrilla,
+        materiales_requeridos: newStr
+      };
+
+      await cuadrillaService.update(selectedCuadrilla.id, updateData);
+
+      const refreshed = await cuadrillaService.getAll();
+      setCuadrillasList(refreshed);
+      const updatedC = refreshed.find(c => c.id === selectedCuadrilla.id);
+      setSelectedCuadrilla(updatedC);
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error', 'No se pudo actualizar el requerimiento.', 'error');
+    }
+  };
+
+  const handleAssignMaterialDirectly = async (matName, qty = 1) => {
+    try {
+      const matsRes = await fetch('http://localhost:5000/api/materiales', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const mats = await matsRes.json();
+      const materialList = Array.isArray(mats) ? mats : mats.data || [];
+      const match = materialList.find(m => m.nombre_material.toLowerCase().includes(matName.toLowerCase()));
+      
+      if (!match) {
+        Swal.fire('Error', `No se encontró el material "${matName}" en el inventario.`, 'error');
+        return;
+      }
+
+      const assignRes = await fetch('http://localhost:5000/api/materiales/asignaciones', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          materialId: match.id,
+          cuadrillaId: selectedCuadrilla.id,
+          cantidad: qty,
+          notas: `Asignación manual desde el panel de Administrar Equipo`
+        })
+      });
+
+      const data = await assignRes.json();
+      if (!assignRes.ok) {
+        throw new Error(data.error || 'Error al asignar material');
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Material Asignado',
+        text: `Se asignó 1 unidad de ${match.nombre_material} a la cuadrilla.`,
+        timer: 1500,
+        showConfirmButton: false
+      });
+
+      const refreshed = await cuadrillaService.getAll();
+      setCuadrillasList(refreshed);
+      const updatedC = refreshed.find(c => c.id === selectedCuadrilla.id);
+      setSelectedCuadrilla(updatedC);
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error', err.message || 'Error al asignar material', 'error');
+    }
   };
 
   return (
@@ -391,6 +513,36 @@ const CuadrillasView = ({ user, currentView }) => {
                         </div>
                       </div>
                     )}
+
+                    {/* Materiales Asignados (Medias Aguas) */}
+                    <div className="card-required-tools-progress" style={{ marginTop: '0.8rem', paddingTop: '0.8rem', borderTop: '1px dashed #e9ecef' }}>
+                      <span style={{ fontWeight: 700, color: '#495057', fontSize: '0.7rem', display: 'block', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                        📦 Materiales Asignados (Medias Aguas):
+                      </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
+                        {[
+                          { nombre: 'Plancha de zinc', qty: 12 },
+                          { nombre: 'Madera de construcción', qty: 24 },
+                          { nombre: 'Tabla', qty: 40 },
+                          { nombre: 'Grava', qty: 5 },
+                          { nombre: 'Arena', qty: 5 }
+                        ].map((mat, mIdx) => {
+                          const assignedMat = (cuadrilla.materiales || []).find(m => m.nombre.toLowerCase().includes(mat.nombre.toLowerCase()));
+                          const assignedQty = assignedMat ? assignedMat.cantidad : 0;
+                          const isComplete = assignedQty >= mat.qty;
+                          return (
+                            <div key={mIdx} style={{ background: isComplete ? '#eafaf1' : '#fef9e7', border: `1px solid ${isComplete ? '#2ecc71' : '#f39c12'}`, padding: '0.25rem 0.4rem', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
+                              <span style={{ fontWeight: 600, color: isComplete ? '#27ae60' : '#d35400', textTransform: 'capitalize' }}>
+                                🧱 {mat.nombre.replace(' de construcción', '')}
+                              </span>
+                              <span style={{ fontWeight: 700, color: isComplete ? '#27ae60' : '#d35400' }}>
+                                {assignedQty} / {mat.qty}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
                 {/* Acciones del Pie */}
@@ -472,46 +624,13 @@ const CuadrillasView = ({ user, currentView }) => {
                   </div>
                 </div>
 
-                <div className="form-row">
-                  <div className="form-group flex-1">
-                    <label>Voluntarios a Asignar (Libres: {availableVolunteersCount})</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max={availableVolunteersCount}
-                      value={createData.count || 0}
-                      onChange={e => {
-                        const val = parseInt(e.target.value);
-                        setCreateData({ ...createData, count: isNaN(val) ? 0 : val });
-                      }}
-                      className="modal-input"
-                    />
-                  </div>
-                  <div className="form-group flex-1">
-                    <label>Meta de Herramientas</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={createData.meta_herramientas || 5}
-                      onChange={e => {
-                        const val = parseInt(e.target.value);
-                        setCreateData({ ...createData, meta_herramientas: isNaN(val) ? 5 : val });
-                      }}
-                      required
-                      className="modal-input"
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Herramientas Requeridas Específicamente</label>
-                  <input
-                    type="text"
-                    placeholder="Ej. 2 Martillos, 1 Sierra, 1 Pala"
-                    value={createData.herramientas_requeridas || ''}
-                    onChange={e => setCreateData({ ...createData, herramientas_requeridas: e.target.value })}
-                    className="modal-input"
-                  />
+                <div style={{ background: '#e8f4fd', borderLeft: '4px solid #004785', padding: '12px', borderRadius: '4px', marginBottom: '1.2rem', fontSize: '0.85rem', color: '#1c3d5a', lineHeight: '1.4' }}>
+                  <strong>ℹ️ Configuración de Medias Aguas Estándar Activa:</strong>
+                  <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
+                    <li><strong>Personal:</strong> 6 Voluntarios y 1 Jefe de Cuadrilla (se seleccionarán 7 libres del inventario; disponibles actuales: {availableVolunteersCount}).</li>
+                    <li><strong>Herramientas:</strong> 1 Sierra, 6 Martillos, 6 Huinchas, 1 Caja de Clavos.</li>
+                    <li><strong>Materiales:</strong> 12 Planchas de zinc, 24 Maderas de construcción, 40 Tablas, 5 Grava, 5 Arena (se asignarán y descontarán del inventario automáticamente).</li>
+                  </ul>
                 </div>
               </div>
 
@@ -587,9 +706,9 @@ const CuadrillasView = ({ user, currentView }) => {
 
                   {selectedCuadrilla.herramientas_requeridas && (
                     <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #f1f3f5' }}>
-                      <h3 style={{ marginBottom: '0.5rem' }}>Necesidades de la Cuadrilla</h3>
+                      <h3 style={{ marginBottom: '0.5rem' }}>Necesidades de Herramientas</h3>
                       <p style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.75rem', lineHeight: '1.4' }}>
-                        Asigna herramientas del inventario basadas en los requerimientos del equipo.
+                        Ajusta la meta de herramientas y asigna del inventario basadas en los requerimientos.
                       </p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
                         {parseRequerimientos(selectedCuadrilla.herramientas_requeridas).map((req, rIdx) => {
@@ -601,11 +720,29 @@ const CuadrillasView = ({ user, currentView }) => {
                             <div key={rIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isComplete ? '#f0fdf4' : '#fffbeb', padding: '0.4rem 0.6rem', borderRadius: '6px', border: `1px solid ${isComplete ? '#bbf7d0' : '#fde68a'}`, fontSize: '0.75rem' }}>
                               <div>
                                 <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>🛠️ {req.name}</span>
-                                <span style={{ marginLeft: '0.4rem', color: isComplete ? '#15803d' : '#b45309', fontWeight: 700 }}>
-                                  {assigned} / {req.qty}
-                                </span>
-                                <span style={{ display: 'block', fontSize: '0.6rem', color: '#64748b', marginTop: '0.05rem' }}>
-                                  ({matchingAvailable.length} disponibles)
+                                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.2rem' }}>
+                                  <span style={{ color: isComplete ? '#15803d' : '#b45309' }}>Asignadas: {assigned} /</span>
+                                  <div style={{ display: 'inline-flex', gap: '0.2rem', alignItems: 'center' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAdjustToolQty(req.name, req.qty - 1)}
+                                      style={{ border: '1px solid #cbd5e0', padding: '1px 5px', background: 'white', borderRadius: '3px', fontSize: '0.6rem', cursor: 'pointer' }}
+                                      disabled={req.qty <= 0}
+                                    >
+                                      -
+                                    </button>
+                                    <span style={{ fontWeight: 700 }}>{req.qty}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAdjustToolQty(req.name, req.qty + 1)}
+                                      style={{ border: '1px solid #cbd5e0', padding: '1px 5px', background: 'white', borderRadius: '3px', fontSize: '0.6rem', cursor: 'pointer' }}
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+                                <span style={{ display: 'block', fontSize: '0.6rem', color: '#64748b', marginTop: '0.1rem' }}>
+                                  ({matchingAvailable.length} disponibles en stock)
                                 </span>
                               </div>
                               <button
@@ -623,6 +760,73 @@ const CuadrillasView = ({ user, currentView }) => {
                       </div>
                     </div>
                   )}
+
+                  {/* Necesidades de Materiales */}
+                  <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #f1f3f5' }}>
+                    <h3 style={{ marginBottom: '0.5rem' }}>Necesidades de Materiales</h3>
+                    <p style={{ fontSize: '0.75rem', color: '#666', marginBottom: '0.75rem', lineHeight: '1.4' }}>
+                      Completa los materiales requeridos. Asigna unidades directamente al equipo.
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
+                      {[
+                        { nombre: 'Plancha de zinc', defaultQty: 12 },
+                        { nombre: 'Madera de construcción', defaultQty: 24 },
+                        { nombre: 'Tabla', defaultQty: 40 },
+                        { nombre: 'Grava', defaultQty: 5 },
+                        { nombre: 'Arena', defaultQty: 5 }
+                      ].map((mat, matIdx) => {
+                        const reqStr = selectedCuadrilla.materiales_requeridos || 'plancha de zinc: 12, madera de construcción: 24, tabla: 40, grava: 5, arena: 5';
+                        const reqs = reqStr.split(',').map(item => {
+                          const parts = item.split(':');
+                          return { name: parts[0].trim(), qty: parseInt(parts[1].trim(), 10) };
+                        });
+                        const matchReq = reqs.find(r => r.name.toLowerCase() === mat.nombre.toLowerCase());
+                        const targetQty = matchReq ? matchReq.qty : mat.defaultQty;
+
+                        const assignedMat = (selectedCuadrilla.materiales || []).find(m => m.nombre.toLowerCase().includes(mat.nombre.toLowerCase()));
+                        const assignedQty = assignedMat ? assignedMat.cantidad : 0;
+                        const isComplete = assignedQty >= targetQty;
+
+                        return (
+                          <div key={matIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isComplete ? '#f0fdf4' : '#fffbeb', padding: '0.4rem 0.6rem', borderRadius: '6px', border: `1px solid ${isComplete ? '#bbf7d0' : '#fde68a'}`, fontSize: '0.75rem' }}>
+                            <div>
+                              <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>🧱 {mat.nombre.replace(' de construcción', '')}</span>
+                              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.2rem' }}>
+                                <span style={{ color: isComplete ? '#15803d' : '#b45309' }}>Asignados: {assignedQty} /</span>
+                                <div style={{ display: 'inline-flex', gap: '0.2rem', alignItems: 'center' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAdjustMaterialQty(mat.nombre, targetQty - 1)}
+                                    style={{ border: '1px solid #cbd5e0', padding: '1px 5px', background: 'white', borderRadius: '3px', fontSize: '0.6rem', cursor: 'pointer' }}
+                                    disabled={targetQty <= 0}
+                                  >
+                                    -
+                                  </button>
+                                  <span style={{ fontWeight: 700 }}>{targetQty}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAdjustMaterialQty(mat.nombre, targetQty + 1)}
+                                    style={{ border: '1px solid #cbd5e0', padding: '1px 5px', background: 'white', borderRadius: '3px', fontSize: '0.6rem', cursor: 'pointer' }}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleAssignMaterialDirectly(mat.nombre, 1)}
+                              disabled={isComplete}
+                              className="btn-primary"
+                              style={{ padding: '0.25rem 0.5rem', fontSize: '0.65rem', height: 'auto', background: isComplete ? '#15803d' : 'var(--primary-blue)' }}
+                            >
+                              + Asignar 1
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
 
                   <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #f1f3f5' }}>
                     <h3 style={{ marginBottom: '0.5rem' }}>Asignación de Herramientas Automática</h3>
