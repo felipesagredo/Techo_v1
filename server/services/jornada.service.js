@@ -19,25 +19,25 @@ const alimentoRepository =
 
 const createJornada = async (data) => {
 
-  const alimentos =
-    await alimentoRepository.findBy({
-      id: data.alimentos || [],
-    })
+  let alimentos = []
 
-  // Marcar alimentos asignados
+  if (
+    Array.isArray(data.alimentos) &&
+    data.alimentos.length > 0
+  ) {
 
-  for (const alimento of alimentos) {
-
-    alimento.asignado = true
-
-    alimento.jornadaActiva = true
-
-    alimento.encargado =
-      data.responsable
-
-    await alimentoRepository.save(
-      alimento
+    alimentos = await alimentoRepository.findByIds(
+      data.alimentos
     )
+
+    for (const alimento of alimentos) {
+
+      alimento.asignado = true
+      alimento.jornadaActiva = true
+      alimento.encargado = data.responsable
+
+      await alimentoRepository.save(alimento)
+    }
   }
 
   const nuevaJornada =
@@ -47,7 +47,7 @@ const createJornada = async (data) => {
 
       responsable: data.responsable,
 
-      activa: true,
+      activa: data.activa ?? true,
 
       alimentos,
     })
@@ -68,10 +68,59 @@ const getJornadas = async () => {
     relations: ['alimentos'],
   })
 }
+// =========================
+// ASIGNAR ALIMENTO
+// =========================
+
+const assignAlimento = async (
+  jornadaId,
+  alimentoId
+) => {
+
+  const jornada =
+    await jornadaRepository.findOne({
+
+      where: {
+        id: Number(jornadaId),
+      },
+
+      relations: ['alimentos'],
+    })
+
+  if (!jornada) {
+
+    throw new Error('Jornada no encontrada')
+  }
+
+  const alimento =
+    await alimentoRepository.findOne({
+
+      where: {
+        id: Number(alimentoId),
+      },
+    })
+
+  if (!alimento) {
+
+    throw new Error('Alimento no encontrado')
+  }
+
+  alimento.asignado = true
+  alimento.jornadaActiva = true
+  alimento.encargado = jornada.responsable
+
+  await alimentoRepository.save(alimento)
+
+  jornada.alimentos.push(alimento)
+
+  return await jornadaRepository.save(jornada)
+}
 
 module.exports = {
 
   createJornada,
 
   getJornadas,
+
+  assignAlimento,
 }

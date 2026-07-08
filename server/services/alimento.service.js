@@ -7,19 +7,34 @@ const Alimento =
 const alimentoRepository =
   AppDataSource.getRepository(Alimento)
 
+// =========================
 // GET
+// =========================
+
 const getAlimentos = async () => {
 
   return await alimentoRepository.find()
 }
 
+// =========================
 // CREATE
+// =========================
+
 const createAlimento = async (data) => {
 
   const nuevoAlimento =
     alimentoRepository.create({
 
       nombre: data.nombre,
+
+      cantidad:
+        Number(data.cantidad) || 0,
+
+      porciones:
+        Number(data.porciones) || 0,
+
+      tipoDieta:
+        data.tipoDieta || 'Normal',
 
       asignado: false,
 
@@ -33,7 +48,10 @@ const createAlimento = async (data) => {
   )
 }
 
+// =========================
 // UPDATE
+// =========================
+
 const updateAlimento = async (
   id,
   data
@@ -52,14 +70,31 @@ const updateAlimento = async (
   }
 
   alimento.nombre =
-    data.nombre || alimento.nombre
+    data.nombre ?? alimento.nombre
+
+  alimento.cantidad =
+    data.cantidad !== undefined
+      ? Number(data.cantidad)
+      : alimento.cantidad
+
+  alimento.porciones =
+    data.porciones !== undefined
+      ? Number(data.porciones)
+      : alimento.porciones
+
+  alimento.tipoDieta =
+    data.tipoDieta ??
+    alimento.tipoDieta
 
   return await alimentoRepository.save(
     alimento
   )
 }
 
+// =========================
 // DELETE
+// =========================
+
 const deleteAlimento = async (id) => {
 
   const alimento =
@@ -73,8 +108,6 @@ const deleteAlimento = async (id) => {
       'Alimento no encontrado'
     )
   }
-
-  // Restricción funcional
 
   if (
     alimento.asignado ||

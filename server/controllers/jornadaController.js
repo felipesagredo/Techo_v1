@@ -32,11 +32,38 @@ const createJornada = async (req, res) => {
   try {
 
     const jornada =
-      await jornadaService.createJornada(
-        req.body
-      )
+      await jornadaService.createJornada(req.body)
 
     res.status(201).json(jornada)
+
+  } catch (error) {
+
+    res.status(500).json({
+      ok: false,
+      message: error.message,
+    })
+  }
+}
+
+// =========================
+// ASIGNAR ALIMENTO
+// =========================
+
+const assignAlimento = async (req, res) => {
+
+  try {
+
+    const jornada =
+      await jornadaService.assignAlimento(
+        req.params.jornadaId,
+        req.body.alimentoId
+      )
+
+    res.json({
+      ok: true,
+      message: 'Alimento asignado correctamente',
+      jornada,
+    })
 
   } catch (error) {
 
@@ -52,4 +79,6 @@ module.exports = {
   getJornadas,
 
   createJornada,
+
+  assignAlimento,
 }
