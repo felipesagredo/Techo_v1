@@ -6,6 +6,10 @@ function FormularioAlimento({
 
   crearAlimento,
 
+  guardarEdicion,
+
+  modoEdicion,
+
 }) {
 
   return (
@@ -66,19 +70,31 @@ function FormularioAlimento({
       >
 
         <option>Normal</option>
-
         <option>Vegetariana</option>
-
         <option>Vegana</option>
-
         <option>Celíaca</option>
 
       </select>
 
       <button
-        onClick={crearAlimento}
+        type="button"
+        onClick={
+          modoEdicion
+            ? guardarEdicion
+            : crearAlimento
+        }
       >
-        Agregar
+
+        {
+
+          modoEdicion
+
+            ? 'Guardar cambios'
+
+            : 'Agregar'
+
+        }
+
       </button>
 
     </div>

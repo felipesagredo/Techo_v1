@@ -8,7 +8,10 @@ function TablaAlimentos({
 
   eliminarAlimento,
 
-}) {
+  editarAlimento,
+
+})
+{
 
   return (
 
@@ -139,13 +142,16 @@ function TablaAlimentos({
                     <td align="center">
 
                       <button
-                        style={{
-                          border: 'none',
-                          background: 'transparent',
-                          cursor: 'pointer',
-                          marginRight: '10px',
-                        }}
-                      >
+  onClick={() =>
+    editarAlimento(alimento)
+  }
+  style={{
+    border: 'none',
+    background: 'transparent',
+    cursor: 'pointer',
+    marginRight: '10px',
+  }}
+>
 
                         <Pencil
                           size={18}

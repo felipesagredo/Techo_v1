@@ -458,15 +458,24 @@ const guardarEdicion = async () => {
   mostrarFormulario && (
 
     <FormularioAlimento
-      nuevoAlimento={nuevoAlimento}
-      setNuevoAlimento={setNuevoAlimento}
-      crearAlimento={crearAlimento}
-    />
+
+  nuevoAlimento={nuevoAlimento}
+
+  setNuevoAlimento={setNuevoAlimento}
+
+  crearAlimento={crearAlimento}
+
+  guardarEdicion={guardarEdicion}
+
+  modoEdicion={modoEdicion}
+
+/>
 
   )
 }
 
 <TablaAlimentos
+
   alimentos={
     alimentos.filter((alimento) =>
       alimento.nombre
@@ -474,8 +483,13 @@ const guardarEdicion = async () => {
         .includes(busqueda.toLowerCase())
     )
   }
+
   user={user}
+
   eliminarAlimento={eliminarAlimento}
+
+  editarAlimento={editarAlimento}
+
 />
 
                 </div>
