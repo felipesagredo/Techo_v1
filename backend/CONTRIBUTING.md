@@ -7,7 +7,7 @@
 Si quieres añadir un apartado de **Herramientas**, sigue estos pasos:
 
 ### 1. Base de Datos
-Añade tu tabla en `server/initDB.js`. Ejemplo:
+Añade tu tabla en `backend/initDB.js`. Ejemplo:
 ```javascript
 `CREATE TABLE IF NOT EXISTS tools (
   id SERIAL PRIMARY KEY,
@@ -18,7 +18,7 @@ Añade tu tabla en `server/initDB.js`. Ejemplo:
 ```
 
 ### 2. Lógica (Controller)
-Crea un archivo en `server/controllers/toolController.js`:
+Crea un archivo en `backend/controllers/toolController.js`:
 ```javascript
 const pool = require('../config/db');
 
@@ -29,7 +29,7 @@ exports.getTools = async (req, res) => {
 ```
 
 ### 3. Rutas (Routes)
-Crea un archivo en `server/routes/toolRoutes.js`:
+Crea un archivo en `backend/routes/toolRoutes.js`:
 ```javascript
 const express = require('express');
 const router = express.Router();
@@ -42,7 +42,7 @@ module.exports = router;
 ```
 
 ### 4. Registrar en el Servidor
-En `server/index.js`, importa y usa tu ruta:
+En `backend/index.js`, importa y usa tu ruta:
 ```javascript
 const toolRoutes = require('./routes/toolRoutes');
 app.use('/api/tools', toolRoutes);

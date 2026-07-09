@@ -100,7 +100,7 @@ body {
 .left-section {
   flex: 1;
   position: relative;
-  background-image: url('/src/assets/construction_bg.png');
+  background-image: url('/frontend/assets/construction_bg.png');
   background-size: cover;
   background-position: center;
   display: flex;
