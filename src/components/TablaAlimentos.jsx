@@ -56,7 +56,7 @@ function TablaAlimentos({
 
             {
 
-              user.role === 'admin' &&
+              user?.role_id === 1 &&
 
               <th>Acciones</th>
 
@@ -137,7 +137,7 @@ function TablaAlimentos({
 
                 {
 
-                  user.role === 'admin' && (
+                  user?.role_id === 1 && (
 
                     <td align="center">
 
