@@ -48,7 +48,6 @@ const showToast = (message, type = 'info') => {
 
 function App() {
 
-
   const isJwtValid = (token) => {
     if (!token) return false;
 
@@ -291,9 +290,9 @@ function App() {
         const errorData = await response.json().catch(() => null);
         showToast(errorData?.error || 'El voluntario ya está asignado a esta cuadrilla o hubo un error.', 'error');
       }
-    } catch(err) {
-       console.error(err);
-       showToast('Error de conexión al asignar voluntario.', 'error');
+    } catch (err) {
+      console.error(err);
+      showToast('Error de conexión al asignar voluntario.', 'error');
     } finally {
       setAssigningMember(false);
     }
@@ -448,15 +447,15 @@ function App() {
   const [alimentos, setAlimentos] = useState([])
   const [nuevoAlimento, setNuevoAlimento] = useState({
 
-  nombre: '',
+    nombre: '',
 
-  cantidad: '',
+    cantidad: '',
 
-  porciones: '',
+    porciones: '',
 
-  tipoDieta: 'Normal',
+    tipoDieta: 'Normal',
 
-})
+  })
 
   const handleLogout = () => {
 
@@ -470,41 +469,41 @@ function App() {
 
   const obtenerAlimentos = async () => {
 
-  try {
+    try {
 
-    const response = await fetch(
-      'http://localhost:5000/api/alimentos',
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+      const response = await fetch(
+        'http://localhost:5000/api/alimentos',
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+
+        console.error(data)
+
+        setAlimentos([])
+
+        return
       }
-    )
 
-    const data = await response.json()
+      setAlimentos(
+        Array.isArray(data)
+          ? data
+          : []
+      )
 
-    if (!response.ok) {
+    } catch (error) {
 
-      console.error(data)
+      console.log(error)
 
       setAlimentos([])
-
-      return
     }
-
-    setAlimentos(
-      Array.isArray(data)
-        ? data
-        : []
-    )
-
-  } catch (error) {
-
-    console.log(error)
-
-    setAlimentos([])
   }
-}
 
   // CREAR ALIMENTO
 
@@ -526,20 +525,20 @@ function App() {
 
           body: JSON.stringify({
 
-    nombre: nuevoAlimento.nombre,
+            nombre: nuevoAlimento.nombre,
 
-    cantidad: Number(
-      nuevoAlimento.cantidad
-    ),
+            cantidad: Number(
+              nuevoAlimento.cantidad
+            ),
 
-    porciones: Number(
-      nuevoAlimento.porciones
-    ),
+            porciones: Number(
+              nuevoAlimento.porciones
+            ),
 
-    tipoDieta:
-      nuevoAlimento.tipoDieta,
+            tipoDieta:
+              nuevoAlimento.tipoDieta,
 
-}),
+          }),
         }
       )
 
@@ -557,85 +556,85 @@ function App() {
       console.log(error)
     }
   }
- // EDITAR ALIMENTO
+  // EDITAR ALIMENTO
   const editarAlimento = (alimento) => {
 
-  setModoEdicion(true)
+    setModoEdicion(true)
 
-  setIdEditar(alimento.id)
+    setIdEditar(alimento.id)
 
-  setMostrarFormulario(true)
-
-  setNuevoAlimento({
-
-    nombre: alimento.nombre,
-
-    cantidad: alimento.cantidad,
-
-    porciones: alimento.porciones,
-
-    tipoDieta: alimento.tipoDieta,
-
-  })
-
-}
-
-const guardarEdicion = async () => {
-
-  try {
-
-    await fetch(
-
-      `http://localhost:5000/api/alimentos/${idEditar}`,
-
-      {
-
-        method: 'PUT',
-
-        headers: {
-
-          'Content-Type': 'application/json',
-
-          Authorization:
-            `Bearer ${localStorage.getItem('token')}`,
-
-        },
-
-        body: JSON.stringify(nuevoAlimento),
-
-      }
-
-    )
-
-    setModoEdicion(false)
-
-    setIdEditar(null)
-
-    setMostrarFormulario(false)
+    setMostrarFormulario(true)
 
     setNuevoAlimento({
 
-      nombre: '',
+      nombre: alimento.nombre,
 
-      cantidad: '',
+      cantidad: alimento.cantidad,
 
-      porciones: '',
+      porciones: alimento.porciones,
 
-      tipoDieta: 'Normal',
+      tipoDieta: alimento.tipoDieta,
 
     })
 
-    obtenerAlimentos()
-
   }
 
-  catch (error) {
+  const guardarEdicion = async () => {
 
-    console.log(error)
+    try {
+
+      await fetch(
+
+        `http://localhost:5000/api/alimentos/${idEditar}`,
+
+        {
+
+          method: 'PUT',
+
+          headers: {
+
+            'Content-Type': 'application/json',
+
+            Authorization:
+              `Bearer ${localStorage.getItem('token')}`,
+
+          },
+
+          body: JSON.stringify(nuevoAlimento),
+
+        }
+
+      )
+
+      setModoEdicion(false)
+
+      setIdEditar(null)
+
+      setMostrarFormulario(false)
+
+      setNuevoAlimento({
+
+        nombre: '',
+
+        cantidad: '',
+
+        porciones: '',
+
+        tipoDieta: 'Normal',
+
+      })
+
+      obtenerAlimentos()
+
+    }
+
+    catch (error) {
+
+      console.log(error)
+
+    }
 
   }
-
-}
 
   // ELIMINAR ALIMENTO
 
@@ -724,7 +723,7 @@ const guardarEdicion = async () => {
         } else {
           localStorage.setItem('token', data.token)
           localStorage.setItem('user', JSON.stringify(data.user))
-          
+
           Swal.fire({
             title: '¡Inicio de Sesión Exitoso!',
             text: `¡Bienvenido, ${data.user.name}!`,
@@ -760,7 +759,6 @@ const guardarEdicion = async () => {
   if (user) {
 
     return (
-
       <div className="dashboard-layout">
         {/* Top Navigation */}
         <header className="top-nav">
@@ -1358,21 +1356,15 @@ const guardarEdicion = async () => {
   // LOGIN
 
   return (
-
     <div className="login-container">
 
       <div className="left-section">
 
         <div className="left-content">
-
           <h1>
             Construyendo
             <br />
-
-            <span>
-              Comunidad
-            </span>
-
+            <span>Comunidad</span>
             {' '}
             desde la gestión.
           </h1>
@@ -1380,36 +1372,29 @@ const guardarEdicion = async () => {
           <div className="cards-container">
 
             <div className="info-card">
-
               <h3>
                 <ArrowRight size={18} />
                 {' '}
                 Precisión
               </h3>
-
               <p>
                 Herramientas diseñadas
                 para maximizar el impacto.
               </p>
-
             </div>
 
             <div className="info-card">
-
               <h3>
                 <Users size={18} />
                 {' '}
                 Empatía
               </h3>
-
               <p>
                 Centrados en el trabajo colectivo.
               </p>
-
             </div>
 
           </div>
-
         </div>
 
         <div className="left-footer">
@@ -1421,51 +1406,31 @@ const guardarEdicion = async () => {
       <div className="right-section">
 
         <div className="logo-container">
-
           <div className="techo-logo">
-
             <div className="logo-text">
               <h2>TECHO</h2>
               <p>Gestión Nacional</p>
             </div>
-
             <div className="logo-icon">
               <Home size={20} fill="white" />
             </div>
-
           </div>
-
         </div>
 
         <div className="form-header">
-
           <h2>
-            {
-              mode === 'login'
-                ? 'Acceso al Portal'
-                : 'Crear Cuenta'
-            }
+            {mode === 'login' ? 'Acceso al Portal' : 'Crear Cuenta'}
           </h2>
-
           <p>
             {mode === 'login'
               ? 'Gestiona proyectos, cuadrillas e impacto social desde una sola plataforma.'
               : 'Únete a la red de gestión de voluntarios de Techo Chile.'}
           </p>
-
-          {
-            error && (
-              <p
-                style={{
-                  color: 'red',
-                  marginTop: '1rem',
-                }}
-              >
-                {error}
-              </p>
-            )
-          }
-
+          {error && (
+            <p style={{ color: 'red', marginTop: '1rem' }}>
+              {error}
+            </p>
+          )}
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -1489,49 +1454,35 @@ const guardarEdicion = async () => {
           )}
 
           <div className="form-group">
-
             <div className="label-row">
               <label>Correo</label>
             </div>
-
             <div className="input-wrapper">
               <Mail className="input-icon" size={18} />
               <input
                 type="email"
                 placeholder="nombre@techo.org"
                 value={email}
-                onChange={(e) =>
-                  setEmail(e.target.value)
-                }
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
-
             </div>
-
           </div>
 
           <div className="form-group">
-
             <div className="label-row">
-
               <label>Contraseña</label>
-
             </div>
-
             <div className="input-wrapper">
               <Lock className="input-icon" size={18} />
               <input
                 type="password"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) =>
-                  setPassword(e.target.value)
-                }
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
-
             </div>
-
           </div>
 
           <button
@@ -1539,53 +1490,26 @@ const guardarEdicion = async () => {
             className="submit-btn"
             disabled={loading}
           >
-
-            {
-              loading
-                ? 'Cargando...'
-                : (
-                  mode === 'login'
-                    ? 'Ingresar'
-                    : 'Registrarse'
-                )
+            {loading
+              ? 'Cargando...'
+              : (mode === 'login' ? 'Ingresar' : 'Registrarse')
             }
-
             <ArrowRight size={18} />
-
           </button>
 
           <p className="footer-link">
-
-            {
-              mode === 'login'
-                ? '¿Nuevo en el equipo?'
-                : '¿Ya tienes cuenta?'
-            }
-
+            {mode === 'login' ? '¿Nuevo en el equipo?' : '¿Ya tienes cuenta?'}
             {' '}
-
             <a
               href="#"
               onClick={(e) => {
-
                 e.preventDefault()
-
-                setMode(
-                  mode === 'login'
-                    ? 'register'
-                    : 'login'
-                )
-
+                setMode(mode === 'login' ? 'register' : 'login')
                 setError('')
               }}
             >
-              {
-                mode === 'login'
-                  ? 'Registrarse'
-                  : 'Iniciar sesión'
-              }
+              {mode === 'login' ? 'Registrarse' : 'Iniciar sesión'}
             </a>
-
           </p>
 
         </form>
@@ -1596,4 +1520,4 @@ const guardarEdicion = async () => {
   )
 }
 
-export default App
+export default App
