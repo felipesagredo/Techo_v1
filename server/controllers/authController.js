@@ -1,135 +1,50 @@
-const pool = require('../config/db');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+import AppDataSource from '../config/db.js';
+import UserSchema from '../entity/User.entity.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
-// REGISTRO
-exports.register = async (req, res) => {
+export const register = async (req, res) => {
+  const { name, email, password, role_id } = req.body;
   try {
-    const { name, email, password, role } = req.body;
-
-    // Validaciones básicas
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        ok: false,
-        message: 'Todos los campos son obligatorios'
-      });
-    }
-
-    // Verificar si el usuario ya existe
-    const userExists = await pool.query(
-      'SELECT * FROM users WHERE email = $1',
-      [email]
-    );
-
-    if (userExists.rows.length > 0) {
-      return res.status(400).json({
-        ok: false,
-        message: 'El correo ya está registrado'
-      });
-    }
-
-    // Encriptar contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Insertar usuario
-    const result = await pool.query(
-      `INSERT INTO users (name, email, password, role)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, name, email, role`,
-      [name, email, hashedPassword, role || 'voluntario']
-    );
-
-    // Guardar historial
-    await pool.query(
-      `INSERT INTO historial (accion, usuario_id)
-       VALUES ($1, $2)`,
-      ['Usuario registrado', result.rows[0].id]
-    );
-
-    res.status(201).json({
-      ok: true,
-      message: 'Usuario registrado correctamente',
-      user: result.rows[0]
+    const finalRoleId = role_id || 2; // Por defecto voluntario
+    
+    const userRepository = AppDataSource.getRepository(UserSchema);
+    const newUser = userRepository.create({
+      name,
+      email,
+      password: hashedPassword,
+      role_id: finalRoleId
     });
-
+    const savedUser = await userRepository.save(newUser);
+    
+    res.status(201).json({ 
+      message: 'Usuario registrado', 
+      user: { id: savedUser.id, email: savedUser.email, role_id: savedUser.role_id } 
+    });
   } catch (err) {
-    console.error('Error register:', err);
-
-    res.status(500).json({
-      ok: false,
-      message: 'Error en el registro'
-    });
+    console.error(err);
+    res.status(500).json({ error: 'Error en el registro' });
   }
 };
 
-// LOGIN
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
+  const { email, password } = req.body;
   try {
-    const { email, password } = req.body;
+    const userRepository = AppDataSource.getRepository(UserSchema);
+    const user = await userRepository.findOneBy({ email });
+    if (!user) return res.status(400).json({ error: 'Usuario no encontrado' });
 
-    // Buscar usuario
-    const result = await pool.query(
-      'SELECT * FROM users WHERE email = $1',
-      [email]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(400).json({
-        ok: false,
-        message: 'Usuario no encontrado'
-      });
-    }
-
-    const user = result.rows[0];
-
-    // Comparar contraseña
     const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) return res.status(400).json({ error: 'Contraseña incorrecta' });
 
-    if (!validPassword) {
-      return res.status(400).json({
-        ok: false,
-        message: 'Contraseña incorrecta'
-      });
-    }
-
-    // Crear token
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: '8h'
-      }
-    );
-
-    // Guardar historial
-    await pool.query(
-      `INSERT INTO historial (accion, usuario_id)
-       VALUES ($1, $2)`,
-      ['Inicio de sesión', user.id]
-    );
-
-    res.json({
-      ok: true,
-      message: 'Login exitoso',
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
-    });
-
+    const jwtSecret = process.env.JWT_SECRET || 'secret_key_123';
+    const token = jwt.sign({ id: user.id, email: user.email, role_id: user.role_id }, jwtSecret, { expiresIn: '1h' });
+    res.json({ token, user: { id: user.id, name: user.name, role_id: user.role_id }, message: 'Inicio de Sesion Exitoso' });
   } catch (err) {
-    console.error('Error login:', err);
-
-    res.status(500).json({
-      ok: false,
-      message: 'Error en el login'
-    });
+    console.error(err);
+    res.status(500).json({ error: 'Error en el login' });
   }
 };
+
+export default { register, login };

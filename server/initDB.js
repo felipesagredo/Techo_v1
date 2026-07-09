@@ -1,84 +1,220 @@
-const pool = require('./config/db');
+import AppDataSource from './config/db.js';
 
 const initDB = async () => {
 
   const queries = [
-
-    // USUARIOS
+    `CREATE TABLE IF NOT EXISTS roles (
+      id SERIAL PRIMARY KEY,
+      nombre VARCHAR(50) UNIQUE NOT NULL,
+      descripcion VARCHAR(255)
+    );`,
+    `CREATE TABLE IF NOT EXISTS roles_cuadrilla (
+      id SERIAL PRIMARY KEY,
+      nombre VARCHAR(50) UNIQUE NOT NULL
+    );`,
+    `CREATE TABLE IF NOT EXISTS cuadrillas (
+      id SERIAL PRIMARY KEY,
+      nombre VARCHAR(100) NOT NULL,
+      zona VARCHAR(255) NOT NULL,
+      estado VARCHAR(50) DEFAULT 'PENDIENTE',
+      latitud DECIMAL(10, 8),
+      longitud DECIMAL(11, 8),
+      meta_voluntarios INTEGER DEFAULT 5,
+      capacidad INTEGER DEFAULT 10,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
     `CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       name VARCHAR(100) NOT NULL,
       email VARCHAR(100) UNIQUE NOT NULL,
       password VARCHAR(255) NOT NULL,
-      role VARCHAR(30) DEFAULT 'usuario',
+      role_id INTEGER REFERENCES roles(id),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`,
-
-    // RESTRICCIONES ALIMENTARIAS
-    `CREATE TABLE IF NOT EXISTS restricciones_alimentarias (
-      id SERIAL PRIMARY KEY,
-      nombre VARCHAR(100) UNIQUE NOT NULL,
-      descripcion TEXT
-    );`,
-
-    // TIPO DIETA
-    `CREATE TABLE IF NOT EXISTS tipos_dieta (
-      id SERIAL PRIMARY KEY,
-      nombre VARCHAR(100) UNIQUE NOT NULL,
-      descripcion TEXT
-    );`,
-
-    // COMEDORES
-    `CREATE TABLE IF NOT EXISTS comedores (
+    `CREATE TABLE IF NOT EXISTS cuadrillas (
       id SERIAL PRIMARY KEY,
       nombre VARCHAR(100) NOT NULL,
-      direccion TEXT,
-      capacidad INTEGER DEFAULT 0,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      zona VARCHAR(255) NOT NULL,
+      estado VARCHAR(50) DEFAULT 'PENDIENTE',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      latitud DECIMAL(10, 8),
+      longitud DECIMAL(11, 8),
+      meta_voluntarios INTEGER DEFAULT 5,
+      capacidad INTEGER DEFAULT 10,
+      meta_herramientas INTEGER DEFAULT 5,
+      herramientas_requeridas TEXT
     );`,
-
-    // JORNADAS
-    `CREATE TABLE IF NOT EXISTS jornadas (
+    `CREATE TABLE IF NOT EXISTS roles_cuadrilla (
       id SERIAL PRIMARY KEY,
-      nombre VARCHAR(100),
-      fecha DATE NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      nombre VARCHAR(50) UNIQUE NOT NULL
     );`,
-
-    // ALIMENTOS
-    `CREATE TABLE IF NOT EXISTS alimentos (
+    `CREATE TABLE IF NOT EXISTS cuadrilla_miembros (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id),
+      cuadrilla_id INTEGER REFERENCES cuadrillas(id),
+      rol_cuadrilla_id INTEGER REFERENCES roles_cuadrilla(id),
+      UNIQUE(user_id, cuadrilla_id)
+    );`,
+    `CREATE TABLE IF NOT EXISTS herramientas (
       id SERIAL PRIMARY KEY,
       nombre VARCHAR(100) NOT NULL,
-      stock INTEGER DEFAULT 0,
-      fecha_vencimiento DATE,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      descripcion VARCHAR(500) NOT NULL,
+      stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
+      categoria_herramienta VARCHAR(30) NOT NULL,
+      assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      estado VARCHAR(30) NOT NULL DEFAULT 'disponible',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`,
-
-    // PORCIONES
-    `CREATE TABLE IF NOT EXISTS porciones (
+    `CREATE TABLE IF NOT EXISTS materiales (
       id SERIAL PRIMARY KEY,
-      cantidad INTEGER DEFAULT 0,
-
-      jornada_id INTEGER REFERENCES jornadas(id),
-      tipo_dieta_id INTEGER REFERENCES tipos_dieta(id),
-
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      nombre_material VARCHAR(100) NOT NULL,
+      cantidad INTEGER NOT NULL DEFAULT 0 CHECK (cantidad >= 0),
+      categoria VARCHAR(100) NOT NULL,
+      largo NUMERIC(10,2),
+      ancho NUMERIC(10,2),
+      peso NUMERIC(10,2),
+      assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      estado VARCHAR(30) NOT NULL DEFAULT 'disponible',
+      archivos TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`,
+    `CREATE TABLE IF NOT EXISTS prestamos_herramientas (
+      id SERIAL PRIMARY KEY,
+      herramienta_id INTEGER REFERENCES herramientas(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      fecha_prestamo TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      fecha_devolucion TIMESTAMP,
+      estado_prestamo VARCHAR(30) DEFAULT 'prestado',
+      notes TEXT
+    );`,
+    `CREATE TABLE IF NOT EXISTS asignacion_materiales (
+      id SERIAL PRIMARY KEY,
+      material_id INTEGER REFERENCES materiales(id) ON DELETE CASCADE,
+      cuadrilla_id INTEGER REFERENCES cuadrillas(id) ON DELETE CASCADE,
+      cantidad_asignada INTEGER NOT NULL,
+      fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      notas TEXT
     );`
   ];
 
   try {
-
     for (const query of queries) {
-      await pool.query(query);
+      await AppDataSource.query(query);
     }
 
-    console.log('Base de datos inicializada correctamente');
+    const rolesExist = await AppDataSource.query('SELECT COUNT(*) FROM roles');
+    if (parseInt(rolesExist[0].count, 10) === 0) {
+      await AppDataSource.query(`
+        INSERT INTO roles (nombre, descripcion) VALUES
+        ('admin', 'Administrador con acceso total'),
+        ('voluntario', 'Voluntario de campo'),
+        ('socio', 'Socio colaborador')
+        ON CONFLICT (nombre) DO NOTHING
+      `);
+      console.log('✅ Roles iniciales insertados');
+    }
 
-  } catch (error) {
+    // 4. Insertar roles de cuadrilla iniciales si no existen
+    const cuadrillaRolesExist = await AppDataSource.query('SELECT COUNT(*) FROM roles_cuadrilla');
+    if (parseInt(cuadrillaRolesExist[0].count) === 0) {
+      await AppDataSource.query(`
+        INSERT INTO roles_cuadrilla (nombre) VALUES 
+        ('Voluntario Senior'),
+        ('Capataz de Zona'),
+        ('Voluntario')
+        ON CONFLICT (nombre) DO NOTHING
+      `);
+      console.log('✅ Roles de cuadrilla insertados');
+    }
 
-    console.error('Error inicializando DB:', error);
+    // 5. Verificar si las coordenadas existen en cuadrillas
+    const latCheck = await AppDataSource.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='cuadrillas' AND column_name='latitud'
+    `);
 
+    if (latCheck.length === 0) {
+      await AppDataSource.query('ALTER TABLE cuadrillas ADD COLUMN latitud DECIMAL(10, 8), ADD COLUMN longitud DECIMAL(11, 8)');
+      console.log('✅ Columnas latitud y longitud añadidas a cuadrillas');
+    }
+
+    // 6. Verificar si la columna role_id existe en users
+    const columnCheck = await AppDataSource.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='users' AND column_name='role_id'
+    `);
+
+    if (columnCheck.length === 0) {
+      await AppDataSource.query('ALTER TABLE users ADD COLUMN role_id INTEGER REFERENCES roles(id) DEFAULT 2');
+      console.log('✅ Columna role_id añadida a la tabla users');
+    }
+
+    // 7. Verificar si la columna meta_voluntarios existe en cuadrillas
+    const metaCheck = await AppDataSource.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='cuadrillas' AND column_name='meta_voluntarios'
+    `);
+
+    if (metaCheck.length === 0) {
+      await AppDataSource.query('ALTER TABLE cuadrillas ADD COLUMN meta_voluntarios INTEGER DEFAULT 5');
+      console.log('✅ Columna meta_voluntarios añadida a la tabla cuadrillas');
+    }
+
+    // 8. Verificar nuevas columnas en users (telefono, comuna, habilidades)
+    const userColumnsCheck = await AppDataSource.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='users' AND column_name IN ('telefono', 'comuna', 'habilidades')
+    `);
+
+    const existingColumns = userColumnsCheck.map(r => r.column_name);
+
+    if (!existingColumns.includes('telefono')) {
+      await AppDataSource.query('ALTER TABLE users ADD COLUMN telefono VARCHAR(20)');
+      console.log('✅ Columna telefono añadida a users');
+    }
+    if (!existingColumns.includes('comuna')) {
+      await AppDataSource.query('ALTER TABLE users ADD COLUMN comuna VARCHAR(100)');
+      console.log('✅ Columna comuna añadida a users');
+    }
+    if (!existingColumns.includes('habilidades')) {
+      await AppDataSource.query('ALTER TABLE users ADD COLUMN habilidades TEXT');
+      console.log('✅ Columna habilidades añadida a users');
+    }
+
+    // Cuadrillas: Añadir capacidad
+    const cuadrillaColsRes = await AppDataSource.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'cuadrillas'");
+    const cuadrillaCols = cuadrillaColsRes.map(c => c.column_name);
+
+    if (!cuadrillaCols.includes('capacidad')) {
+      await AppDataSource.query('ALTER TABLE cuadrillas ADD COLUMN capacidad INTEGER DEFAULT 10');
+      console.log('✅ Columna capacidad añadida a cuadrillas');
+    }
+
+    if (!cuadrillaCols.includes('meta_herramientas')) {
+      await AppDataSource.query('ALTER TABLE cuadrillas ADD COLUMN meta_herramientas INTEGER DEFAULT 5');
+      console.log('✅ Columna meta_herramientas añadida a cuadrillas');
+    }
+
+    if (!cuadrillaCols.includes('herramientas_requeridas')) {
+      await AppDataSource.query('ALTER TABLE cuadrillas ADD COLUMN herramientas_requeridas TEXT');
+      console.log('✅ Columna herramientas_requeridas añadida a cuadrillas');
+    }
+
+    if (!cuadrillaCols.includes('materiales_requeridos')) {
+      await AppDataSource.query('ALTER TABLE cuadrillas ADD COLUMN materiales_requeridos TEXT');
+      console.log('✅ Columna materiales_requeridos añadida a cuadrillas');
+    }
+
+    console.log('✅ Sistema de base de datos listo y sincronizado');
+  } catch (err) {
+    console.error('❌ Error inicializando base de datos:', err);
   }
 };
 
-module.exports = initDB;
+export default initDB;
