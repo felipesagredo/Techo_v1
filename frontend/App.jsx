@@ -24,12 +24,14 @@ import {
   Plus,
   X
 } from 'lucide-react'
+import MapPage from './features/mapa/components/MapPage'
 
 // Features
 import CuadrillasView from './features/cuadrillas/components/CuadrillasView'
 import VoluntariosView from './features/voluntarios/components/VoluntariosView'
 import Herramientas from './pages/Herramientas'
 import Materiales from './pages/Materiales'
+import AlmuerzosView from './pages/AlmuerzosView'
 import Swal from 'sweetalert2'
 
 const showToast = (message, type = 'info') => {
@@ -290,9 +292,9 @@ function App() {
         const errorData = await response.json().catch(() => null);
         showToast(errorData?.error || 'El voluntario ya está asignado a esta cuadrilla o hubo un error.', 'error');
       }
-    } catch(err) {
-       console.error(err);
-       showToast('Error de conexión al asignar voluntario.', 'error');
+    } catch (err) {
+      console.error(err);
+      showToast('Error de conexión al asignar voluntario.', 'error');
     } finally {
       setAssigningMember(false);
     }
@@ -433,17 +435,249 @@ function App() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showMap, setShowMap] = useState(false)
+
+  const [section, setSection] = useState('inicio')
+  const [busqueda, setBusqueda] = useState('')
+  const [mostrarFormulario, setMostrarFormulario] = useState(false)
+  const [modoEdicion, setModoEdicion] = useState(false)
+
+  const [idEditar, setIdEditar] = useState(null)
+
+  const [alimentos, setAlimentos] = useState([])
+  const [nuevoAlimento, setNuevoAlimento] = useState({
+
+    nombre: '',
+
+    cantidad: '',
+
+    porciones: '',
+
+    tipoDieta: 'Normal',
+
+  })
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-  };
+
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+
+    setUser(null)
+  }
+
+  // OBTENER ALIMENTOS
+
+  const obtenerAlimentos = async () => {
+
+    try {
+
+      const response = await fetch(
+        'http://localhost:5000/api/alimentos',
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      )
+
+      const data = await response.json()
+
+      if (!response.ok) {
+
+        console.error(data)
+
+        setAlimentos([])
+
+        return
+      }
+
+      setAlimentos(
+        Array.isArray(data)
+          ? data
+          : []
+      )
+
+    } catch (error) {
+
+      console.log(error)
+
+      setAlimentos([])
+    }
+  }
+
+  // CREAR ALIMENTO
+
+  const crearAlimento = async () => {
+
+    if (!nuevoAlimento.nombre.trim()) return
+
+    try {
+
+      await fetch(
+        'http://localhost:5000/api/alimentos',
+        {
+          method: 'POST',
+
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+
+          body: JSON.stringify({
+
+            nombre: nuevoAlimento.nombre,
+
+            cantidad: Number(
+              nuevoAlimento.cantidad
+            ),
+
+            porciones: Number(
+              nuevoAlimento.porciones
+            ),
+
+            tipoDieta:
+              nuevoAlimento.tipoDieta,
+
+          }),
+        }
+      )
+
+      setNuevoAlimento({
+        nombre: '',
+        cantidad: '',
+        porciones: '',
+        tipoDieta: 'Normal',
+      })
+
+      obtenerAlimentos()
+
+    } catch (error) {
+
+      console.log(error)
+    }
+  }
+  // EDITAR ALIMENTO
+  const editarAlimento = (alimento) => {
+
+    setModoEdicion(true)
+
+    setIdEditar(alimento.id)
+
+    setMostrarFormulario(true)
+
+    setNuevoAlimento({
+
+      nombre: alimento.nombre,
+
+      cantidad: alimento.cantidad,
+
+      porciones: alimento.porciones,
+
+      tipoDieta: alimento.tipoDieta,
+
+    })
+
+  }
+
+  const guardarEdicion = async () => {
+
+    try {
+
+      await fetch(
+
+        `http://localhost:5000/api/alimentos/${idEditar}`,
+
+        {
+
+          method: 'PUT',
+
+          headers: {
+
+            'Content-Type': 'application/json',
+
+            Authorization:
+              `Bearer ${localStorage.getItem('token')}`,
+
+          },
+
+          body: JSON.stringify(nuevoAlimento),
+
+        }
+
+      )
+
+      setModoEdicion(false)
+
+      setIdEditar(null)
+
+      setMostrarFormulario(false)
+
+      setNuevoAlimento({
+
+        nombre: '',
+
+        cantidad: '',
+
+        porciones: '',
+
+        tipoDieta: 'Normal',
+
+      })
+
+      obtenerAlimentos()
+
+    }
+
+    catch (error) {
+
+      console.log(error)
+
+    }
+
+  }
+
+  // ELIMINAR ALIMENTO
+
+  const eliminarAlimento = async (id) => {
+
+    try {
+
+      await fetch(
+        `http://localhost:5000/api/alimentos/${id}`,
+        {
+          method: 'DELETE',
+
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      )
+
+      obtenerAlimentos()
+
+    } catch (error) {
+
+      console.log(error)
+    }
+  }
+
+  useEffect(() => {
+
+    if (user) {
+      obtenerAlimentos()
+    }
+
+  }, [user])
+
+  // LOGIN / REGISTRO
 
   const handleSubmit = async (e) => {
+
     e.preventDefault()
+
     setLoading(true)
     setError('')
 
@@ -452,8 +686,10 @@ function App() {
       ? { email, password }
       : { name, email, password }
 
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
     try {
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -464,6 +700,7 @@ function App() {
       const data = await response.json()
 
       if (response.ok) {
+
         if (mode === 'register') {
           Swal.fire({
             title: '¡Registro Exitoso!',
@@ -477,11 +714,15 @@ function App() {
             }
           });
           setMode('login')
+
           setName('')
+          setEmail('')
+          setPassword('')
+
         } else {
           localStorage.setItem('token', data.token)
           localStorage.setItem('user', JSON.stringify(data.user))
-          
+
           Swal.fire({
             title: '¡Inicio de Sesión Exitoso!',
             text: `¡Bienvenido, ${data.user.name}!`,
@@ -496,18 +737,26 @@ function App() {
             setUser(data.user)
           });
         }
+
       } else {
-        setError(data.error || 'Ocurrió un error')
+
+        setError(data.message || 'Error')
+
       }
-    } catch (err) {
-      setError('No se pudo conectar con el servidor. ¿Está encendido?')
+
+    } catch (error) {
+
+      setError('No se pudo conectar con el servidor')
+
     } finally {
+
       setLoading(false)
     }
   }
 
-  // Si el usuario está logueado, mostrar Dashboard
+
   if (user) {
+
     return (
       <div className="dashboard-layout">
         {/* Top Navigation */}
@@ -517,9 +766,9 @@ function App() {
               <h2>TECHO <span>Gestión</span></h2>
             </div>
             <nav className="top-nav-links">
-              <a href="#" className="active">Resumen</a>
+              <a href="#" className={currentView === 'dashboard' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('dashboard'); }}>Resumen</a>
               <a href="#">Reportes</a>
-              <a href="#">Geolocalización</a>
+              <a href="#" className={currentView === 'map' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('map'); }}>Geolocalización</a>
             </nav>
           </div>
           <div className="top-nav-right">
@@ -554,6 +803,9 @@ function App() {
               </a>
               <a href="#" className={currentView === 'almuerzos' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('almuerzos'); }}>
                 <Utensils size={18} /> Almuerzos
+              </a>
+              <a href="#" className={currentView === 'map' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('map'); }}>
+                <MapPin size={18} /> Mapa
               </a>
             </nav>
             <div className="sidebar-bottom">
@@ -722,7 +974,7 @@ function App() {
                       <div className="map-info">
                         <h4>Foco Operativo - Valparaíso</h4>
                         <p>Mayor densidad de cuadrillas hoy</p>
-                        <button className="btn-outline full-width mt-1">Ver Mapa Interactivo</button>
+                        <button className="btn-outline full-width mt-1" onClick={(e) => { e.preventDefault(); setCurrentView('map'); }}>Ver Mapa Interactivo</button>
                       </div>
                     </div>
 
@@ -787,6 +1039,14 @@ function App() {
 
             {/* MATERIALES VIEW */}
             {currentView === 'materiales' && <Materiales user={user} />}
+
+            {/* MAP VIEW */}
+            {currentView === 'map' && (
+              <MapPage onBack={() => setCurrentView('dashboard')} />
+            )}
+
+            {/* ALMUERZOS VIEW */}
+            {currentView === 'almuerzos' && <AlmuerzosView user={user} />}
 
             {/* Modal Nueva Cuadrilla */}
             {showNewCuadrillaModal && (
@@ -1097,44 +1357,58 @@ function App() {
     );
   }
 
-  // Si no está logueado, mostrar Login/Register
+  // LOGIN
+
   return (
     <div className="login-container">
-      {/* Left Section */}
+
       <div className="left-section">
+
         <div className="left-content">
           <h1>
-            Construyendo <br />
-            <span>Comunidad</span> desde la gestión.
+            Construyendo
+            <br />
+            <span>Comunidad</span>
+            {' '}
+            desde la gestión.
           </h1>
 
           <div className="cards-container">
+
             <div className="info-card">
               <h3>
-                <ArrowRight size={18} /> Precisión
+                <ArrowRight size={18} />
+                {' '}
+                Precisión
               </h3>
               <p>
-                Herramientas técnicas diseñadas para maximizar el impacto en territorio.
+                Herramientas diseñadas
+                para maximizar el impacto.
               </p>
             </div>
+
             <div className="info-card">
               <h3>
-                <Users size={18} /> Empatía
+                <Users size={18} />
+                {' '}
+                Empatía
               </h3>
               <p>
-                Centrados en la dignidad humana y el trabajo colectivo.
+                Centrados en el trabajo colectivo.
               </p>
             </div>
+
           </div>
         </div>
 
         <div className="left-footer">
           2026 © TECHO
         </div>
+
       </div>
 
-      {/* Right Section */}
       <div className="right-section">
+
         <div className="logo-container">
           <div className="techo-logo">
             <div className="logo-text">
@@ -1148,16 +1422,23 @@ function App() {
         </div>
 
         <div className="form-header">
-          <h2>{mode === 'login' ? 'Acceso al Portal' : 'Crear Cuenta'}</h2>
+          <h2>
+            {mode === 'login' ? 'Acceso al Portal' : 'Crear Cuenta'}
+          </h2>
           <p>
             {mode === 'login'
               ? 'Gestiona proyectos, cuadrillas e impacto social desde una sola plataforma.'
               : 'Únete a la red de gestión de voluntarios de Techo Chile.'}
           </p>
-          {error && <p style={{ color: '#ff4d4d', marginTop: '1rem', fontWeight: 'bold' }}>{error}</p>}
+          {error && (
+            <p style={{ color: 'red', marginTop: '1rem' }}>
+              {error}
+            </p>
+          )}
         </div>
 
         <form onSubmit={handleSubmit}>
+
           {mode === 'register' && (
             <div className="form-group">
               <div className="label-row">
@@ -1178,7 +1459,7 @@ function App() {
 
           <div className="form-group">
             <div className="label-row">
-              <label>Correo Institucional</label>
+              <label>Correo</label>
             </div>
             <div className="input-wrapper">
               <Mail className="input-icon" size={18} />
@@ -1195,7 +1476,6 @@ function App() {
           <div className="form-group">
             <div className="label-row">
               <label>Contraseña</label>
-              <a href="#" className="forgot-link">¿Olvidaste tu clave?</a>
             </div>
             <div className="input-wrapper">
               <Lock className="input-icon" size={18} />
@@ -1209,34 +1489,37 @@ function App() {
             </div>
           </div>
 
-          <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? 'Cargando...' : (mode === 'login' ? 'Ingresar a Gestión' : 'Registrarse')} <ArrowRight size={18} />
-          </button>
-
-          <div className="divider">
-            <span>O accede con</span>
-          </div>
-
-          <button type="button" className="google-btn">
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/5/5f/Google_Workspace_Logo.svg"
-              alt="Google"
-              width="180"
-            />
+          <button
+            type="submit"
+            className="submit-btn"
+            disabled={loading}
+          >
+            {loading
+              ? 'Cargando...'
+              : (mode === 'login' ? 'Ingresar' : 'Registrarse')
+            }
+            <ArrowRight size={18} />
           </button>
 
           <p className="footer-link">
-            {mode === 'login' ? '¿Nuevo en el equipo?' : '¿Ya tienes cuenta?'} {' '}
-            <a href="#" onClick={(e) => {
-              e.preventDefault();
-              setMode(mode === 'login' ? 'register' : 'login');
-              setError('');
-            }}>
-              {mode === 'login' ? 'Solicitar acceso' : 'Iniciar sesión'}
+            {mode === 'login' ? '¿Nuevo en el equipo?' : '¿Ya tienes cuenta?'}
+            {' '}
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault()
+                setMode(mode === 'login' ? 'register' : 'login')
+                setError('')
+              }}
+            >
+              {mode === 'login' ? 'Registrarse' : 'Iniciar sesión'}
             </a>
           </p>
+
         </form>
+
       </div>
+
     </div>
   )
 }

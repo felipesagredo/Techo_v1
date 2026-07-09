@@ -23,7 +23,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.env
 GUIA*.md
 manual_integracion.md
 manual_git_ramas.md
-backend/scratch
+server/scratch

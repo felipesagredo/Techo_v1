@@ -1,6 +1,7 @@
 import AppDataSource from './config/db.js';
 
 const initDB = async () => {
+
   const queries = [
     `CREATE TABLE IF NOT EXISTS roles (
       id SERIAL PRIMARY KEY,
@@ -24,7 +25,7 @@ const initDB = async () => {
     );`,
     `CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
-      name VARCHAR(100),
+      name VARCHAR(100) NOT NULL,
       email VARCHAR(100) UNIQUE NOT NULL,
       password VARCHAR(255) NOT NULL,
       role_id INTEGER REFERENCES roles(id),
@@ -95,6 +96,28 @@ const initDB = async () => {
       cantidad_asignada INTEGER NOT NULL,
       fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       notas TEXT
+    );`,
+    `CREATE TABLE IF NOT EXISTS alimentos (
+      id SERIAL PRIMARY KEY,
+      nombre VARCHAR(100) NOT NULL,
+      cantidad INTEGER NOT NULL DEFAULT 0,
+      porciones INTEGER NOT NULL DEFAULT 0,
+      "tipoDieta" VARCHAR(50) NOT NULL DEFAULT 'Normal',
+      asignado BOOLEAN NOT NULL DEFAULT false,
+      "jornadaActiva" BOOLEAN NOT NULL DEFAULT false,
+      encargado VARCHAR(100),
+      "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`
+    ,
+    // 5. Crear tabla de direcciones (marcadores)
+    `CREATE TABLE IF NOT EXISTS addresses (
+      id SERIAL PRIMARY KEY,
+      label VARCHAR(255) NOT NULL,
+      lat NUMERIC NOT NULL,
+      lng NUMERIC NOT NULL,
+      color VARCHAR(20) NOT NULL DEFAULT 'red',
+      created_by INTEGER REFERENCES users(id),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`
   ];
 
