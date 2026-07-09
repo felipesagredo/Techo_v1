@@ -1,13 +1,13 @@
-const {
+import {
   getAllAddresses,
   createAddress,
   updateAddressById,
   deleteAddressById,
-} = require('../services/Address.service');
+} from '../services/Address.service.js';
 
-const { validateCoordinates, validateColor } = require('../validations/address.validations');
+import { validateCoordinates, validateColor } from '../validations/address.validations.js';
 
-exports.getAll = async (req, res) => {
+export const getAll = async (req, res) => {
   try {
     const result = await getAllAddresses();
     res.json({ addresses: result.rows });
@@ -17,7 +17,7 @@ exports.getAll = async (req, res) => {
   }
 };
 
-exports.create = async (req, res) => {
+export const create = async (req, res) => {
   const { label, lat, lng, color } = req.body;
   const user = req.user;
 
@@ -55,7 +55,7 @@ exports.create = async (req, res) => {
   }
 };
 
-exports.update = async (req, res) => {
+export const update = async (req, res) => {
   const { id } = req.params;
   const { label, lat, lng } = req.body;
   const user = req.user;
@@ -93,7 +93,7 @@ exports.update = async (req, res) => {
   }
 };
 
-exports.delete = async (req, res) => {
+export const deleteAddress = async (req, res) => {
   const { id } = req.params;
   const user = req.user;
 
@@ -114,4 +114,11 @@ exports.delete = async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'Error eliminando dirección' });
   }
+};
+
+export default {
+  getAll,
+  create,
+  update,
+  delete: deleteAddress,
 };

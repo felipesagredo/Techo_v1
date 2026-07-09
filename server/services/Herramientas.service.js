@@ -1,65 +1,100 @@
 "use strict"
-import Herramientas from "../entity/Herramientas.entity.js";
-import { AppDataSource } from "../config/db.js";
+import AppDataSource from "../config/db.js";
+import HerramientasSchema from "../entity/Herramientas.entity.js";
+
+function getEffectiveToolState(tool) {
+    const stock = Number(tool?.stock ?? 0);
+    const estado = (tool?.estado || '').toLowerCase();
+    if (stock <= 0 || ['malo', 'dañado'].includes(estado)) {
+        return 'no-disponible';
+    }
+    return 'disponible';
+}
 
 export async function createHerramientasService(body){
     try {
-    const comentarioRepository = AppDataSource.getRepository(Herramientas)
-    const nuevaHerramienta = herramientasRepository.create(body);
-    return await comentarioRepository.save(nuevaHerramienta);
-    }catch(error){
-        throw new Error("Error al crear la herramienta");
+        const herramientasRepository = AppDataSource.getRepository(HerramientasSchema);
+        const newTool = herramientasRepository.create(body);
+        return await herramientasRepository.save(newTool);
+    } catch(error){
+        throw new Error(`Error al crear la herramienta: ${error.message}`);
     }
 }
 
 export async function getHerramientasService(){
     try{
-        const herramientasRepository = AppDataSource.getRepository(Herramientas);
-        let herramienta = await herramientasRepository.find();
-        return herramienta;
-    }catch(error){
-        throw new Error("Error, no se han podido obtener las herramientas")
+        const herramientasRepository = AppDataSource.getRepository(HerramientasSchema);
+        const tools = await herramientasRepository.find({
+            relations: ["assignedUser"],
+            order: { nombre: "ASC" }
+        });
+        return tools.map(h => ({
+            ...h,
+            estado: getEffectiveToolState(h),
+            voluntario_nombre: h.assignedUser ? h.assignedUser.name : null,
+            voluntario_email: h.assignedUser ? h.assignedUser.email : null
+        }));
+    } catch(error){
+        throw new Error("Error, no se han podido obtener las herramientas");
     }
 }
 
-
 export async function getHerramientasByIdService(id) {
-  try {
-    const herramientasRepository = AppDataSource.getRepository(Herramientas);
-    const herramienta = await herramientasRepository.findOne({
-      where: { id },
-      relations: ["user"]
-    });
-    return herramienta;
-  } catch (error) {
-    throw new Error("Error al obtener la herramienta por ID");
-  }
+    try {
+        const herramientasRepository = AppDataSource.getRepository(HerramientasSchema);
+        const tool = await herramientasRepository.findOne({
+            where: { id: parseInt(id, 10) },
+            relations: ["assignedUser"]
+        });
+        if (!tool) return null;
+        return {
+            ...tool,
+            estado: getEffectiveToolState(tool),
+            voluntario_nombre: tool.assignedUser ? tool.assignedUser.name : null,
+            voluntario_email: tool.assignedUser ? tool.assignedUser.email : null
+        };
+    } catch (error) {
+        throw new Error("Error al obtener la herramienta por ID");
+    }
 }
 
 export async function updateHerramientasService(id, body) {
     try{
-        const herramientasRepository = AppDataSource.getRepository(Herramientas);
-        let herramienta = await herramientasRepository.findOneBy({ id });
-        if (!herramienta) {
+        const herramientasRepository = AppDataSource.getRepository(HerramientasSchema);
+        const tool = await herramientasRepository.findOneBy({ id: parseInt(id, 10) });
+        if (!tool) {
             throw new Error("Herramienta no encontrada");
-    }
-    herramienta = { ...herramienta, ...body };
-    return await herramientasRepository.save(herramienta);
-    }catch (error){
-        throw new Error("Error, no se ha podido actualizar la herramienta");
+        }
+        
+        // Si assigned_to viene como string o null, nos aseguramos de guardarlo
+        if (body.assigned_to !== undefined) {
+            tool.assigned_to = body.assigned_to ? parseInt(body.assigned_to, 10) : null;
+        }
+
+        const nextStock = body.stock !== undefined ? Number(body.stock) : Number(tool.stock ?? 0);
+        const nextEstado = nextStock <= 0 ? 'no-disponible' : (body.estado || tool.estado || 'disponible');
+        if (body.estado !== undefined) {
+            tool.estado = nextEstado;
+        }
+
+        herramientasRepository.merge(tool, body);
+        tool.estado = getEffectiveToolState({ ...tool, stock: nextStock });
+        return await herramientasRepository.save(tool);
+    } catch (error){
+        throw new Error("Error, no se ha podido actualizar la herramienta: " + error.message);
     }
 }
 
 export async function deleteHerramientasService(id) {
     try{
-        const herramientasRepository = AppDataSource.getRepository(Herramientas);
-        const herramienta = await herramientasRepository.findOneBy({id});
-        if(!herramienta){
+        const herramientasRepository = AppDataSource.getRepository(HerramientasSchema);
+        const tool = await herramientasRepository.findOneBy({ id: parseInt(id, 10) });
+        if (!tool) {
             throw new Error("Herramienta no encontrada");
         }
-        await herramientasRepository.remove(herramienta);
-        return herramienta
-    }catch (error){
+        await herramientasRepository.remove(tool);
+        return tool;
+    } catch (error){
         throw new Error("Error, no se ha podido eliminar la herramienta");
     }
 }

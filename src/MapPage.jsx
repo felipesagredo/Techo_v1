@@ -389,9 +389,8 @@ const MapPage = ({ onBack }) => {
 
   return (
     <div style={{
-      minHeight: '100vh',
-      padding: '16px',
-      background: 'linear-gradient(180deg, #f6f8fc 0%, #eef3f9 100%)'
+      padding: '0px',
+      background: 'transparent'
     }}>
       {notification && (
         <div style={{

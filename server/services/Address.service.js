@@ -1,38 +1,35 @@
-const pool = require('../config/db');
+import AppDataSource from '../config/db.js';
 
 const ADDRESS_SELECT_FIELDS = 'id, label, lat, lng, color, created_by, created_at';
 
-async function getAllAddresses() {
+export async function getAllAddresses() {
   const query = `SELECT ${ADDRESS_SELECT_FIELDS} FROM addresses ORDER BY id DESC`;
-  return pool.query(query);
+  const rows = await AppDataSource.query(query);
+  return { rows };
 }
 
-async function createAddress({ label, lat, lng, color = 'red', createdBy }) {
+export async function createAddress({ label, lat, lng, color = 'red', createdBy }) {
   const query = `
     INSERT INTO addresses (label, lat, lng, color, created_by)
     VALUES ($1, $2, $3, $4, $5)
     RETURNING ${ADDRESS_SELECT_FIELDS}
   `;
-  return pool.query(query, [label, lat, lng, color, createdBy]);
+  const rows = await AppDataSource.query(query, [label, lat, lng, color, createdBy]);
+  return { rows };
 }
 
-async function updateAddressById({ id, label, lat, lng }) {
+export async function updateAddressById({ id, label, lat, lng }) {
   const query = `
     UPDATE addresses
     SET label = $1, lat = $2, lng = $3
     WHERE id = $4
     RETURNING ${ADDRESS_SELECT_FIELDS}
   `;
-  return pool.query(query, [label, lat, lng, id]);
+  const rows = await AppDataSource.query(query, [label, lat, lng, id]);
+  return { rows };
 }
 
-async function deleteAddressById(id) {
-  return pool.query('DELETE FROM addresses WHERE id = $1 RETURNING id', [id]);
+export async function deleteAddressById(id) {
+  const rows = await AppDataSource.query('DELETE FROM addresses WHERE id = $1 RETURNING id', [id]);
+  return { rows };
 }
-
-module.exports = {
-  getAllAddresses,
-  createAddress,
-  updateAddressById,
-  deleteAddressById,
-};

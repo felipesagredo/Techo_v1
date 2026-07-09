@@ -46,4 +46,4 @@ function validateColor(color) {
   return { valid: true, color: normalized };
 }
 
-module.exports = { validateCoordinates, validateColor, ALLOWED_COLORS };
+export { validateCoordinates, validateColor, ALLOWED_COLORS };

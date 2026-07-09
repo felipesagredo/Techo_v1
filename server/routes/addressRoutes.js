@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
+import auth from '../middleware/auth.js';
+import addressController from '../controllers/addressController.js';
+
 const router = express.Router();
-const auth = require('../middleware/auth');
-const addressController = require('../controllers/addressController');
 
 // Listar direcciones (requiere autenticación)
 router.get('/', auth, addressController.getAll);
@@ -15,4 +16,4 @@ router.put('/:id', auth, addressController.update);
 // Eliminar dirección (solo admin)
 router.delete('/:id', auth, addressController.delete);
 
-module.exports = router;
+export default router;
