@@ -268,11 +268,11 @@ const MapPage = ({ onBack }) => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ 
-          label: modalLabel.trim(), 
-          lat: pendingLocation.lat, 
-          lng: pendingLocation.lng, 
-          color 
+        body: JSON.stringify({
+          label: modalLabel.trim(),
+          lat: pendingLocation.lat,
+          lng: pendingLocation.lng,
+          color
         })
       })
       if (!res.ok) {
@@ -359,7 +359,7 @@ const MapPage = ({ onBack }) => {
     const handleMapClick = async (e) => {
       if (!adding || !isAdmin) return
       const { lat, lng } = e.latlng
-      
+
       // Validar coordenadas en cliente
       const coordCheck = validateClientCoordinates(lat, lng)
       if (!coordCheck.valid) {
@@ -367,7 +367,7 @@ const MapPage = ({ onBack }) => {
         return
       }
 
-      
+
       setPendingLocation({ lat: coordCheck.lat, lng: coordCheck.lng })
       setModalLabel('')
       setModalVisible(true)
@@ -505,7 +505,7 @@ const MapPage = ({ onBack }) => {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
-              <button 
+              <button
                 onClick={onBack}
                 style={{
                   padding: '11px 14px',
@@ -522,7 +522,7 @@ const MapPage = ({ onBack }) => {
               </button>
 
               {isAdmin && (
-                <button 
+                <button
                   onClick={() => setAdding(!adding)}
                   style={{
                     padding: '11px 14px',
@@ -544,7 +544,7 @@ const MapPage = ({ onBack }) => {
                 </button>
               )}
 
-              <button 
+              <button
                 onClick={() => map?.locate({ setView: true, maxZoom: 16 })}
                 style={{
                   padding: '11px 14px',
@@ -560,7 +560,7 @@ const MapPage = ({ onBack }) => {
                 Mi ubicación
               </button>
 
-              <button 
+              <button
                 onClick={loadAddresses}
                 disabled={loading}
                 style={{
@@ -688,18 +688,19 @@ const MapPage = ({ onBack }) => {
                 flexWrap: 'wrap'
               }}>
                 <div>
-                <h2 style={{ 
+                  <h2 style={{
                     margin: 0,
                     fontSize: '18px', color: '#10213a'
-                    }}>
+                  }}>
                     Mapa interactivo
-               </h2>
-                <p style={{
-                margin: '4px 0 0',
-                fontSize: '13px',
-                    color: '#64748b' }}>
-                 {isAdmin ? 'Los puntos se editan desde el mapa.': 'Solo puedes visualizar los puntos del mapa.'}
-                </p>
+                  </h2>
+                  <p style={{
+                    margin: '4px 0 0',
+                    fontSize: '13px',
+                    color: '#64748b'
+                  }}>
+                    {isAdmin ? 'Los puntos se editan desde el mapa.' : 'Actualiza para ver nuevos puntos en el  mapa.'}
+                  </p>
                 </div>
                 <div style={{
                   fontSize: '12px',
@@ -713,16 +714,16 @@ const MapPage = ({ onBack }) => {
                 </div>
               </div>
 
-              <div 
-                ref={mapRef} 
-                style={{ 
+              <div
+                ref={mapRef}
+                style={{
                   width: '100%',
                   height: '68vh',
                   minHeight: '560px',
-                  borderRadius: '18px', 
+                  borderRadius: '18px',
                   overflow: 'hidden',
                   boxShadow: 'inset 0 0 0 1px rgba(15, 23, 42, 0.06)'
-                }} 
+                }}
               />
             </div>
 
@@ -767,7 +768,7 @@ const MapPage = ({ onBack }) => {
             <h2 style={{ margin: '0 0 16px 0', fontSize: '18px', color: '#333' }}>
               Nueva ubicación
             </h2>
-            
+
             <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#666' }}>
               Categoria: <strong>{getColorOption(selectedColor).description}</strong>
             </p>
@@ -819,15 +820,18 @@ const MapPage = ({ onBack }) => {
                 onClick={handleSubmitLocation}
                 style={{
                   padding: '10px 16px',
-                  background: '#1d6fbf',
+                  background: ' #1d6fbf 100%',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '6px',
+                  borderRadius: '10px',
                   cursor: 'pointer',
                   fontSize: '14px',
-                  fontWeight: '600'
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
                 }}
-              >
+              ><PencilLine size={14} />
                 Guardar ubicación
               </button>
             </div>
@@ -884,7 +888,7 @@ const MapPage = ({ onBack }) => {
 
             <div style={{ marginTop: '18px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 700, color: '#29435c' }}>
-                Nombre de la ubicación
+                Nombre de la ubicació
               </label>
               <input
                 type="text"

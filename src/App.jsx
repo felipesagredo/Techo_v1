@@ -24,7 +24,7 @@ import {
   Plus,
   X
 } from 'lucide-react'
-import MapPage from './MapPage'
+import MapPage from './features/mapa/components/MapPage'
 
 // Features
 import CuadrillasView from './features/cuadrillas/components/CuadrillasView'
