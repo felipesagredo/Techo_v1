@@ -1,9 +1,16 @@
 import React, { useEffect, useState } from 'react'
+import Sidebar from './components/Sidebar'
+import Header from './components/Header'
+import SearchBar from './components/SearchBar'
+import TablaAlimentos from './components/TablaAlimentos'
+import FormularioAlimento from './components/FormularioAlimento'
 import {
   Mail,
   Lock,
   Users,
   ArrowRight,
+  Trash2,
+  Pencil,
   Home
 } from 'lucide-react'
 
@@ -24,9 +31,24 @@ function App() {
   const [error, setError] = useState('')
 
   const [section, setSection] = useState('inicio')
+  const [busqueda, setBusqueda] = useState('')
+  const [mostrarFormulario, setMostrarFormulario] = useState(false)
+  const [modoEdicion, setModoEdicion] = useState(false)
+
+  const [idEditar, setIdEditar] = useState(null)
 
   const [alimentos, setAlimentos] = useState([])
-  const [nuevoAlimento, setNuevoAlimento] = useState('')
+  const [nuevoAlimento, setNuevoAlimento] = useState({
+
+  nombre: '',
+
+  cantidad: '',
+
+  porciones: '',
+
+  tipoDieta: 'Normal',
+
+})
 
   const handleLogout = () => {
 
@@ -40,32 +62,47 @@ function App() {
 
   const obtenerAlimentos = async () => {
 
-    try {
+  try {
 
-      const response = await fetch(
-        'http://localhost:5000/api/alimentos',
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      )
+    const response = await fetch(
+      'http://localhost:5000/api/alimentos',
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    )
 
-      const data = await response.json()
+    const data = await response.json()
 
-      setAlimentos(data)
+    if (!response.ok) {
 
-    } catch (error) {
+      console.error(data)
 
-      console.log(error)
+      setAlimentos([])
+
+      return
     }
+
+    setAlimentos(
+      Array.isArray(data)
+        ? data
+        : []
+    )
+
+  } catch (error) {
+
+    console.log(error)
+
+    setAlimentos([])
   }
+}
 
   // CREAR ALIMENTO
 
   const crearAlimento = async () => {
 
-    if (!nuevoAlimento.trim()) return
+    if (!nuevoAlimento.nombre.trim()) return
 
     try {
 
@@ -80,12 +117,30 @@ function App() {
           },
 
           body: JSON.stringify({
-            nombre: nuevoAlimento,
-          }),
+
+    nombre: nuevoAlimento.nombre,
+
+    cantidad: Number(
+      nuevoAlimento.cantidad
+    ),
+
+    porciones: Number(
+      nuevoAlimento.porciones
+    ),
+
+    tipoDieta:
+      nuevoAlimento.tipoDieta,
+
+}),
         }
       )
 
-      setNuevoAlimento('')
+      setNuevoAlimento({
+        nombre: '',
+        cantidad: '',
+        porciones: '',
+        tipoDieta: 'Normal',
+      })
 
       obtenerAlimentos()
 
@@ -94,6 +149,85 @@ function App() {
       console.log(error)
     }
   }
+ // EDITAR ALIMENTO
+  const editarAlimento = (alimento) => {
+
+  setModoEdicion(true)
+
+  setIdEditar(alimento.id)
+
+  setMostrarFormulario(true)
+
+  setNuevoAlimento({
+
+    nombre: alimento.nombre,
+
+    cantidad: alimento.cantidad,
+
+    porciones: alimento.porciones,
+
+    tipoDieta: alimento.tipoDieta,
+
+  })
+
+}
+
+const guardarEdicion = async () => {
+
+  try {
+
+    await fetch(
+
+      `http://localhost:5000/api/alimentos/${idEditar}`,
+
+      {
+
+        method: 'PUT',
+
+        headers: {
+
+          'Content-Type': 'application/json',
+
+          Authorization:
+            `Bearer ${localStorage.getItem('token')}`,
+
+        },
+
+        body: JSON.stringify(nuevoAlimento),
+
+      }
+
+    )
+
+    setModoEdicion(false)
+
+    setIdEditar(null)
+
+    setMostrarFormulario(false)
+
+    setNuevoAlimento({
+
+      nombre: '',
+
+      cantidad: '',
+
+      porciones: '',
+
+      tipoDieta: 'Normal',
+
+    })
+
+    obtenerAlimentos()
+
+  }
+
+  catch (error) {
+
+    console.log(error)
+
+  }
+
+}
 
   // ELIMINAR ALIMENTO
 
@@ -221,89 +355,21 @@ function App() {
 
       <div className="dashboard-container">
 
-        <aside className="sidebar">
+<Sidebar
 
-          <div className="sidebar-header">
+    section={section}
 
-            <div className="logo-icon small">
-              <Home size={16} fill="white" />
-            </div>
+    setSection={setSection}
 
-            <span>TECHO GESTIÓN</span>
+    handleLogout={handleLogout}
 
-          </div>
-
-          <nav className="sidebar-nav">
-
-            <a
-              href="#"
-              className={section === 'inicio' ? 'active' : ''}
-              onClick={(e) => {
-                e.preventDefault()
-                setSection('inicio')
-              }}
-            >
-              <Home size={18} />
-              Inicio
-            </a>
-
-            <a href="#">
-              <Users size={18} />
-              Voluntarios
-            </a>
-
-            <a href="#">
-              <ArrowRight size={18} />
-              Proyectos
-            </a>
-
-            <a href="#">
-              <Lock size={18} />
-              Herramientas
-            </a>
-
-            <a
-              href="#"
-              className={section === 'alimentos' ? 'active' : ''}
-              onClick={(e) => {
-                e.preventDefault()
-                setSection('alimentos')
-              }}
-            >
-              <Users size={18} />
-              Alimentos
-            </a>
-
-          </nav>
-
-          <button
-            className="logout-btn"
-            onClick={handleLogout}
-          >
-            Cerrar Sesión
-          </button>
-
-        </aside>
+/>
 
         <main className="dashboard-main">
 
-          <header className="main-header">
-
-            <h1>
-              Bienvenido, {user.name}
-            </h1>
-
-            <div className="user-profile">
-
-              <div className="avatar">
-                {user.name.charAt(0)}
-              </div>
-
-              <span>{user.email}</span>
-
-            </div>
-
-          </header>
+<Header
+    user={user}
+/>
 
           <section className="stats-grid">
 
@@ -361,84 +427,59 @@ function App() {
                   <p>
                     Control y monitoreo de alimentos disponibles.
                   </p>
+                  <div
+  style={{
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginBottom: '20px',
+  }}
+>
 
-                  {
-                    user.role === 'admin' && (
+  <button
+    type="button"
+    onClick={() =>
+      setMostrarFormulario(!mostrarFormulario)
+    }
+  >
+    + Nuevo alimento
+  </button>
 
-                      <div
-                        style={{
-                          marginBottom: '20px',
-                        }}
-                      >
+</div>
+                  <SearchBar
 
-                        <input
-                          type="text"
-                          placeholder="Nuevo alimento"
-                          value={nuevoAlimento}
-                          onChange={(e) =>
-                            setNuevoAlimento(e.target.value)
-                          }
-                        />
+  busqueda={busqueda}
 
-                        <button
-                          type="button"
-                          onClick={crearAlimento}
-                        >
-                          Agregar
-                        </button>
+  setBusqueda={setBusqueda}
 
-                      </div>
-                    )
-                  }
+/>
 
-                  <div>
+{
+  user.role === 'admin' &&
+  mostrarFormulario && (
 
-                    {
-                      alimentos.map((alimento) => (
+    <FormularioAlimento
+      nuevoAlimento={nuevoAlimento}
+      setNuevoAlimento={setNuevoAlimento}
+      crearAlimento={crearAlimento}
+    />
 
-                        <div
-                          key={alimento.id}
-                          className="stat-card"
-                          style={{
-                            marginBottom: '15px',
-                          }}
-                        >
+  )
+}
 
-                          <h3>
-                            {alimento.nombre}
-                          </h3>
-
-                          <p>
-                            Estado:
-                            {' '}
-                            {
-                              alimento.asignado
-                                ? 'Asignado'
-                                : 'Disponible'
-                            }
-                          </p>
-
-                          {
-                            user.role === 'admin' && (
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  eliminarAlimento(alimento.id)
-                                }
-                              >
-                                Eliminar
-                              </button>
-                            )
-                          }
-
-                        </div>
-                      ))
-                    }
-
-                  </div>
+<TablaAlimentos
+  alimentos={
+    alimentos.filter((alimento) =>
+      alimento.nombre
+        .toLowerCase()
+        .includes(busqueda.toLowerCase())
+    )
+  }
+  user={user}
+  eliminarAlimento={eliminarAlimento}
+/>
 
                 </div>
+
               )
           }
 
