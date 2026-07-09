@@ -96,6 +96,17 @@ const initDB = async () => {
       cantidad_asignada INTEGER NOT NULL,
       fecha_asignacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       notas TEXT
+    );`,
+    `CREATE TABLE IF NOT EXISTS alimentos (
+      id SERIAL PRIMARY KEY,
+      nombre VARCHAR(100) NOT NULL,
+      cantidad INTEGER NOT NULL DEFAULT 0,
+      porciones INTEGER NOT NULL DEFAULT 0,
+      "tipoDieta" VARCHAR(50) NOT NULL DEFAULT 'Normal',
+      asignado BOOLEAN NOT NULL DEFAULT false,
+      "jornadaActiva" BOOLEAN NOT NULL DEFAULT false,
+      encargado VARCHAR(100),
+      "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`
   ];
 
