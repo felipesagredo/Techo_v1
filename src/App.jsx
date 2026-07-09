@@ -30,6 +30,7 @@ import CuadrillasView from './features/cuadrillas/components/CuadrillasView'
 import VoluntariosView from './features/voluntarios/components/VoluntariosView'
 import Herramientas from './pages/Herramientas'
 import Materiales from './pages/Materiales'
+import AlmuerzosView from './pages/AlmuerzosView'
 import Swal from 'sweetalert2'
 
 const showToast = (message, type = 'info') => {
@@ -1044,6 +1045,9 @@ function App() {
             {/* MATERIALES VIEW */}
             {currentView === 'materiales' && <Materiales user={user} />}
 
+            {/* ALMUERZOS VIEW */}
+            {currentView === 'almuerzos' && <AlmuerzosView user={user} />}
+
             {/* Modal Nueva Cuadrilla */}
             {showNewCuadrillaModal && (
               <div className="modal-overlay">
@@ -1520,4 +1524,4 @@ function App() {
   )
 }
 
-export default App
+export default App
