@@ -1470,34 +1470,10 @@ const guardarEdicion = async () => {
 
         <form onSubmit={handleSubmit}>
 
-          {
-            mode === 'register' && (
-
-              <div className="form-group">
-
-                <div className="label-row">
-                  <label>Nombre Completo</label>
-                </div>
-
-                <div className="input-wrapper">
-
-                  <Users
-                    className="input-icon"
-                    size={18}
-                  />
-
-                  <input
-                    type="text"
-                    placeholder="Tu nombre"
-                    value={name}
-                    onChange={(e) =>
-                      setName(e.target.value)
-                    }
-                    required
-                  />
-
-                </div>
-
+          {mode === 'register' && (
+            <div className="form-group">
+              <div className="label-row">
+                <label>Nombre Completo</label>
               </div>
               <div className="input-wrapper">
                 <Users className="input-icon" size={18} />
