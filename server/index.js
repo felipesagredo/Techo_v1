@@ -9,6 +9,7 @@ import userRoutes from './routes/userRoutes.js';
 import herramientasRoutes from './routes/Herramientas.routes.js';
 import materialesRoutes from './routes/Materiales.routes.js';
 import inventarioRoutes from './routes/inventario.routes.js';
+import addressRoutes from './routes/addressRoutes.js';
 import alimentoRoutes from './routes/alimentoRoutes.js';
 
 dotenv.config();
@@ -21,6 +22,7 @@ app.use('/api/herramientas', herramientasRoutes);
 app.use('/api/materiales', materialesRoutes);
 app.use('/api/material', materialesRoutes);
 app.use('/api/inventario', inventarioRoutes);
+app.use('/api/addresses', addressRoutes);
 app.use('/api/alimentos', alimentoRoutes);
 
 // Endpoint de Estadísticas del Dashboard

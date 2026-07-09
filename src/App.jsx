@@ -24,6 +24,7 @@ import {
   Plus,
   X
 } from 'lucide-react'
+import MapPage from './features/mapa/components/MapPage'
 
 // Features
 import CuadrillasView from './features/cuadrillas/components/CuadrillasView'
@@ -437,6 +438,7 @@ function App() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showMap, setShowMap] = useState(false)
 
   const [section, setSection] = useState('inicio')
   const [busqueda, setBusqueda] = useState('')
@@ -684,20 +686,16 @@ function App() {
       ? { email, password }
       : { name, email, password }
 
+    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
     try {
-
-      const response = await fetch(
-        `http://localhost:5000${endpoint}`,
-        {
-          method: 'POST',
-
-          headers: {
-            'Content-Type': 'application/json',
-          },
-
-          body: JSON.stringify(body),
-        }
-      )
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      })
 
       const data = await response.json()
 
@@ -768,9 +766,9 @@ function App() {
               <h2>TECHO <span>Gestión</span></h2>
             </div>
             <nav className="top-nav-links">
-              <a href="#" className="active">Resumen</a>
+              <a href="#" className={currentView === 'dashboard' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('dashboard'); }}>Resumen</a>
               <a href="#">Reportes</a>
-              <a href="#">Geolocalización</a>
+              <a href="#" className={currentView === 'map' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('map'); }}>Geolocalización</a>
             </nav>
           </div>
           <div className="top-nav-right">
@@ -809,6 +807,9 @@ function App() {
               </a>
               <a href="#" className={currentView === 'almuerzos' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('almuerzos'); }}>
                 <Utensils size={18} /> Almuerzos
+              </a>
+              <a href="#" className={currentView === 'map' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('map'); }}>
+                <MapPin size={18} /> Mapa
               </a>
             </nav>
             <div className="sidebar-bottom">
@@ -979,7 +980,7 @@ function App() {
                       <div className="map-info">
                         <h4>Foco Operativo - Valparaíso</h4>
                         <p>Mayor densidad de cuadrillas hoy</p>
-                        <button className="btn-outline full-width mt-1">Ver Mapa Interactivo</button>
+                        <button className="btn-outline full-width mt-1" onClick={(e) => { e.preventDefault(); setCurrentView('map'); }}>Ver Mapa Interactivo</button>
                       </div>
                     </div>
 
@@ -1044,6 +1045,11 @@ function App() {
 
             {/* MATERIALES VIEW */}
             {currentView === 'materiales' && <Materiales user={user} />}
+
+            {/* MAP VIEW */}
+            {currentView === 'map' && (
+              <MapPage onBack={() => setCurrentView('dashboard')} />
+            )}
 
             {/* ALMUERZOS VIEW */}
             {currentView === 'almuerzos' && <AlmuerzosView user={user} />}

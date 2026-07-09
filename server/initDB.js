@@ -108,6 +108,17 @@ const initDB = async () => {
       encargado VARCHAR(100),
       "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`
+    ,
+    // 5. Crear tabla de direcciones (marcadores)
+    `CREATE TABLE IF NOT EXISTS addresses (
+      id SERIAL PRIMARY KEY,
+      label VARCHAR(255) NOT NULL,
+      lat NUMERIC NOT NULL,
+      lng NUMERIC NOT NULL,
+      color VARCHAR(20) NOT NULL DEFAULT 'red',
+      created_by INTEGER REFERENCES users(id),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );`
   ];
 
   try {
