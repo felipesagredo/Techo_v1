@@ -19,7 +19,7 @@ const COLOR_ICON_URLS = {
   green: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
 }
 
-const getColorOption = (color) => COLOR_OPTIONS.find(option => option.value === color) || COLOR_OPTIONS[0]
+const getColorOption = (color) => COLOR_OPTIONS.find(option => option.value === color) ?? COLOR_OPTIONS[0]
 
 const getMarkerIcon = (color) => {
   const colorKey = getColorOption(color).value
@@ -34,12 +34,17 @@ const getMarkerIcon = (color) => {
 }
 
 const refreshMarkers = (addrs, layer, isAdminUser) => {
-  if (!layer) return
+  if (!layer || !Array.isArray(addrs)) return
   layer.clearLayers()
   addrs.forEach(addr => {
     try {
-      const markerColor = getColorOption(addr.color).value
-      const marker = L.marker([parseFloat(addr.lat), parseFloat(addr.lng)], {
+      const lat = parseFloat(addr.lat)
+      const lng = parseFloat(addr.lng)
+      // Skip markers with invalid coordinates
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+
+      const markerColor = getColorOption(addr.color ?? 'red').value
+      const marker = L.marker([lat, lng], {
         icon: getMarkerIcon(markerColor)
       })
 
@@ -47,14 +52,14 @@ const refreshMarkers = (addrs, layer, isAdminUser) => {
       popup.style.minWidth = '180px'
 
       const title = document.createElement('strong')
-      title.textContent = addr.label
+      title.textContent = addr.label || 'Sin nombre'
       popup.appendChild(title)
 
       const coordinatesInfo = document.createElement('div')
       coordinatesInfo.style.marginTop = '4px'
       coordinatesInfo.style.fontSize = '12px'
       coordinatesInfo.style.color = '#666'
-      coordinatesInfo.textContent = `Latitud: ${Number(addr.lat).toFixed(6)} | Longitud: ${Number(addr.lng).toFixed(6)}`
+      coordinatesInfo.textContent = `Latitud: ${lat.toFixed(6)} | Longitud: ${lng.toFixed(6)}`
       popup.appendChild(coordinatesInfo)
 
       if (isAdminUser) {
@@ -72,7 +77,7 @@ const refreshMarkers = (addrs, layer, isAdminUser) => {
         editButton.style.borderRadius = '4px'
         editButton.style.cursor = 'pointer'
         editButton.style.fontSize = '12px'
-        editButton.addEventListener('click', () => window.editAddress(addr.id))
+        editButton.addEventListener('click', () => window.editAddress && window.editAddress(addr.id))
 
         const deleteButton = document.createElement('button')
         deleteButton.textContent = 'Eliminar'
@@ -83,7 +88,7 @@ const refreshMarkers = (addrs, layer, isAdminUser) => {
         deleteButton.style.borderRadius = '4px'
         deleteButton.style.cursor = 'pointer'
         deleteButton.style.fontSize = '12px'
-        deleteButton.addEventListener('click', () => window.deleteAddress(addr.id))
+        deleteButton.addEventListener('click', () => window.deleteAddress && window.deleteAddress(addr.id))
 
         actions.appendChild(editButton)
         actions.appendChild(deleteButton)
@@ -179,17 +184,27 @@ const MapPage = ({ onBack }) => {
     setLoading(true)
     setError('')
     try {
+      if (!token) {
+        setError('Sesión no válida. Vuelve a iniciar sesión.')
+        setLoading(false)
+        return
+      }
       const res = await fetch(`${API_BASE}/api/addresses`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
+        headers: { Authorization: `Bearer ${token}` }
       })
-      if (!res.ok) throw new Error('Error cargando direcciones')
+      if (res.status === 401 || res.status === 403) {
+        setError('Sin autorización para ver las direcciones.')
+        return
+      }
+      if (!res.ok) throw new Error(`Error del servidor: ${res.status}`)
       const data = await res.json()
-      setAddresses(data.addresses || [])
+      const addressList = Array.isArray(data.addresses) ? data.addresses : []
+      setAddresses(addressList)
       if (markersLayer) {
-        refreshMarkers(data.addresses || [], markersLayer, isAdmin)
+        refreshMarkers(addressList, markersLayer, isAdmin)
       }
     } catch (err) {
-      console.error('Error:', err)
+      console.error('Error cargando direcciones:', err)
       setError('Error al cargar las direcciones')
     } finally {
       setLoading(false)
