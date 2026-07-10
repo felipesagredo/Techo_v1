@@ -1,23 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { Search, X, Plus, Utensils, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, X, Plus, Utensils } from 'lucide-react';
 import TablaAlimentos from '../components/TablaAlimentos';
 import FormularioAlimento from '../components/FormularioAlimento';
 
 const API = 'http://localhost:5000/api/alimentos';
+const API_JORNADAS = 'http://localhost:5000/api/jornadas/activas';
+const API_USERS = 'http://localhost:5000/api/users';
+
+const ALIMENTO_VACIO = {
+  nombre: '',
+  cantidad: '',
+  porciones: '',
+  tipoDieta: 'Normal',
+  jornadaId: null,
+  encargado: null,
+};
 
 export default function AlmuerzosView({ user }) {
   const [alimentos, setAlimentos] = useState([]);
+  const [jornadas, setJornadas] = useState([]);
+  const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [idEditar, setIdEditar] = useState(null);
-  const [nuevoAlimento, setNuevoAlimento] = useState({
-    nombre: '',
-    cantidad: '',
-    porciones: '',
-    tipoDieta: 'Normal',
-  });
+  const [nuevoAlimento, setNuevoAlimento] = useState(ALIMENTO_VACIO);
 
   const token = localStorage.getItem('token');
 
@@ -37,8 +45,36 @@ export default function AlmuerzosView({ user }) {
     }
   };
 
+  const cargarJornadas = async () => {
+    try {
+      const res = await fetch(API_JORNADAS, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setJornadas(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error cargando jornadas activas:', err);
+      setJornadas([]);
+    }
+  };
+
+  const cargarUsuarios = async () => {
+    try {
+      const res = await fetch(API_USERS, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      setUsuarios(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error cargando usuarios:', err);
+      setUsuarios([]);
+    }
+  };
+
   useEffect(() => {
     cargarAlimentos();
+    cargarJornadas();
+    cargarUsuarios();
   }, []);
 
   const handleCrearAlimento = async () => {
@@ -55,9 +91,11 @@ export default function AlmuerzosView({ user }) {
           cantidad: Number(nuevoAlimento.cantidad),
           porciones: Number(nuevoAlimento.porciones),
           tipoDieta: nuevoAlimento.tipoDieta,
+          jornadaId: nuevoAlimento.jornadaId ? Number(nuevoAlimento.jornadaId) : null,
+          encargado: nuevoAlimento.encargado || null,
         }),
       });
-      setNuevoAlimento({ nombre: '', cantidad: '', porciones: '', tipoDieta: 'Normal' });
+      setNuevoAlimento(ALIMENTO_VACIO);
       setMostrarFormulario(false);
       cargarAlimentos();
     } catch (err) {
@@ -69,11 +107,19 @@ export default function AlmuerzosView({ user }) {
     setModoEdicion(true);
     setIdEditar(alimento.id);
     setMostrarFormulario(true);
+
+    // Buscar en las jornadas activas si este alimento está asignado a alguna
+    const jornadaAsociada = jornadas.find((j) =>
+      j.alimentos?.some((al) => al.id === alimento.id)
+    );
+
     setNuevoAlimento({
       nombre: alimento.nombre,
       cantidad: alimento.cantidad,
       porciones: alimento.porciones,
       tipoDieta: alimento.tipoDieta,
+      jornadaId: jornadaAsociada ? jornadaAsociada.id : '',
+      encargado: alimento.encargado || '',
     });
   };
 
@@ -85,12 +131,19 @@ export default function AlmuerzosView({ user }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(nuevoAlimento),
+        body: JSON.stringify({
+          nombre: nuevoAlimento.nombre,
+          cantidad: Number(nuevoAlimento.cantidad),
+          porciones: Number(nuevoAlimento.porciones),
+          tipoDieta: nuevoAlimento.tipoDieta,
+          jornadaId: nuevoAlimento.jornadaId ? Number(nuevoAlimento.jornadaId) : null,
+          encargado: nuevoAlimento.encargado || null,
+        }),
       });
       setModoEdicion(false);
       setIdEditar(null);
       setMostrarFormulario(false);
-      setNuevoAlimento({ nombre: '', cantidad: '', porciones: '', tipoDieta: 'Normal' });
+      setNuevoAlimento(ALIMENTO_VACIO);
       cargarAlimentos();
     } catch (err) {
       console.error('Error editando alimento:', err);
@@ -140,7 +193,7 @@ export default function AlmuerzosView({ user }) {
                 if (modoEdicion) {
                   setModoEdicion(false);
                   setIdEditar(null);
-                  setNuevoAlimento({ nombre: '', cantidad: '', porciones: '', tipoDieta: 'Normal' });
+                  setNuevoAlimento(ALIMENTO_VACIO);
                 }
               }}
             >
@@ -197,6 +250,8 @@ export default function AlmuerzosView({ user }) {
             crearAlimento={handleCrearAlimento}
             guardarEdicion={handleGuardarEdicion}
             modoEdicion={modoEdicion}
+            jornadas={jornadas}
+            usuarios={usuarios}
           />
         </div>
       )}
