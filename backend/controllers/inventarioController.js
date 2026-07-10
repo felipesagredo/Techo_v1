@@ -21,7 +21,8 @@ export async function postLlegadaStockManual(req, res) {
 
 export async function postLlegadaLoteKit(req, res) {
     try {
-        const result = await llegadaLoteKitMediasAguasService();
+        const { tipo } = req.body;
+        const result = await llegadaLoteKitMediasAguasService(tipo);
         handleSuccess(res, 200, 'Lote de Kit Medias Aguas ingresado exitosamente.', result);
     } catch (error) {
         console.error('Error al cargar lote de Kit Medias Aguas:', error.message);
