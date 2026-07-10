@@ -340,7 +340,7 @@ const CuadrillasView = ({ user, currentView }) => {
                   <div className="col-herramientas">
                     {cuadrilla.herramientas && cuadrilla.herramientas.length > 0 ? (
                       <div className="tools-badge-list" title={cuadrilla.herramientas.map(t => `${t.nombre} (${t.voluntario})`).join(', ')}>
-                        <span className="tools-count-badge">🔧 {cuadrilla.herramientas.length} / {cuadrilla.meta_herramientas || 5}</span>
+                        <span className="tools-count-badge">{cuadrilla.herramientas.length} / {cuadrilla.meta_herramientas || 5}</span>
                         <div className="tools-preview-names">
                           {cuadrilla.herramientas.slice(0, 2).map((t, idx) => (
                             <span key={idx} className="tool-mini-badge">{t.nombre}</span>
@@ -351,7 +351,7 @@ const CuadrillasView = ({ user, currentView }) => {
                         </div>
                       </div>
                     ) : (
-                      <span className="no-tools-text">🔧 0 / {cuadrilla.meta_herramientas || 5}</span>
+                      <span className="no-tools-text">0 / {cuadrilla.meta_herramientas || 5}</span>
                     )}
                      {cuadrilla.herramientas_requeridas && (
                       <div className="table-required-tools-hint" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.2rem', marginTop: '0.25rem' }}>
@@ -456,7 +456,7 @@ const CuadrillasView = ({ user, currentView }) => {
                                 {m.herramientas && m.herramientas.length > 0 ? (
                                   m.herramientas.map((h, hIdx) => (
                                     <span key={hIdx} className="member-tool-tag" title={`Estado: ${h.estado}`}>
-                                      🔧 {h.nombre}
+                                      {h.nombre}
                                     </span>
                                   ))
                                 ) : (
@@ -494,7 +494,7 @@ const CuadrillasView = ({ user, currentView }) => {
                      {cuadrilla.herramientas_requeridas && (
                       <div className="card-required-tools-progress" style={{ marginTop: '0.8rem', paddingTop: '0.8rem', borderTop: '1px dashed #e9ecef' }}>
                         <span style={{ fontWeight: 700, color: '#495057', fontSize: '0.7rem', display: 'block', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                          🎯 Requerimiento de Herramientas:
+                          Requerimiento de Herramientas:
                         </span>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
                           {parseRequerimientos(cuadrilla.herramientas_requeridas).map((req, rIdx) => {
@@ -503,7 +503,7 @@ const CuadrillasView = ({ user, currentView }) => {
                             return (
                               <div key={rIdx} style={{ background: isComplete ? '#eafaf1' : '#fef9e7', border: `1px solid ${isComplete ? '#2ecc71' : '#f39c12'}`, padding: '0.25rem 0.4rem', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
                                 <span style={{ fontWeight: 600, color: isComplete ? '#27ae60' : '#d35400', textTransform: 'capitalize' }}>
-                                  🛠️ {req.name}
+                                  {req.name}
                                 </span>
                                 <span style={{ fontWeight: 700, color: isComplete ? '#27ae60' : '#d35400' }}>
                                   {assigned} / {req.qty}
@@ -518,7 +518,7 @@ const CuadrillasView = ({ user, currentView }) => {
                     {/* Materiales Asignados (Medias Aguas) */}
                     <div className="card-required-tools-progress" style={{ marginTop: '0.8rem', paddingTop: '0.8rem', borderTop: '1px dashed #e9ecef' }}>
                       <span style={{ fontWeight: 700, color: '#495057', fontSize: '0.7rem', display: 'block', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                        📦 Materiales Asignados (Medias Aguas):
+                        Materiales Asignados (Medias Aguas):
                       </span>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
                         {[
@@ -534,7 +534,7 @@ const CuadrillasView = ({ user, currentView }) => {
                           return (
                             <div key={mIdx} style={{ background: isComplete ? '#eafaf1' : '#fef9e7', border: `1px solid ${isComplete ? '#2ecc71' : '#f39c12'}`, padding: '0.25rem 0.4rem', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.65rem' }}>
                               <span style={{ fontWeight: 600, color: isComplete ? '#27ae60' : '#d35400', textTransform: 'capitalize' }}>
-                                🧱 {mat.nombre.replace(' de construcción', '')}
+                                {mat.nombre.replace(' de construcción', '')}
                               </span>
                               <span style={{ fontWeight: 700, color: isComplete ? '#27ae60' : '#d35400' }}>
                                 {assignedQty} / {mat.qty}
@@ -626,7 +626,7 @@ const CuadrillasView = ({ user, currentView }) => {
                 </div>
 
                 <div style={{ background: '#e8f4fd', borderLeft: '4px solid #004785', padding: '12px', borderRadius: '4px', marginBottom: '1.2rem', fontSize: '0.85rem', color: '#1c3d5a', lineHeight: '1.4' }}>
-                  <strong>ℹ️ Configuración de Medias Aguas Estándar Activa:</strong>
+                  <strong>Información: Configuración de Medias Aguas Estándar Activa:</strong>
                   <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
                     <li><strong>Personal:</strong> 6 Voluntarios y 1 Jefe de Cuadrilla (se seleccionarán 7 libres del inventario; disponibles actuales: {availableVolunteersCount}).</li>
                     <li><strong>Herramientas:</strong> 1 Sierra, 6 Martillos, 6 Huinchas, 1 Caja de Clavos.</li>
@@ -720,7 +720,7 @@ const CuadrillasView = ({ user, currentView }) => {
                           return (
                             <div key={rIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isComplete ? '#f0fdf4' : '#fffbeb', padding: '0.4rem 0.6rem', borderRadius: '6px', border: `1px solid ${isComplete ? '#bbf7d0' : '#fde68a'}`, fontSize: '0.75rem' }}>
                               <div>
-                                <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>🛠️ {req.name}</span>
+                                <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>{req.name}</span>
                                 <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.2rem' }}>
                                   <span style={{ color: isComplete ? '#15803d' : '#b45309' }}>Asignadas: {assigned} /</span>
                                   <div style={{ display: 'inline-flex', gap: '0.2rem', alignItems: 'center' }}>
@@ -791,7 +791,7 @@ const CuadrillasView = ({ user, currentView }) => {
                         return (
                           <div key={matIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isComplete ? '#f0fdf4' : '#fffbeb', padding: '0.4rem 0.6rem', borderRadius: '6px', border: `1px solid ${isComplete ? '#bbf7d0' : '#fde68a'}`, fontSize: '0.75rem' }}>
                             <div>
-                              <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>🧱 {mat.nombre.replace(' de construcción', '')}</span>
+                              <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>{mat.nombre.replace(' de construcción', '')}</span>
                               <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.2rem' }}>
                                 <span style={{ color: isComplete ? '#15803d' : '#b45309' }}>Asignados: {assignedQty} /</span>
                                 <div style={{ display: 'inline-flex', gap: '0.2rem', alignItems: 'center' }}>
@@ -841,7 +841,7 @@ const CuadrillasView = ({ user, currentView }) => {
                       onClick={handleAutoAssignTools}
                       disabled={currentMembers.length === 0}
                     >
-                      🔧 Asignar Automáticamente
+                      Asignar Automáticamente
                     </button>
                   </div>
                 </div>
@@ -880,7 +880,7 @@ const CuadrillasView = ({ user, currentView }) => {
                               {m.herramientas && m.herramientas.length > 0 ? (
                                 m.herramientas.map((h, hIdx) => (
                                   <span key={hIdx} className="member-tool-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.5rem', background: '#eef4f9', borderRadius: '4px', fontSize: '0.7rem', color: '#0066cc', fontWeight: '500' }}>
-                                    🔧 {h.nombre}
+                                    {h.nombre}
                                     <button 
                                       type="button" 
                                       onClick={() => handleReturnTool(h.id)} 
@@ -951,7 +951,7 @@ const CuadrillasView = ({ user, currentView }) => {
                         {m.herramientas && m.herramientas.length > 0 ? (
                           m.herramientas.map((h, hIdx) => (
                             <span key={hIdx} className="tool-mini-badge" title={`Estado: ${h.estado}`}>
-                              🔧 {h.nombre}
+                              {h.nombre}
                             </span>
                           ))
                         ) : (
