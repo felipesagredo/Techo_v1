@@ -9,19 +9,23 @@ import userRoutes from './routes/userRoutes.js';
 import herramientasRoutes from './routes/Herramientas.routes.js';
 import materialesRoutes from './routes/Materiales.routes.js';
 import inventarioRoutes from './routes/inventario.routes.js';
+import addressRoutes from './routes/addressRoutes.js';
+import alimentoRoutes from './routes/alimentoRoutes.js';
+import jornadaRoutes from './routes/jornadaRoutes.js';
 
 dotenv.config();
-
 const app = express();
 app.use(express.json());
 app.use(cors());
-
 app.use('/api/cuadrillas', cuadrillaRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/herramientas', herramientasRoutes);
 app.use('/api/materiales', materialesRoutes);
 app.use('/api/material', materialesRoutes);
 app.use('/api/inventario', inventarioRoutes);
+app.use('/api/addresses', addressRoutes);
+app.use('/api/alimentos', alimentoRoutes);
+app.use('/api/jornadas', jornadaRoutes);
 
 // Endpoint de Estadísticas del Dashboard
 app.get('/api/dashboard/stats', async (req, res) => {
@@ -83,7 +87,7 @@ AppDataSource.initialize()
   .then(() => {
     console.log('⚡ Conexión a Base de Datos establecida con TypeORM');
     initDB();
-    
+
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
       console.log(`🚀 Servidor Techo Chile corriendo en puerto ${PORT}`);
