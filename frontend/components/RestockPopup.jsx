@@ -195,7 +195,6 @@ export default function RestockPopup({ tipoInicial = 'material', onClose, onSucc
                 <div>• Maderas de constr. (+200)</div>
                 <div>• Huinchas (+50)</div>
                 <div>• Tablas (+200)</div>
-                <div>• Cajas de Clavos (+20)</div>
                 <div>• Grava y Arena (+50 c/u)</div>
               </div>
 
