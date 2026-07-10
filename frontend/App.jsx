@@ -1099,8 +1099,6 @@ function App() {
                     {/* Map Card */}
                     <div className="card map-card">
                       <div className="map-image-placeholder">
-                        <MapPin size={24} className="pin blue-pin" />
-                        <MapPin size={24} className="pin red-pin" />
                       </div>
                       <div className="map-info">
                         <h4>{closestAddress ? `Foco Operativo - ${closestAddress.label || 'Sin nombre'}` : 'Foco Operativo'}</h4>

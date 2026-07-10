@@ -1017,7 +1017,7 @@ h4.text-orange {
 }
 
 .map-image-placeholder {
-  height: 110px;
+  height: 200px;
   background-color: #e0e6ed;
   border-radius: 8px;
   margin-bottom: 0.75rem;
@@ -1027,37 +1027,7 @@ h4.text-orange {
   background-position: center;
 }
 
-.map-image-placeholder::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-}
 
-.pin {
-  position: absolute;
-  z-index: 2;
-  width: 20px;
-  height: 20px;
-}
-
-.blue-pin {
-  top: 40%;
-  left: 30%;
-  color: var(--primary-blue);
-  fill: var(--primary-blue);
-}
-
-.red-pin {
-  top: 30%;
-  right: 25%;
-  color: #8c5a40;
-  fill: #8c5a40;
-}
 
 .map-info h4 {
   font-size: 0.85rem;
@@ -1065,7 +1035,7 @@ h4.text-orange {
 }
 
 .map-info p {
-  font-size: 0.7rem;
+  font-size: 2rem;
   color: var(--text-muted);
 }
 
