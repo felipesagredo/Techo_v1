@@ -740,7 +740,7 @@ function App() {
 
       } else {
 
-        setError(data.message || 'Error')
+        setError(data.error || data.message || 'Credenciales incorrectas. Verifica tu correo y contraseña.')
 
       }
 
