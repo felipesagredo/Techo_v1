@@ -4,7 +4,29 @@ const ADDRESS_SELECT_FIELDS = 'id, label, lat, lng, color, created_by, created_a
 
 export async function getAllAddresses() {
   const query = `SELECT ${ADDRESS_SELECT_FIELDS} FROM addresses ORDER BY id DESC`;
-  const rows = await AppDataSource.query(query);
+  const addressRows = await AppDataSource.query(query);
+
+  const cuadrillasQuery = `
+    SELECT 
+      id, 
+      nombre AS label, 
+      latitud AS lat, 
+      longitud AS lng
+    FROM cuadrillas
+    WHERE latitud IS NOT NULL AND longitud IS NOT NULL
+  `;
+  const cuadrillaRows = await AppDataSource.query(cuadrillasQuery);
+
+  const mappedCuadrillas = cuadrillaRows.map(c => ({
+    id: `cuadrilla_${c.id}`,
+    label: `🏡 Cuadrilla: ${c.label}`,
+    lat: parseFloat(c.lat),
+    lng: parseFloat(c.lng),
+    color: 'yellow',
+    isCuadrilla: true
+  }));
+
+  const rows = [...addressRows, ...mappedCuadrillas];
   return { rows };
 }
 
