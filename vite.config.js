@@ -7,9 +7,9 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@services': path.resolve(__dirname, './src/features/cuadrillas/services/'),
-      '@hooks': path.resolve(__dirname, './src/features/cuadrillas/hooks/'),
-      '@components': path.resolve(__dirname, './src/features/cuadrillas/components/'),
+      '@services': path.resolve(__dirname, './frontend/features/cuadrillas/services/'),
+      '@hooks': path.resolve(__dirname, './frontend/features/cuadrillas/hooks/'),
+      '@components': path.resolve(__dirname, './frontend/features/cuadrillas/components/'),
     },
   },
 })

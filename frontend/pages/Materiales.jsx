@@ -6,6 +6,7 @@ import MaterialesPopup from '../components/Materiales.Popup';
 import AsignarCuadrillaMaterialPopup from '../components/AsignarCuadrillaMaterial.Popup';
 import RestockPopup from '../components/RestockPopup';
 import { Search, X, Plus } from 'lucide-react';
+import Swal from 'sweetalert2';
 import '../styles/Herramientas.css';
 
 export default function Materiales({ user }) {
@@ -35,7 +36,23 @@ export default function Materiales({ user }) {
   };
 
   const handleDeleteMaterial = async (id) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este material?')) {
+    const result = await Swal.fire({
+      title: 'Eliminar material',
+      text: '¿Estás seguro de que deseas eliminar este material? Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      reverseButtons: true,
+      customClass: {
+        popup: 'premium-swal-popup',
+        confirmButton: 'premium-swal-confirm-btn'
+      }
+    });
+
+    if (result.isConfirmed) {
       await deleteMaterialById(id);
       refetch();
     }
@@ -67,7 +84,9 @@ export default function Materiales({ user }) {
   const porReponer = materiales?.filter((material) => Number(material.cantidad) === 0).length || 0;
   const materialesFiltrados = materiales?.filter((material) => {
     const nombre = material.nombre_material || '';
-    return nombre.toLowerCase().includes(searchTerm.trim().toLowerCase());
+    const id = String(material.id ?? '');
+    const term = searchTerm.trim().toLowerCase();
+    return nombre.toLowerCase().includes(term) || id.includes(searchTerm.trim());
   }) || [];
 
   return (
@@ -81,7 +100,7 @@ export default function Materiales({ user }) {
           <Search size={18} />
           <input
             type="text"
-            placeholder="Buscar por nombre del material..."
+            placeholder="Buscar por nombre o ID del material..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -140,7 +159,7 @@ export default function Materiales({ user }) {
           onDelete={handleDeleteMaterial}
           onAssignCuadrilla={() => setShowAssignPopup(true)}
           emptyMessage={searchTerm.trim()
-            ? 'No se encontraron materiales con ese nombre'
+            ? 'No se encontraron materiales con ese nombre o ID'
             : 'No hay materiales registrados'}
         />
       )}

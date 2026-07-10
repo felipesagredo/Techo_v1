@@ -772,10 +772,6 @@ function App() {
             </nav>
           </div>
           <div className="top-nav-right">
-            <div className="search-bar">
-              <Search size={16} />
-              <input type="text" placeholder="Buscar registros..." />
-            </div>
             <button className="icon-btn"><Bell size={18} /></button>
             <button className="icon-btn"><Settings size={18} /></button>
             <div className="user-avatar-small">{user.name ? user.name.charAt(0).toUpperCase() : 'T'}</div>
@@ -835,8 +831,6 @@ function App() {
                     <p>Monitoreo en tiempo real de operaciones territoriales.</p>
                   </div>
                   <div className="header-actions">
-                    <button className="btn-outline">Descargar PDF</button>
-                    <button className="btn-primary">Generar Reporte Mensual</button>
                   </div>
                 </div>
 
