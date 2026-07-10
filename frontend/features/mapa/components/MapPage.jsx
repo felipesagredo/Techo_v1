@@ -63,7 +63,7 @@ const refreshMarkers = (addrs, layer, isAdminUser) => {
       coordinatesInfo.textContent = `Latitud: ${lat.toFixed(6)} | Longitud: ${lng.toFixed(6)}`
       popup.appendChild(coordinatesInfo)
 
-      if (isAdminUser) {
+      if (isAdminUser && !addr.isCuadrilla) {
         const actions = document.createElement('div')
         actions.style.marginTop = '8px'
         actions.style.display = 'flex'
