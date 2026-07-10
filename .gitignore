@@ -27,4 +27,4 @@ dist-ssr
 GUIA*.md
 manual_integracion.md
 manual_git_ramas.md
-server/scratch
+backend/scratch
