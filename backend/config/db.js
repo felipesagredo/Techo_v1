@@ -41,7 +41,7 @@ const AppDataSource = new DataSource({
   username: process.env.DB_USER || process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD || process.env.PASSWORD,
   database: process.env.DB_NAME || process.env.DATABASE,
-  synchronize: false,
+  synchronize: true,
   logging: false,
   entities: [
     RoleSchema,
