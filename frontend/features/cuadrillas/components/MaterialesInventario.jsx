@@ -1,17 +1,8 @@
 import React from 'react';
 import '../../../styles/HerramientasInventario.css';
-import { Wrench, Edit2, Trash2 } from 'lucide-react';
+import { Package, Edit2, Trash2 } from 'lucide-react';
 
-export default function HerramientasInventario({ herramientas, onEdit, onDelete, user, onAssignCuadrilla, emptyMessage = 'No hay herramientas registradas' }) {
-  const getDisplayEstado = (herramienta) => {
-    const stock = Number(herramienta?.stock ?? 0);
-    const estado = (herramienta?.estado || '').toLowerCase();
-    if (stock <= 0 || ['malo', 'dañado'].includes(estado)) {
-      return 'no-disponible';
-    }
-    return 'disponible';
-  };
-
+export default function MaterialesInventario({ materiales, onEdit, onDelete, user, onAssignCuadrilla, emptyMessage = 'No hay materiales registrados' }) {
   const getEstadoClass = (estado) => {
     switch (estado) {
       case 'disponible':
@@ -23,8 +14,8 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete,
     }
   };
 
-  const getStockStatusClass = (stock) => {
-    const stockValue = Number(stock ?? 0);
+  const getStockStatusClass = (cantidad) => {
+    const stockValue = Number(cantidad ?? 0);
     const optimalStock = 100;
     const halfOptimal = optimalStock / 2;
 
@@ -36,10 +27,10 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete,
   return (
     <div className="inventario-container">
       <div className="inventario-header">
-        <h2>Detalle de Existencias</h2>
+        <h2>Detalle de Materiales</h2>
         <div className="inventario-filters">
           {user?.role_id === 1 && (
-            <button className="btn-outline" onClick={onAssignCuadrilla}>
+            <button className="export-btn" onClick={onAssignCuadrilla} style={{ marginLeft: '10px' }}>
               Asignar a Cuadrilla
             </button>
           )}
@@ -50,31 +41,37 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete,
         <table>
           <thead>
             <tr>
+              <th>ID</th>
               <th>NOMBRE</th>
-              <th>STOCK ACTUAL</th>
+              <th>CANTIDAD</th>
               <th>CATEGORÍA</th>
               <th>ESTADO</th>
               <th>ACCIONES</th>
             </tr>
           </thead>
           <tbody>
-            {herramientas && herramientas.length > 0 ? (
-              herramientas.map((herramienta) => (
-                <tr key={herramienta.id}>
+            {materiales && materiales.length > 0 ? (
+              materiales.map((material) => (
+                <tr key={material.id}>
+                  <td className="id-cell">#{material.id}</td>
                   <td className="nombre-cell">
-                    <div className="nombre-icon"><Wrench size={20} /></div>
+                    <div className="nombre-icon"><Package size={20} /></div>
                     <div className="nombre-info">
-                      <div className="nombre">{herramienta.nombre}</div>
-                      <div className="descripcion">{herramienta.descripcion}</div>
+                      <div className="nombre">{material.nombre_material}</div>
+                      <div className="descripcion">
+                        {material.largo || material.ancho || material.peso
+                          ? `Largo: ${material.largo ?? '-'} | Ancho: ${material.ancho ?? '-'} | Peso: ${material.peso ?? '-'} kg`
+                          : 'Material registrado'}
+                      </div>
                     </div>
                   </td>
-                  <td className={`stock-cell ${getStockStatusClass(herramienta.stock)}`}>
-                    {herramienta.stock} <span className="stock-unit">unid</span>
+                  <td className={`stock-cell ${getStockStatusClass(material.cantidad)}`}>
+                    {material.cantidad} <span className="stock-unit">unid</span>
                   </td>
-                  <td>{herramienta.categoria_herramienta}</td>
+                  <td>{material.categoria}</td>
                   <td>
-                    <span className={`estado-badge ${getEstadoClass(getDisplayEstado(herramienta))}`}>
-                      {getDisplayEstado(herramienta)}
+                    <span className={`estado-badge ${getEstadoClass(material.estado)}`}>
+                      {material.estado || 'disponible'}
                     </span>
                   </td>
                   <td className="acciones-cell">
@@ -82,14 +79,14 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete,
                       <>
                         <button
                           className="btn-editar"
-                          onClick={() => onEdit(herramienta)}
+                          onClick={() => onEdit(material)}
                           title="Editar"
                         >
                           <Edit2 size={16} />
                         </button>
                         <button
                           className="btn-eliminar"
-                          onClick={() => onDelete(herramienta.id)}
+                          onClick={() => onDelete(material.id)}
                           title="Eliminar"
                         >
                           <Trash2 size={16} />
@@ -101,7 +98,7 @@ export default function HerramientasInventario({ herramientas, onEdit, onDelete,
               ))
             ) : (
               <tr>
-                <td colSpan="5" className="sin-datos">
+                <td colSpan="6" className="sin-datos">
                   {emptyMessage}
                 </td>
               </tr>
