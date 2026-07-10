@@ -11,6 +11,7 @@ import materialesRoutes from './routes/Materiales.routes.js';
 import inventarioRoutes from './routes/inventario.routes.js';
 import addressRoutes from './routes/addressRoutes.js';
 import alimentoRoutes from './routes/alimentoRoutes.js';
+import jornadaRoutes from './routes/jornadaRoutes.js';
 
 dotenv.config();
 const app = express();
@@ -24,6 +25,7 @@ app.use('/api/material', materialesRoutes);
 app.use('/api/inventario', inventarioRoutes);
 app.use('/api/addresses', addressRoutes);
 app.use('/api/alimentos', alimentoRoutes);
+app.use('/api/jornadas', jornadaRoutes);
 
 // Endpoint de Estadísticas del Dashboard
 app.get('/api/dashboard/stats', async (req, res) => {

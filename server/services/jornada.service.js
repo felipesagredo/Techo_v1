@@ -1,126 +1,89 @@
-const AppDataSource =
-  require('../config/data-source')
+import AppDataSource, { JornadaSchema } from '../config/db.js';
+import AlimentoSchema from '../entity/Alimento.js';
 
-const Jornada =
-  require('../entity/Jornada')
-
-const Alimento =
-  require('../entity/Alimento')
-
-const jornadaRepository =
-  AppDataSource.getRepository(Jornada)
-
-const alimentoRepository =
-  AppDataSource.getRepository(Alimento)
+const jornadaRepository = AppDataSource.getRepository(JornadaSchema);
+const alimentoRepository = AppDataSource.getRepository(AlimentoSchema);
 
 // =========================
 // CREAR JORNADA
 // =========================
 
-const createJornada = async (data) => {
+export const createJornada = async (data) => {
 
-  let alimentos = []
+  let alimentos = [];
 
-  if (
-    Array.isArray(data.alimentos) &&
-    data.alimentos.length > 0
-  ) {
-
-    alimentos = await alimentoRepository.findByIds(
-      data.alimentos
-    )
+  if (Array.isArray(data.alimentos) && data.alimentos.length > 0) {
+    alimentos = await alimentoRepository.findByIds(data.alimentos);
 
     for (const alimento of alimentos) {
-
-      alimento.asignado = true
-      alimento.jornadaActiva = true
-      alimento.encargado = data.responsable
-
-      await alimentoRepository.save(alimento)
+      alimento.asignado = true;
+      alimento.jornadaActiva = true;
+      alimento.encargado = data.responsable;
+      await alimentoRepository.save(alimento);
     }
   }
 
-  const nuevaJornada =
-    jornadaRepository.create({
+  const nuevaJornada = jornadaRepository.create({
+    nombre: data.nombre,
+    responsable: data.responsable,
+    activa: data.activa ?? true,
+    alimentos,
+  });
 
-      nombre: data.nombre,
-
-      responsable: data.responsable,
-
-      activa: data.activa ?? true,
-
-      alimentos,
-    })
-
-  return await jornadaRepository.save(
-    nuevaJornada
-  )
-}
+  return await jornadaRepository.save(nuevaJornada);
+};
 
 // =========================
 // LISTAR
 // =========================
 
-const getJornadas = async () => {
-
+export const getJornadas = async () => {
   return await jornadaRepository.find({
-
     relations: ['alimentos'],
-  })
-}
+  });
+};
+
+// =========================
+// LISTAR SOLO ACTIVAS
+// =========================
+
+export const getJornadasActivas = async () => {
+  return await jornadaRepository.find({
+    where: { activa: true },
+    relations: ['alimentos'],
+  });
+};
+
 // =========================
 // ASIGNAR ALIMENTO
 // =========================
 
-const assignAlimento = async (
-  jornadaId,
-  alimentoId
-) => {
+export const assignAlimento = async (jornadaId, alimentoId) => {
 
-  const jornada =
-    await jornadaRepository.findOne({
+  const jornada = await jornadaRepository.findOne({
+    where: { id: Number(jornadaId) },
+    relations: ['alimentos'],
+  });
 
-      where: {
-        id: Number(jornadaId),
-      },
+  if (!jornada) throw new Error('Jornada no encontrada');
 
-      relations: ['alimentos'],
-    })
+  const alimento = await alimentoRepository.findOne({
+    where: { id: Number(alimentoId) },
+  });
 
-  if (!jornada) {
+  if (!alimento) throw new Error('Alimento no encontrado');
 
-    throw new Error('Jornada no encontrada')
+  alimento.asignado = true;
+  alimento.jornadaActiva = true;
+  alimento.encargado = jornada.responsable;
+
+  await alimentoRepository.save(alimento);
+
+  // Evitar duplicados
+  const yaAsignado = jornada.alimentos.some((a) => a.id === alimento.id);
+  if (!yaAsignado) {
+    jornada.alimentos.push(alimento);
   }
 
-  const alimento =
-    await alimentoRepository.findOne({
-
-      where: {
-        id: Number(alimentoId),
-      },
-    })
-
-  if (!alimento) {
-
-    throw new Error('Alimento no encontrado')
-  }
-
-  alimento.asignado = true
-  alimento.jornadaActiva = true
-  alimento.encargado = jornada.responsable
-
-  await alimentoRepository.save(alimento)
-
-  jornada.alimentos.push(alimento)
-
-  return await jornadaRepository.save(jornada)
-}
-
-module.exports = {
-
-  createJornada,
-
-  getJornadas,
-
-  assignAlimento,
-}
+  return await jornadaRepository.save(jornada);
+};
