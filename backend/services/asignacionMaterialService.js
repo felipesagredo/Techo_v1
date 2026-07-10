@@ -139,23 +139,29 @@ export async function autoAssignMaterialsToCuadrillaService(cuadrillaId) {
             where: { nombre_material: item.nombre }
         });
         if (!material) {
-            throw new Error(`El material "${item.nombre}" no existe en el inventario.`);
+            console.warn(`El material "${item.nombre}" no existe en el inventario. Se omite.`);
+            continue;
         }
+
+        let quantityToAssign = needed;
         if (material.cantidad < needed) {
-            throw new Error(`Stock insuficiente de "${item.nombre}". Se requieren ${needed} unidades más, pero solo hay ${material.cantidad}.`);
+            quantityToAssign = material.cantidad;
+            console.warn(`Stock insuficiente de "${item.nombre}". Se requieren ${needed} unidades más, pero solo se asignaron ${quantityToAssign}.`);
         }
+
+        if (quantityToAssign <= 0) continue;
 
         // Registrar la asignación
         const nuevaAsignacion = asignacionRepo.create({
             material_id: material.id,
             cuadrilla_id: parseInt(cuadrillaId, 10),
-            cantidad_asignada: needed,
-            notas: `Relleno automático de kit estándar (se agregaron ${needed} unidades)`
+            cantidad_asignada: quantityToAssign,
+            notas: `Relleno automático de kit estándar (se agregaron ${quantityToAssign} unidades)`
         });
         await asignacionRepo.save(nuevaAsignacion);
 
         // Descontar la cantidad
-        material.cantidad -= needed;
+        material.cantidad -= quantityToAssign;
         if (material.cantidad === 0) {
             material.estado = 'no-disponible';
         }

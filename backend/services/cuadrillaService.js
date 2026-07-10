@@ -251,6 +251,7 @@ const autoGenerateCuadrilla = async (nombre, zona, count, latitud, longitud, met
     }
 
     // Si falta stock de herramientas o materiales, lanzar error explícito
+    /*
     if (missingTools.length > 0 || missingMaterials.length > 0) {
         let errMsg = 'Stock insuficiente en el inventario. ';
         if (missingTools.length > 0) {
@@ -262,6 +263,7 @@ const autoGenerateCuadrilla = async (nombre, zona, count, latitud, longitud, met
         errMsg += 'Por favor, registre la llegada de nuevo stock en el inventario.';
         throw new Error(errMsg);
     }
+    */
 
     // 4. Crear la cuadrilla estándar
     const newCuadrilla = cuadrillaRepo.create({
