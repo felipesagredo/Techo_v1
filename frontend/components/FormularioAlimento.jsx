@@ -7,8 +7,6 @@ function FormularioAlimento({
   crearAlimento,
   guardarEdicion,
   modoEdicion,
-  jornadas = [],
-  usuarios = [],
 }) {
   const inputStyle = {
     padding: '10px 14px',
@@ -51,173 +49,98 @@ function FormularioAlimento({
     whiteSpace: 'nowrap',
   };
 
-  const labelStyle = {
-    display: 'block',
-    fontSize: '12px',
-    fontWeight: '600',
-    color: '#6c757d',
-    marginBottom: '4px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em',
-  };
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Fila 1: Nombre, Cantidad, Porciones, Tipo Dieta */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '15px',
-          alignItems: 'end',
-        }}
-      >
-        <div>
-          <label style={labelStyle}>Nombre del alimento</label>
-          <input
-            type="text"
-            placeholder="Ej: Arroz con pollo"
-            value={nuevoAlimento.nombre}
-            onChange={(e) =>
-              setNuevoAlimento({ ...nuevoAlimento, nombre: e.target.value })
-            }
-            style={inputStyle}
-          />
-        </div>
-
-        <div>
-          <label style={labelStyle}>Cantidad (unidades)</label>
-          <input
-            type="number"
-            placeholder="0"
-            min="0"
-            value={nuevoAlimento.cantidad}
-            onChange={(e) =>
-              setNuevoAlimento({ ...nuevoAlimento, cantidad: e.target.value })
-            }
-            style={inputStyle}
-          />
-        </div>
-
-        <div>
-          <label style={labelStyle}>Porciones</label>
-          <input
-            type="number"
-            placeholder="0"
-            min="0"
-            value={nuevoAlimento.porciones}
-            onChange={(e) =>
-              setNuevoAlimento({ ...nuevoAlimento, porciones: e.target.value })
-            }
-            style={inputStyle}
-          />
-        </div>
-
-        <div>
-          <label style={labelStyle}>Tipo de Dieta</label>
-          <select
-            value={nuevoAlimento.tipoDieta}
-            onChange={(e) =>
-              setNuevoAlimento({ ...nuevoAlimento, tipoDieta: e.target.value })
-            }
-            style={selectStyle}
-          >
-            <option>Normal</option>
-            <option>Vegetariana</option>
-            <option>Vegana</option>
-            <option>Celíaca</option>
-          </select>
-        </div>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr)) auto',
+        gap: '15px',
+        alignItems: 'center',
+        width: '100%',
+      }}
+    >
+      <div>
+        <input
+          type="text"
+          placeholder="Nombre del alimento"
+          value={nuevoAlimento.nombre}
+          onChange={(e) =>
+            setNuevoAlimento({
+              ...nuevoAlimento,
+              nombre: e.target.value,
+            })
+          }
+          style={inputStyle}
+        />
       </div>
 
-      {/* Separador sección jornada */}
-      <div
-        style={{
-          borderTop: '1px dashed #dee2e6',
-          paddingTop: '14px',
-        }}
-      >
-        <p style={{ fontSize: '12px', fontWeight: '700', color: '#004785', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          📋 Asignación de jornada (opcional)
-        </p>
+      <div>
+        <input
+          type="number"
+          placeholder="Cantidad (unidades)"
+          value={nuevoAlimento.cantidad}
+          onChange={(e) =>
+            setNuevoAlimento({
+              ...nuevoAlimento,
+              cantidad: e.target.value,
+            })
+          }
+          style={inputStyle}
+        />
+      </div>
 
-        {/* Fila 2: Jornada activa + Encargado + Botón */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr)) auto',
-            gap: '15px',
-            alignItems: 'end',
-          }}
+      <div>
+        <input
+          type="number"
+          placeholder="Porciones"
+          value={nuevoAlimento.porciones}
+          onChange={(e) =>
+            setNuevoAlimento({
+              ...nuevoAlimento,
+              porciones: e.target.value,
+            })
+          }
+          style={inputStyle}
+        />
+      </div>
+
+      <div>
+        <select
+          value={nuevoAlimento.tipoDieta}
+          onChange={(e) =>
+            setNuevoAlimento({
+              ...nuevoAlimento,
+              tipoDieta: e.target.value,
+            })
+          }
+          style={selectStyle}
         >
-          <div>
-            <label style={labelStyle}>Jornada activa</label>
-            <select
-              value={nuevoAlimento.jornadaId || ''}
-              onChange={(e) =>
-                setNuevoAlimento({ ...nuevoAlimento, jornadaId: e.target.value || null })
-              }
-              style={selectStyle}
-            >
-              <option value="">— Sin jornada —</option>
-              {jornadas.map((j) => (
-                <option key={j.id} value={j.id}>
-                  {j.nombre} {j.responsable ? `(Resp: ${j.responsable})` : ''}
-                </option>
-              ))}
-            </select>
-            {jornadas.length === 0 && (
-              <p style={{ fontSize: '11px', color: '#adb5bd', marginTop: '4px' }}>
-                No hay jornadas activas disponibles
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label style={labelStyle}>Encargado</label>
-            <select
-              value={nuevoAlimento.encargado || ''}
-              onChange={(e) =>
-                setNuevoAlimento({ ...nuevoAlimento, encargado: e.target.value || null })
-              }
-              style={selectStyle}
-              disabled={!nuevoAlimento.jornadaId}
-            >
-              <option value="">— Sin encargado —</option>
-              {usuarios.map((u) => (
-                <option key={u.id} value={u.name}>
-                  {u.name} {u.email ? `(${u.email})` : ''}
-                </option>
-              ))}
-            </select>
-            {!nuevoAlimento.jornadaId && (
-              <p style={{ fontSize: '11px', color: '#adb5bd', marginTop: '4px' }}>
-                Selecciona primero una jornada
-              </p>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={modoEdicion ? guardarEdicion : crearAlimento}
-            style={buttonStyle}
-            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#003666')}
-            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#004785')}
-          >
-            {modoEdicion ? (
-              <>
-                <Save size={16} />
-                <span>Guardar cambios</span>
-              </>
-            ) : (
-              <>
-                <Plus size={16} />
-                <span>Agregar</span>
-              </>
-            )}
-          </button>
-        </div>
+          <option>Normal</option>
+          <option>Vegetariana</option>
+          <option>Vegana</option>
+          <option>Celíaca</option>
+        </select>
       </div>
+
+      <button
+        type="button"
+        onClick={modoEdicion ? guardarEdicion : crearAlimento}
+        style={buttonStyle}
+        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#003666'}
+        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#004785'}
+      >
+        {modoEdicion ? (
+          <>
+            <Save size={16} />
+            <span>Guardar cambios</span>
+          </>
+        ) : (
+          <>
+            <Plus size={16} />
+            <span>Agregar</span>
+          </>
+        )}
+      </button>
     </div>
   );
 }

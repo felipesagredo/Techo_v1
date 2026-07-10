@@ -1,18 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { X, RefreshCw, Layers, Edit } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { ALLOWED_HERRAMIENTAS, ALLOWED_MATERIALES } from '../constants/inventarioWhitelist';
 import '../styles/HerramientasPopup.css';
 import { API_URL } from '../config.js';
 
+// Cantidad que se suma por item al autorizar el kit. Debe coincidir con
+// KIT_QTY_HERRAMIENTA / KIT_QTY_MATERIAL en inventarioService.js (backend).
+const KIT_QTY_HERRAMIENTA = 20;
+const KIT_QTY_MATERIAL = 100;
+
 export default function RestockPopup({ tipoInicial = 'material', onClose, onSuccess }) {
   const [activeTab, setActiveTab] = useState('kit'); // 'kit' or 'manual'
-  const [tipo, setTipo] = useState(tipoInicial); // 'material' or 'herramienta'
-  const [materialsList, setMaterialsList] = useState([]);
-  const [toolsList, setToolsList] = useState([]);
+  const tipo = tipoInicial; // 'material' or 'herramienta' — fijo según la sección de origen
+  const [itemsList, setItemsList] = useState([]);
   const [selectedItemId, setSelectedItemId] = useState('');
   const [cantidad, setCantidad] = useState(1);
   const [loadingItems, setLoadingItems] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const esMaterial = tipo === 'material';
+  const allowedNames = esMaterial ? ALLOWED_MATERIALES : ALLOWED_HERRAMIENTAS;
+  // Solo se puede reabastecer stock de items cuyo nombre siga en la lista blanca actual.
+  const allowedItemsList = itemsList.filter((item) => {
+    const nombre = esMaterial ? item.nombre_material : item.nombre;
+    return allowedNames.some((permitido) => permitido.toLowerCase() === (nombre || '').toLowerCase());
+  });
 
   useEffect(() => {
     const fetchResources = async () => {
@@ -22,17 +35,11 @@ export default function RestockPopup({ tipoInicial = 'material', onClose, onSucc
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         };
 
-        const [resMat, resTool] = await Promise.all([
-          fetch(`${API_URL}/materiales`, { headers }),
-          fetch(`${API_URL}/herramientas`, { headers })
-        ]);
+        const res = await fetch(`${API_URL}/${esMaterial ? 'materiales' : 'herramientas'}`, { headers });
+        const data = await res.json();
 
-        const dataMat = await resMat.json();
-        const dataTool = await resTool.json();
-
-        // Extraer los datos reales de la estructura de respuesta típica (dataMat.data o dataMat)
-        setMaterialsList(dataMat.data || dataMat || []);
-        setToolsList(dataTool.data || dataTool || []);
+        // Extraer los datos reales de la estructura de respuesta típica (data.data o data)
+        setItemsList(data.data || data || []);
       } catch (err) {
         console.error('Error fetching inventory for restock:', err);
       } finally {
@@ -41,7 +48,7 @@ export default function RestockPopup({ tipoInicial = 'material', onClose, onSucc
     };
 
     fetchResources();
-  }, []);
+  }, [esMaterial]);
 
   const handleLoteKit = async () => {
     setIsSubmitting(true);
@@ -51,15 +58,16 @@ export default function RestockPopup({ tipoInicial = 'material', onClose, onSucc
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        },
+        body: JSON.stringify({ tipo })
       });
-      
+
       const data = await res.json();
       if (res.ok && data.status === 'Success') {
         Swal.fire({
           icon: 'success',
           title: 'Lote Ingresado',
-          text: 'Se ha registrado la llegada del Kit Medias Aguas al inventario.',
+          text: `Se ha registrado la llegada del Kit Medias Aguas (${esMaterial ? 'materiales' : 'herramientas'}) al inventario.`,
           timer: 2500,
           showConfirmButton: false
         });
@@ -122,13 +130,11 @@ export default function RestockPopup({ tipoInicial = 'material', onClose, onSucc
     }
   };
 
-  const currentList = tipo === 'material' ? materialsList : toolsList;
-
   return (
     <div className="herramientas-modal-overlay" onClick={onClose}>
       <div className="herramientas-modal" style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
         <div className="herramientas-modal-header">
-          <h2>Registrar Entrada de Stock</h2>
+          <h2>Registrar Entrada de Stock — {esMaterial ? 'Materiales' : 'Herramientas'}</h2>
           <button type="button" className="herramientas-modal-close" onClick={onClose}>
             <X size={20} />
           </button>
@@ -182,19 +188,14 @@ export default function RestockPopup({ tipoInicial = 'material', onClose, onSucc
           {activeTab === 'kit' ? (
             <div style={{ textAlign: 'center', padding: '10px 0' }}>
               <p style={{ color: '#495057', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '1.5rem' }}>
-                Al cargar el lote del <strong>Kit Medias Aguas</strong>, se registrará el ingreso de las siguientes cantidades al inventario:
+                Al cargar el lote del <strong>Kit Medias Aguas</strong>, se registrará el ingreso de las siguientes cantidades de <strong>{esMaterial ? 'materiales' : 'herramientas'}</strong> al inventario:
               </p>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', textAlign: 'left', background: '#f8f9fa', padding: '12px', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
-                <div><strong>Herramientas:</strong></div>
-                <div><strong>Materiales:</strong></div>
-                <div>• Sierras (+10)</div>
-                <div>• Planchas de zinc (+100)</div>
-                <div>• Martillos (+50)</div>
-                <div>• Maderas de constr. (+200)</div>
-                <div>• Huinchas (+50)</div>
-                <div>• Tablas (+200)</div>
-                <div>• Grava y Arena (+50 c/u)</div>
+
+              <div style={{ textAlign: 'left', background: '#f8f9fa', padding: '12px', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.85rem', maxHeight: '260px', overflowY: 'auto' }}>
+                <div style={{ marginBottom: '4px' }}><strong>{esMaterial ? 'Materiales:' : 'Herramientas:'}</strong></div>
+                {(esMaterial ? ALLOWED_MATERIALES : ALLOWED_HERRAMIENTAS).map((nombre) => (
+                  <div key={nombre}>• {nombre} (+{esMaterial ? KIT_QTY_MATERIAL : KIT_QTY_HERRAMIENTA})</div>
+                ))}
               </div>
 
               <div className="popup-actions" style={{ justifyContent: 'center' }}>
@@ -220,41 +221,10 @@ export default function RestockPopup({ tipoInicial = 'material', onClose, onSucc
             </div>
           ) : (
             <form onSubmit={handleManual}>
-              {/* Selector de Tipo */}
-              <div className="form-group">
-                <label>Tipo de Recurso</label>
-                <div style={{ display: 'flex', gap: '15px', marginTop: '5px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                    <input
-                      type="radio"
-                      name="tipoRecurso"
-                      checked={tipo === 'material'}
-                      onChange={() => {
-                        setTipo('material');
-                        setSelectedItemId('');
-                      }}
-                    />
-                    Materiales
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-                    <input
-                      type="radio"
-                      name="tipoRecurso"
-                      checked={tipo === 'herramienta'}
-                      onChange={() => {
-                        setTipo('herramienta');
-                        setSelectedItemId('');
-                      }}
-                    />
-                    Herramientas
-                  </label>
-                </div>
-              </div>
-
               {/* Selector de Ítem */}
               <div className="form-group">
                 <label htmlFor="item-select">
-                  Seleccionar {tipo === 'material' ? 'Material' : 'Herramienta'} <span className="required">*</span>
+                  Seleccionar {esMaterial ? 'Material' : 'Herramienta'} <span className="required">*</span>
                 </label>
                 <select
                   id="item-select"
@@ -264,14 +234,19 @@ export default function RestockPopup({ tipoInicial = 'material', onClose, onSucc
                   required
                 >
                   <option value="">
-                    {loadingItems ? 'Cargando ítems...' : `-- Selecciona un ${tipo === 'material' ? 'material' : 'herramienta'} --`}
+                    {loadingItems ? 'Cargando ítems...' : `-- Selecciona un ${esMaterial ? 'material' : 'herramienta'} --`}
                   </option>
-                  {currentList.map((item) => (
+                  {allowedItemsList.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {tipo === 'material' ? item.nombre_material : item.nombre} (Stock actual: {tipo === 'material' ? item.cantidad : item.stock})
+                      {esMaterial ? item.nombre_material : item.nombre} (Stock actual: {esMaterial ? item.cantidad : item.stock})
                     </option>
                   ))}
                 </select>
+                {!loadingItems && allowedItemsList.length === 0 && (
+                  <p className="field-error" style={{ color: '#dc2626', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                    No hay {esMaterial ? 'materiales' : 'herramientas'} de tu lista permitida registrados aún en el inventario.
+                  </p>
+                )}
               </div>
 
               {/* Cantidad */}

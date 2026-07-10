@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useCreateMaterial } from '../features/cuadrillas/hooks/materiales/useCreateMaterial';
 import { useUpdateMaterial } from '../features/cuadrillas/hooks/materiales/useUpdateMaterial';
+import { ALLOWED_MATERIALES, buildWhitelistRegex } from '../constants/inventarioWhitelist';
 import '../styles/HerramientasPopup.css';
+
+const NOMBRE_MATERIAL_REGEX = buildWhitelistRegex(ALLOWED_MATERIALES);
 
 export default function MaterialesPopup({ material, mode = 'create', onClose, onSaveSuccess }) {
   const [formData, setFormData] = useState({
@@ -13,6 +16,7 @@ export default function MaterialesPopup({ material, mode = 'create', onClose, on
     peso: '',
     estado: 'disponible'
   });
+  const [nombreError, setNombreError] = useState('');
 
   const { handleCreateMaterial, loading: createLoading } = useCreateMaterial();
   const { handleUpdateMaterial, loading: updateLoading } = useUpdateMaterial();
@@ -49,10 +53,23 @@ export default function MaterialesPopup({ material, mode = 'create', onClose, on
         ? value === '' ? '' : Number(value)
         : value
     }));
+
+    if (name === 'nombre_material') {
+      setNombreError(
+        value.trim() && !NOMBRE_MATERIAL_REGEX.test(value.trim())
+          ? 'Selecciona un nombre de la lista de materiales permitidos.'
+          : ''
+      );
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!NOMBRE_MATERIAL_REGEX.test(formData.nombre_material.trim())) {
+      setNombreError('Selecciona un nombre de la lista de materiales permitidos.');
+      return;
+    }
 
     const payload = {
       nombre_material: formData.nombre_material,
@@ -92,11 +109,32 @@ export default function MaterialesPopup({ material, mode = 'create', onClose, on
                 id="nombre_material"
                 type="text"
                 name="nombre_material"
+                list="materiales-permitidos"
                 value={formData.nombre_material}
                 onChange={handleChange}
                 placeholder="Ej: Cemento Portland"
+                autoComplete="off"
                 required
+                aria-invalid={!!nombreError}
               />
+              <datalist id="materiales-permitidos">
+                {ALLOWED_MATERIALES.map(nombre => (
+                  <option key={nombre} value={nombre} />
+                ))}
+              </datalist>
+              {nombreError && (
+                <p className="field-error" style={{ color: '#dc2626', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                  {nombreError}
+                </p>
+              )}
+              <div className="whitelist-hint">
+                <strong>Materiales permitidos:</strong>
+                <ul>
+                  {ALLOWED_MATERIALES.map(nombre => (
+                    <li key={nombre}>{nombre}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
 
             <div className="form-row">
@@ -193,7 +231,11 @@ export default function MaterialesPopup({ material, mode = 'create', onClose, on
               <button type="button" className="btn-cancelar" onClick={onClose}>
                 Cancelar
               </button>
-              <button type="submit" className="btn-guardar" disabled={createLoading || updateLoading}>
+              <button
+                type="submit"
+                className="btn-guardar"
+                disabled={createLoading || updateLoading || !NOMBRE_MATERIAL_REGEX.test(formData.nombre_material.trim())}
+              >
                 {createLoading || updateLoading ? 'Guardando...' : 'Guardar'}
               </button>
             </div>

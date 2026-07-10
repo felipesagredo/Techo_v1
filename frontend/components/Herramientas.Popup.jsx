@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useCreateHerramienta } from '../features/cuadrillas/hooks/herramientas/useCreateHerramienta';
 import { useUpdateHerramienta } from '../features/cuadrillas/hooks/herramientas/useUpdateHerramienta';
+import { ALLOWED_HERRAMIENTAS, buildWhitelistRegex } from '../constants/inventarioWhitelist';
 import '../styles/HerramientasPopup.css';
+
+const NOMBRE_HERRAMIENTA_REGEX = buildWhitelistRegex(ALLOWED_HERRAMIENTAS);
 
 export default function HerramientasPopup({ herramienta, mode = 'create', onClose, onSaveSuccess }) {
   const [formData, setFormData] = useState({
@@ -11,6 +14,7 @@ export default function HerramientasPopup({ herramienta, mode = 'create', onClos
     categoria_herramienta: 'manual',
     estado: 'disponible'
   });
+  const [nombreError, setNombreError] = useState('');
 
   const { handleCreateHerramienta, loading: createLoading } = useCreateHerramienta();
   const { handleUpdateHerramienta, loading: updateLoading } = useUpdateHerramienta();
@@ -41,11 +45,24 @@ export default function HerramientasPopup({ herramienta, mode = 'create', onClos
       ...prev,
       [name]: name === 'stock' ? parseInt(value) || 0 : value
     }));
+
+    if (name === 'nombre') {
+      setNombreError(
+        value.trim() && !NOMBRE_HERRAMIENTA_REGEX.test(value.trim())
+          ? 'Selecciona un nombre de la lista de herramientas permitidas.'
+          : ''
+      );
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    if (!NOMBRE_HERRAMIENTA_REGEX.test(formData.nombre.trim())) {
+      setNombreError('Selecciona un nombre de la lista de herramientas permitidas.');
+      return;
+    }
+
     try {
       if (herramienta) {
         const response = await handleUpdateHerramienta(herramienta.id, formData);
@@ -79,11 +96,32 @@ export default function HerramientasPopup({ herramienta, mode = 'create', onClos
               id="nombre"
               type="text"
               name="nombre"
+              list="herramientas-permitidas"
               value={formData.nombre}
               onChange={handleChange}
               placeholder="Ej: Martillo"
+              autoComplete="off"
               required
+              aria-invalid={!!nombreError}
             />
+            <datalist id="herramientas-permitidas">
+              {ALLOWED_HERRAMIENTAS.map(nombre => (
+                <option key={nombre} value={nombre} />
+              ))}
+            </datalist>
+            {nombreError && (
+              <p className="field-error" style={{ color: '#dc2626', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                {nombreError}
+              </p>
+            )}
+            <div className="whitelist-hint">
+              <strong>Herramientas permitidas:</strong>
+              <ul>
+                {ALLOWED_HERRAMIENTAS.map(nombre => (
+                  <li key={nombre}>{nombre}</li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           <div className="form-group">
@@ -146,7 +184,11 @@ export default function HerramientasPopup({ herramienta, mode = 'create', onClos
             <button type="button" className="btn-cancelar" onClick={onClose}>
               Cancelar
             </button>
-            <button type="submit" className="btn-guardar" disabled={createLoading || updateLoading}>
+            <button
+              type="submit"
+              className="btn-guardar"
+              disabled={createLoading || updateLoading || !NOMBRE_HERRAMIENTA_REGEX.test(formData.nombre.trim())}
+            >
               {createLoading || updateLoading ? 'Guardando...' : 'Guardar'}
             </button>
           </div>
