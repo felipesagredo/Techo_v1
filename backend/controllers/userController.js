@@ -56,13 +56,28 @@ export const update = async (req, res) => {
     }
 };
 
+export const create = async (req, res) => {
+    const user = req.user;
+    if (!user) return res.status(401).json({ error: 'No autorizado' });
+    if (user.role_id !== 1) return res.status(403).json({ error: 'Acceso prohibido: solo administradores' });
+
+    try {
+        const newUser = await userService.createUser(req.body);
+        res.status(201).json(newUser);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message || 'Error al crear usuario' });
+    }
+};
+
 const userController = {
     getAll,
     getAvailable,
     getById,
     remove,
     getRoles,
-    update
+    update,
+    create
 };
 
 export default userController;

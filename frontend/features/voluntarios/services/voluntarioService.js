@@ -11,6 +11,18 @@ export const voluntarioService = {
     if (!res.ok) throw new Error('Error al obtener voluntarios');
     return res.json();
   },
+  create: async (data) => {
+    const res = await fetch(`${API_URL}/users`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => null);
+      throw new Error(errData?.error || 'Error al registrar voluntario');
+    }
+    return res.json();
+  },
   update: async (id, data) => {
     const res = await fetch(`${API_URL}/users/${id}`, {
       method: 'PUT',
