@@ -233,6 +233,15 @@ const initDB = async () => {
       console.log('✅ Columna materiales_requeridos añadida a cuadrillas');
     }
 
+    // Addresses: Añadir color si no existe
+    const addressColsRes = await AppDataSource.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'addresses'");
+    const addressCols = addressColsRes.map(c => c.column_name);
+
+    if (!addressCols.includes('color')) {
+      await AppDataSource.query("ALTER TABLE addresses ADD COLUMN color VARCHAR(20) NOT NULL DEFAULT 'red'");
+      console.log('✅ Columna color añadida a addresses');
+    }
+
     console.log('✅ Sistema de base de datos listo y sincronizado');
   } catch (err) {
     console.error('❌ Error inicializando base de datos:', err);
