@@ -87,8 +87,7 @@ const syncJornadasWithCuadrillas = async () => {
 
     // Desactivar jornadas que ya no corresponden a ninguna cuadrilla/turno activo
     for (const jornada of jornadasExistentes) {
-      const esJornadaCuadrilla = turnos.some(turno => jornada.nombre.endsWith(`(${turno})`));
-      if (esJornadaCuadrilla && !activeJornadaNombres.includes(jornada.nombre)) {
+      if (!activeJornadaNombres.includes(jornada.nombre)) {
         if (jornada.activa) {
           jornada.activa = false;
           await jornadaRepository.save(jornada);

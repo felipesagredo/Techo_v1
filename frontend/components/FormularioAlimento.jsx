@@ -61,6 +61,51 @@ function FormularioAlimento({
     letterSpacing: '0.04em',
   };
 
+  const currentJornada = jornadas.find(j => j.id === Number(nuevoAlimento.jornadaId));
+  let baseName = '';
+  let currentTurno = 'Mañana';
+
+  if (currentJornada) {
+    const match = currentJornada.nombre.match(/ \((Mañana|Tarde|Noche)\)$/);
+    if (match) {
+      baseName = currentJornada.nombre.replace(/ \((Mañana|Tarde|Noche)\)$/, '');
+      currentTurno = match[1];
+    } else {
+      baseName = currentJornada.nombre;
+    }
+  }
+
+  const baseJornadaNombres = [];
+  const baseJornadasMap = new Map();
+  jornadas.forEach(j => {
+    const cleanName = j.nombre.replace(/ \((Mañana|Tarde|Noche)\)$/, '');
+    if (!baseJornadasMap.has(cleanName)) {
+      baseJornadasMap.set(cleanName, j.responsable);
+      baseJornadaNombres.push(cleanName);
+    }
+  });
+
+  const handleJornadaChange = (newBaseName) => {
+    if (!newBaseName) {
+      setNuevoAlimento({ ...nuevoAlimento, jornadaId: null });
+      return;
+    }
+    const targetName = `${newBaseName} (${currentTurno})`;
+    const matchedJornada = jornadas.find(j => j.nombre === targetName) || jornadas.find(j => j.nombre.startsWith(newBaseName));
+    if (matchedJornada) {
+      setNuevoAlimento({ ...nuevoAlimento, jornadaId: matchedJornada.id });
+    }
+  };
+
+  const handleTurnoChange = (newTurno) => {
+    if (!baseName) return;
+    const targetName = `${baseName} (${newTurno})`;
+    const matchedJornada = jornadas.find(j => j.nombre === targetName);
+    if (matchedJornada) {
+      setNuevoAlimento({ ...nuevoAlimento, jornadaId: matchedJornada.id });
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Fila 1: Nombre, Cantidad, Porciones, Tipo Dieta */}
@@ -141,34 +186,54 @@ function FormularioAlimento({
           📋 Asignación de jornada (opcional)
         </p>
 
-        {/* Fila 2: Jornada activa + Encargado + Botón */}
+        {/* Fila 2: Jornada activa + Turno + Encargado + Botón */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr)) auto',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr)) auto',
             gap: '15px',
             alignItems: 'end',
           }}
         >
           <div>
-            <label style={labelStyle}>Jornada activa</label>
+            <label style={labelStyle}>Jornada activa (Grupo)</label>
             <select
-              value={nuevoAlimento.jornadaId || ''}
-              onChange={(e) =>
-                setNuevoAlimento({ ...nuevoAlimento, jornadaId: e.target.value || null })
-              }
+              value={baseName}
+              onChange={(e) => handleJornadaChange(e.target.value)}
               style={selectStyle}
             >
               <option value="">— Sin jornada —</option>
-              {jornadas.map((j) => (
-                <option key={j.id} value={j.id}>
-                  {j.nombre} {j.responsable ? `(Resp: ${j.responsable})` : ''}
-                </option>
-              ))}
+              {baseJornadaNombres.map((name) => {
+                const resp = baseJornadasMap.get(name);
+                return (
+                  <option key={name} value={name}>
+                    {name} {resp ? `(Resp: ${resp})` : ''}
+                  </option>
+                );
+              })}
             </select>
             {jornadas.length === 0 && (
               <p style={{ fontSize: '11px', color: '#adb5bd', marginTop: '4px' }}>
                 No hay jornadas activas disponibles
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label style={labelStyle}>Turno de jornada</label>
+            <select
+              value={currentTurno}
+              onChange={(e) => handleTurnoChange(e.target.value)}
+              style={selectStyle}
+              disabled={!nuevoAlimento.jornadaId}
+            >
+              <option value="Mañana">Mañana</option>
+              <option value="Tarde">Tarde</option>
+              <option value="Noche">Noche</option>
+            </select>
+            {!nuevoAlimento.jornadaId && (
+              <p style={{ fontSize: '11px', color: '#adb5bd', marginTop: '4px' }}>
+                Selecciona primero una jornada
               </p>
             )}
           </div>
