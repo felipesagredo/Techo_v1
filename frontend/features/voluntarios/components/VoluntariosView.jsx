@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '../../../config.js';
 import {
   Users,
   Search,
@@ -68,7 +69,7 @@ const VoluntariosView = () => {
 
   const fetchAvailableTools = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/cuadrillas/available-tools', {
+      const res = await fetch(`${API_URL}/cuadrillas/available-tools`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
@@ -81,7 +82,7 @@ const VoluntariosView = () => {
   const handleAssignTool = async (userId, toolId) => {
     if (!userId || !toolId) return;
     try {
-      const res = await fetch('http://localhost:5000/api/cuadrillas/assign-tool', {
+      const res = await fetch(`${API_URL}/cuadrillas/assign-tool`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +107,7 @@ const VoluntariosView = () => {
   const handleReturnTool = async (toolId) => {
     if (!toolId) return;
     try {
-      const res = await fetch('http://localhost:5000/api/cuadrillas/return-tool', {
+      const res = await fetch(`${API_URL}/cuadrillas/return-tool`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

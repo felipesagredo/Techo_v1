@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, RefreshCw, Layers, Edit } from 'lucide-react';
 import Swal from 'sweetalert2';
 import '../styles/HerramientasPopup.css';
-
-const API_URL = 'http://localhost:5000/api';
+import { API_URL } from '../config.js';
 
 export default function RestockPopup({ tipoInicial = 'material', onClose, onSuccess }) {
   const [activeTab, setActiveTab] = useState('kit'); // 'kit' or 'manual'

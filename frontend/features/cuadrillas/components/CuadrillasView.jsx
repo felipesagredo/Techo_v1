@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_URL } from '../../../config.js';
 import { 
   Users, 
   Plus, 
@@ -182,7 +183,7 @@ const CuadrillasView = ({ user, currentView }) => {
 
   const handleAssignMaterialDirectly = async (matName, qty = 1) => {
     try {
-      const matsRes = await fetch('http://localhost:5000/api/materiales', {
+      const matsRes = await fetch(`${API_URL}/materiales`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const mats = await matsRes.json();
@@ -194,7 +195,7 @@ const CuadrillasView = ({ user, currentView }) => {
         return;
       }
 
-      const assignRes = await fetch('http://localhost:5000/api/materiales/asignaciones', {
+      const assignRes = await fetch(`${API_URL}/materiales/asignaciones`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

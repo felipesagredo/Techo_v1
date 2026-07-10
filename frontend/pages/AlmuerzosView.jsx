@@ -3,9 +3,11 @@ import { Search, X, Plus, Utensils } from 'lucide-react';
 import TablaAlimentos from '../components/TablaAlimentos';
 import FormularioAlimento from '../components/FormularioAlimento';
 
-const API = 'http://localhost:5000/api/alimentos';
-const API_JORNADAS = 'http://localhost:5000/api/jornadas/activas';
-const API_USERS = 'http://localhost:5000/api/users';
+import { API_URL } from '../config.js';
+
+const API = `${API_URL}/alimentos`;
+const API_JORNADAS = `${API_URL}/jornadas/activas`;
+const API_USERS = `${API_URL}/users`;
 
 const ALIMENTO_VACIO = {
   nombre: '',

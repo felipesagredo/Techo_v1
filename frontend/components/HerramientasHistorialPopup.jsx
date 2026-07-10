@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '../config.js';
 import { X, Calendar, Clipboard, User, CheckCircle, Clock } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -18,7 +19,7 @@ export default function HerramientasHistorialPopup({ herramienta, onClose, onRef
 
   const fetchHistorial = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/herramientas/${herramienta.id}/prestamos`, {
+      const res = await fetch(`${API_URL}/herramientas/${herramienta.id}/prestamos`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
@@ -37,7 +38,7 @@ export default function HerramientasHistorialPopup({ herramienta, onClose, onRef
 
   const fetchVoluntarios = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/users', {
+      const res = await fetch(`${API_URL}/users`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
@@ -61,7 +62,7 @@ export default function HerramientasHistorialPopup({ herramienta, onClose, onRef
 
     setIsSubmitting(true);
     try {
-      const res = await fetch('http://localhost:5000/api/herramientas/prestamos', {
+      const res = await fetch(`${API_URL}/herramientas/prestamos`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +107,7 @@ export default function HerramientasHistorialPopup({ herramienta, onClose, onRef
 
     setIsSubmitting(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/herramientas/prestamos/${activePrestamo.id}/devolucion`, {
+      const res = await fetch(`${API_URL}/herramientas/prestamos/${activePrestamo.id}/devolucion`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

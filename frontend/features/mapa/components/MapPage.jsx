@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
+import { API_BASE } from '../../../config.js'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { AlertTriangle, CheckCircle2, Info, PencilLine, Plus, Trash2, X } from 'lucide-react'
@@ -121,7 +122,7 @@ const MapPage = ({ onBack }) => {
   const isAdmin = user && user.role_id === 1
   const token = localStorage.getItem('token')
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+  // API_BASE is imported from config.js
 
   const validateClientCoordinates = (lat, lng) => {
     const latNum = Number(lat)

@@ -1,4 +1,5 @@
-const API = 'http://localhost:5000/api/alimentos'
+import { API_URL } from '../config.js';
+const API = `${API_URL}/alimentos`;
 
 export const obtenerAlimentos = async (token) => {
 
