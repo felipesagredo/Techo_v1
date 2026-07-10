@@ -332,7 +332,7 @@ const MapPage = ({ onBack }) => {
     if (!mapRef.current || map) return
 
     try {
-      const m = L.map(mapRef.current).setView([-33.45, -70.6667], 9)
+      const m = L.map(mapRef.current).setView([-36.82130908503283, -73.04873153099372], 9)
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -403,6 +403,7 @@ const MapPage = ({ onBack }) => {
   }, [markersLayer, loadAddresses])
 
   return (
+
     <div style={{
       padding: '0px',
       background: 'transparent'
