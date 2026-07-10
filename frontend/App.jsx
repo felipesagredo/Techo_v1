@@ -898,7 +898,7 @@ function App() {
             </div>
             <nav className="top-nav-links">
               <a href="#" className={currentView === 'dashboard' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('dashboard'); }}>Resumen</a>
-              <a href="#">Reportes</a>
+
               <a href="#" className={currentView === 'map' ? 'active' : ''} onClick={(e) => { e.preventDefault(); setCurrentView('map'); }}>Geolocalización</a>
             </nav>
           </div>
@@ -1113,49 +1113,6 @@ function App() {
                       </div>
                     </div>
 
-                    {/* Hitos */}
-                    <div className="card hitos-card">
-                      <h3 className="hitos-title"><Calendar size={18} /> Próximos Hitos</h3>
-                      <div className="hitos-list">
-                        <div className="hito-item">
-                          <div className="hito-date">
-                            <span>OCT</span>
-                            <strong>12</strong>
-                          </div>
-                          <div className="hito-info">
-                            <h4>Campaña de Invierno 2026</h4>
-                            <p>Lanzamiento nacional masivo</p>
-                          </div>
-                        </div>
-                        <div className="hito-item">
-                          <div className="hito-date">
-                            <span>OCT</span>
-                            <strong>15</strong>
-                          </div>
-                          <div className="hito-info">
-                            <h4>Capacitación Jefes</h4>
-                            <p>Sede Central TECHO</p>
-                          </div>
-                        </div>
-                        <div className="hito-item disabled">
-                          <div className="hito-date">
-                            <span>OCT</span>
-                            <strong>20</strong>
-                          </div>
-                          <div className="hito-info">
-                            <h4>Cierre Auditoría Q3</h4>
-                            <p>Reporte financiero nacional</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Did you know */}
-                    <div className="card info-card-blue">
-                      <h3>¿Sabías que... ?</h3>
-                      <p>Este mes hemos reducido los tiempos de entrega de herramientas en un 15% gracias a la nueva gestión de cuadrillas.</p>
-                      <button className="btn-white">Ver métricas</button>
-                    </div>
                   </div>
                 </div>
               </>
