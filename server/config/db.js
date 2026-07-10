@@ -14,11 +14,11 @@ dotenv.config();
 
 const AppDataSource = new DataSource({
   type: 'postgres',
-  host: process.env.DB_HOST,
+  host: process.env.DB_HOST || process.env.HOST,
   port: parseInt(process.env.DB_PORT || '5432', 10),
-  username: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  username: process.env.DB_USER || process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD || process.env.PASSWORD,
+  database: process.env.DB_NAME || process.env.DATABASE,
   synchronize: false,
   logging: false,
   entities: [

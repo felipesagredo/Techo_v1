@@ -8,7 +8,8 @@ export default (req, res, next) => {
   }
 
   try {
-    const verified = jwt.verify(token, process.env.JWT_SECRET || 'secret_key_123');
+    const jwtSecret = process.env.JWT_SECRET || process.env.ACCESS_TOKEN_SECRET || 'secret_key_123';
+    const verified = jwt.verify(token, jwtSecret);
     req.user = verified;
     next();
   } catch (err) {
