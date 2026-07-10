@@ -87,7 +87,7 @@ const initDB = async () => {
       fecha_prestamo TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       fecha_devolucion TIMESTAMP,
       estado_prestamo VARCHAR(30) DEFAULT 'prestado',
-      notes TEXT
+      notas TEXT
     );`,
     `CREATE TABLE IF NOT EXISTS asignacion_materiales (
       id SERIAL PRIMARY KEY,
@@ -240,6 +240,18 @@ const initDB = async () => {
     if (!addressCols.includes('color')) {
       await AppDataSource.query("ALTER TABLE addresses ADD COLUMN color VARCHAR(20) NOT NULL DEFAULT 'red'");
       console.log('✅ Columna color añadida a addresses');
+    }
+
+    // Prestamos: Verificar y renombrar notes a notas si es necesario
+    const prestamoColsRes = await AppDataSource.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'prestamos_herramientas'");
+    const prestamoCols = prestamoColsRes.map(c => c.column_name);
+
+    if (prestamoCols.includes('notes') && !prestamoCols.includes('notas')) {
+      await AppDataSource.query('ALTER TABLE prestamos_herramientas RENAME COLUMN notes TO notas');
+      console.log('✅ Columna notes renombrada a notas en prestamos_herramientas');
+    } else if (!prestamoCols.includes('notas')) {
+      await AppDataSource.query('ALTER TABLE prestamos_herramientas ADD COLUMN notas TEXT');
+      console.log('✅ Columna notas añadida a prestamos_herramientas');
     }
 
     console.log('✅ Sistema de base de datos listo y sincronizado');
