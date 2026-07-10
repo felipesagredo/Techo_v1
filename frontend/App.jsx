@@ -1123,7 +1123,7 @@ function App() {
             )}
 
             {currentView === 'registro' && (
-              <VoluntariosView />
+              <VoluntariosView user={user} />
             )}
 
             {/* HERRAMIENTAS & MATERIALES VIEW */}

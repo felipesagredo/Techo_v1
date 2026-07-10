@@ -34,13 +34,26 @@ const showToast = (message, type = 'info') => {
   });
 };
 
-const VoluntariosView = () => {
+const VoluntariosView = ({ user }) => {
+  const isAdmin = user?.role_id === 1;
 
   const [voluntarios, setVoluntarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('compact'); // 'compact' o 'list'
   const [availableTools, setAvailableTools] = useState([]);
+
+  // Create Modal State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createData, setCreateData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    telefono: '',
+    comuna: '',
+    habilidades: '',
+    role_id: 2
+  });
 
   // Edit Modal State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -59,7 +72,8 @@ const VoluntariosView = () => {
     setLoading(true);
     try {
       const data = await voluntarioService.getAll();
-      setVoluntarios(data.filter(u => u.role_id === 2));
+      // Si es admin, mostramos todos los usuarios (incluyendo admins). Si no, solo voluntarios (role_id === 2)
+      setVoluntarios(isAdmin ? data : data.filter(u => u.role_id === 2));
     } catch (err) {
       console.error(err);
     } finally {
@@ -129,10 +143,35 @@ const VoluntariosView = () => {
     }
   };
 
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      await voluntarioService.create(createData);
+      await fetchVoluntarios();
+      setShowCreateModal(false);
+      setCreateData({
+        name: '',
+        email: '',
+        password: '',
+        telefono: '',
+        comuna: '',
+        habilidades: '',
+        role_id: 2
+      });
+      showToast('Voluntario registrado con éxito', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || 'Error al registrar voluntario', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   useEffect(() => {
     fetchVoluntarios();
     fetchAvailableTools();
-  }, []);
+  }, [user]);
 
   const handleOpenEdit = (v) => {
     setSelectedVoluntario(v);
@@ -190,6 +229,17 @@ const VoluntariosView = () => {
         </div>
 
         <div className="actions-section">
+          {isAdmin && (
+            <button
+              className="btn-primary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', height: '36px', padding: '0 14px', borderRadius: '6px', cursor: 'pointer', border: 'none', background: 'var(--primary-blue, #004785)', color: '#fff', fontWeight: '500' }}
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Users size={15} />
+              <span>Nuevo Voluntario</span>
+            </button>
+          )}
+
           <div className="vv-search-compact">
             <Search size={16} />
             <input
@@ -336,6 +386,61 @@ const VoluntariosView = () => {
               <div className="modal-footer">
                 <button type="button" className="btn-secondary" onClick={() => setShowEditModal(false)}>Cerrar</button>
                 <button type="submit" className="btn-primary" disabled={isSaving}>Guardar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {showCreateModal && (
+        <div className="modal-overlay">
+          <div className="modal-content large">
+            <div className="modal-header">
+              <h2>Registrar Nuevo Voluntario</h2>
+              <button className="close-btn" onClick={() => setShowCreateModal(false)}><X /></button>
+            </div>
+            <form onSubmit={handleCreate} className="modal-form">
+              <div className="modal-body">
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" value={createData.name} onChange={e => setCreateData({ ...createData, name: e.target.value })} placeholder="Ej: Juan Pérez" required />
+                  </div>
+                  <div className="form-group">
+                    <label>Email</label>
+                    <input type="email" value={createData.email} onChange={e => setCreateData({ ...createData, email: e.target.value })} placeholder="juan@correo.com" required />
+                  </div>
+                  <div className="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" value={createData.password} onChange={e => setCreateData({ ...createData, password: e.target.value })} placeholder="••••••••" required />
+                  </div>
+                  <div className="form-group">
+                    <label>Teléfono</label>
+                    <input type="text" value={createData.telefono} onChange={e => setCreateData({ ...createData, telefono: e.target.value })} placeholder="+56 9 ..." />
+                  </div>
+                  <div className="form-group">
+                    <label>Comuna</label>
+                    <input type="text" value={createData.comuna} onChange={e => setCreateData({ ...createData, comuna: e.target.value })} placeholder="Concepción" />
+                  </div>
+                  <div className="form-group">
+                    <label>Rol de Sistema</label>
+                    <select
+                      value={createData.role_id}
+                      onChange={e => setCreateData({ ...createData, role_id: parseInt(e.target.value) })}
+                      style={{ width: '100%', padding: '0.6rem', border: '1px solid #ddd', borderRadius: '8px', fontSize: '0.85rem', background: '#fff' }}
+                    >
+                      <option value={1}>Administrador</option>
+                      <option value={2}>Voluntario</option>
+                    </select>
+                  </div>
+                  <div className="form-group full-width">
+                    <label>Habilidades</label>
+                    <textarea value={createData.habilidades} onChange={e => setCreateData({ ...createData, habilidades: e.target.value })} placeholder="Gasfitería, carpintería, electricidad..." rows="2" />
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn-secondary" onClick={() => setShowCreateModal(false)}>Cerrar</button>
+                <button type="submit" className="btn-primary" disabled={isSaving}>Registrar</button>
               </div>
             </form>
           </div>
