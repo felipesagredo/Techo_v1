@@ -33,7 +33,44 @@ export async function llegadaStockManualService({ tipo, id, cantidad }) {
     }
 }
 
-export async function llegadaLoteKitMediasAguasService() {
+// Debe reflejar exactamente ALLOWED_HERRAMIENTAS en
+// frontend/constants/inventarioWhitelist.js. Cada item suma KIT_QTY_HERRAMIENTA
+// unidades de stock al autorizar el kit "Medias Aguas".
+const KIT_QTY_HERRAMIENTA = 20;
+const KIT_HERRAMIENTAS = [
+    { nombre: 'Martillo', descripcion: 'Martillo manual de carpintero', categoria: 'manual' },
+    { nombre: 'Taladro', descripcion: 'Taladro eléctrico', categoria: 'electrica' },
+    { nombre: 'Sierra', descripcion: 'Sierra de mano para madera', categoria: 'manual' },
+    { nombre: 'Pala', descripcion: 'Pala de mano para excavación', categoria: 'manual' },
+    { nombre: 'Carretilla', descripcion: 'Carretilla para transporte de materiales', categoria: 'manual' },
+    { nombre: 'Destornillador', descripcion: 'Destornillador manual', categoria: 'manual' },
+    { nombre: 'Llave inglesa', descripcion: 'Llave inglesa ajustable', categoria: 'manual' },
+    { nombre: 'Huincha', descripcion: 'Huincha de medir 5m', categoria: 'manual' },
+    { nombre: 'Escalera', descripcion: 'Escalera plegable', categoria: 'manual' },
+    { nombre: 'Guantes de trabajo', descripcion: 'Guantes de protección para trabajo manual', categoria: 'manual' },
+    { nombre: 'Casco de seguridad', descripcion: 'Casco de protección para obra', categoria: 'manual' }
+];
+
+// Debe reflejar exactamente ALLOWED_MATERIALES en
+// frontend/constants/inventarioWhitelist.js. Cada item suma KIT_QTY_MATERIAL
+// unidades de stock al autorizar el kit "Medias Aguas".
+const KIT_QTY_MATERIAL = 100;
+const KIT_MATERIALES = [
+    { nombre: 'Cemento', categoria: 'construccion' },
+    { nombre: 'Arena', categoria: 'construccion' },
+    { nombre: 'Grava', categoria: 'construccion' },
+    { nombre: 'Tablas de Madera', categoria: 'construccion' },
+    { nombre: 'Caja de Clavos', categoria: 'fijador' },
+    { nombre: 'Tornillos', categoria: 'fijador' },
+    { nombre: 'Plancha de zinc', categoria: 'construccion' },
+    { nombre: 'Pintura', categoria: 'construccion' },
+    { nombre: 'Ladrillos', categoria: 'construccion' },
+    { nombre: 'Fierro', categoria: 'construccion' },
+    { nombre: 'Cerámica', categoria: 'construccion' },
+    { nombre: 'Yeso', categoria: 'construccion' }
+];
+
+export async function llegadaLoteKitMediasAguasService(tipo) {
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -42,67 +79,60 @@ export async function llegadaLoteKitMediasAguasService() {
         const materialRepo = queryRunner.manager.getRepository(MaterialesSchema);
         const herramientaRepo = queryRunner.manager.getRepository(HerramientasSchema);
 
-        // 1. Abastecer Herramientas (Sierra, Martillo, Huincha, Caja de Clavos)
-        const toolsToSeed = [
-            { nombre: 'Sierra', descripcion: 'Sierra de mano para madera', qty: 10, categoria: 'manual' },
-            { nombre: 'Martillo', descripcion: 'Martillo manual de carpintero', qty: 50, categoria: 'manual' },
-            { nombre: 'Huincha', descripcion: 'Huincha de medir 5m', qty: 50, categoria: 'manual' },
-            { nombre: 'Caja de Clavos', descripcion: 'Caja de clavos de construcción', qty: 20, categoria: 'manual' }
-        ];
+        // 1. Abastecer Herramientas (lista blanca completa)
+        if (!tipo || tipo === 'herramienta') {
+            const toolsToSeed = KIT_HERRAMIENTAS.map(t => ({ ...t, qty: KIT_QTY_HERRAMIENTA }));
 
-        for (const t of toolsToSeed) {
-            // Buscamos herramienta con el mismo nombre y que esté disponible/libre
-            let tool = await herramientaRepo.findOne({
-                where: { nombre: t.nombre }
-            });
-
-            if (tool) {
-                tool.stock += t.qty;
-                tool.estado = 'disponible';
-                tool.updated_at = new Date();
-                await herramientaRepo.save(tool);
-            } else {
-                tool = herramientaRepo.create({
-                    nombre: t.nombre,
-                    descripcion: t.descripcion,
-                    stock: t.qty,
-                    categoria_herramienta: t.categoria,
-                    estado: 'disponible'
+            for (const t of toolsToSeed) {
+                // Buscamos herramienta con el mismo nombre y que esté disponible/libre
+                let tool = await herramientaRepo.findOne({
+                    where: { nombre: t.nombre }
                 });
-                await herramientaRepo.save(tool);
+
+                if (tool) {
+                    tool.stock += t.qty;
+                    tool.estado = 'disponible';
+                    tool.updated_at = new Date();
+                    await herramientaRepo.save(tool);
+                } else {
+                    tool = herramientaRepo.create({
+                        nombre: t.nombre,
+                        descripcion: t.descripcion,
+                        stock: t.qty,
+                        categoria_herramienta: t.categoria,
+                        estado: 'disponible'
+                    });
+                    await herramientaRepo.save(tool);
+                }
             }
         }
 
-        // 2. Abastecer Materiales (Plancha de zinc, Madera de construcción, Tabla, Grava, Arena)
-        const materialsToSeed = [
-            { nombre: 'Plancha de zinc', qty: 100, categoria: 'construccion', largo: 2.5, ancho: 0.8, peso: 5.0 },
-            { nombre: 'Madera de construcción', qty: 200, categoria: 'construccion', largo: 3.2, ancho: 0.1, peso: 8.0 },
-            { nombre: 'Tabla', qty: 200, categoria: 'construccion', largo: 3.0, ancho: 0.15, peso: 4.0 },
-            { nombre: 'Grava', qty: 50, categoria: 'construccion', peso: 25.0 },
-            { nombre: 'Arena', qty: 50, categoria: 'construccion', peso: 25.0 }
-        ];
+        // 2. Abastecer Materiales (lista blanca completa)
+        if (!tipo || tipo === 'material') {
+            const materialsToSeed = KIT_MATERIALES.map(m => ({ ...m, qty: KIT_QTY_MATERIAL }));
 
-        for (const m of materialsToSeed) {
-            let material = await materialRepo.findOne({
-                where: { nombre_material: m.nombre }
-            });
-
-            if (material) {
-                material.cantidad += m.qty;
-                material.estado = 'disponible';
-                material.updated_at = new Date();
-                await materialRepo.save(material);
-            } else {
-                material = materialRepo.create({
-                    nombre_material: m.nombre,
-                    cantidad: m.qty,
-                    categoria: m.categoria,
-                    largo: m.largo || null,
-                    ancho: m.ancho || null,
-                    peso: m.peso || 0,
-                    estado: 'disponible'
+            for (const m of materialsToSeed) {
+                let material = await materialRepo.findOne({
+                    where: { nombre_material: m.nombre }
                 });
-                await materialRepo.save(material);
+
+                if (material) {
+                    material.cantidad += m.qty;
+                    material.estado = 'disponible';
+                    material.updated_at = new Date();
+                    await materialRepo.save(material);
+                } else {
+                    material = materialRepo.create({
+                        nombre_material: m.nombre,
+                        cantidad: m.qty,
+                        categoria: m.categoria,
+                        largo: m.largo || null,
+                        ancho: m.ancho || null,
+                        peso: m.peso || 0,
+                        estado: 'disponible'
+                    });
+                    await materialRepo.save(material);
+                }
             }
         }
 
