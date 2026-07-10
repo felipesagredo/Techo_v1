@@ -56,22 +56,42 @@ const syncJornadasWithCuadrillas = async () => {
     const cuadrillas = await AppDataSource.query(query);
     const jornadasExistentes = await jornadaRepository.find();
 
+    const turnos = ['Mañana', 'Tarde', 'Noche'];
+    const activeJornadaNombres = [];
+
     for (const cuadrilla of cuadrillas) {
-      const jornadaExistente = jornadasExistentes.find(j => j.nombre === cuadrilla.nombre);
       const capataz = cuadrilla.capataz_nombre || 'Sin capataz';
 
-      if (!jornadaExistente) {
-        const nuevaJornada = jornadaRepository.create({
-          nombre: cuadrilla.nombre,
-          responsable: capataz,
-          activa: true,
-        });
-        await jornadaRepository.save(nuevaJornada);
-      } else {
-        if (jornadaExistente.responsable !== capataz || !jornadaExistente.activa) {
-          jornadaExistente.responsable = capataz;
-          jornadaExistente.activa = true;
-          await jornadaRepository.save(jornadaExistente);
+      for (const turno of turnos) {
+        const nombreJornada = `${cuadrilla.nombre} (${turno})`;
+        activeJornadaNombres.push(nombreJornada);
+
+        const jornadaExistente = jornadasExistentes.find(j => j.nombre === nombreJornada);
+
+        if (!jornadaExistente) {
+          const nuevaJornada = jornadaRepository.create({
+            nombre: nombreJornada,
+            responsable: capataz,
+            activa: true,
+          });
+          await jornadaRepository.save(nuevaJornada);
+        } else {
+          if (jornadaExistente.responsable !== capataz || !jornadaExistente.activa) {
+            jornadaExistente.responsable = capataz;
+            jornadaExistente.activa = true;
+            await jornadaRepository.save(jornadaExistente);
+          }
+        }
+      }
+    }
+
+    // Desactivar jornadas que ya no corresponden a ninguna cuadrilla/turno activo
+    for (const jornada of jornadasExistentes) {
+      const esJornadaCuadrilla = turnos.some(turno => jornada.nombre.endsWith(`(${turno})`));
+      if (esJornadaCuadrilla && !activeJornadaNombres.includes(jornada.nombre)) {
+        if (jornada.activa) {
+          jornada.activa = false;
+          await jornadaRepository.save(jornada);
         }
       }
     }
