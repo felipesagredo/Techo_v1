@@ -77,10 +77,12 @@ export const useCuadrillas = (user, currentView) => {
       return;
     }
 
+    /*
     if (availableVolunteersCount < 7) {
       showToast('No hay suficientes voluntarios disponibles libres. Se requieren mínimo 7 (1 jefe y 6 voluntarios).', 'error');
       return;
     }
+    */
 
     setIsCreating(true);
     try {

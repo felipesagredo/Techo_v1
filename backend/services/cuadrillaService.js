@@ -196,7 +196,7 @@ const autoGenerateCuadrilla = async (nombre, zona, count, latitud, longitud, met
     const metaHerr = 14; // 1 Sierra + 6 Martillo + 6 Huincha + 1 Caja de Clavos
     const reqHerr = '1 Sierra, 6 Martillo, 6 Huincha, 1 Caja de Clavos';
 
-    // 1. Validar que existan suficientes voluntarios disponibles (7 libres)
+    // 1. Obtener voluntarios disponibles (hasta 7 libres)
     const subQuery = memberRepo.createQueryBuilder("cm").select("cm.user_id");
     const availableVolunteers = await userRepo.createQueryBuilder("user")
         .select("user.id", "id")
@@ -205,9 +205,12 @@ const autoGenerateCuadrilla = async (nombre, zona, count, latitud, longitud, met
         .limit(targetCount)
         .getRawMany();
 
+    // Permite la creación de cuadrillas incompletas si faltan voluntarios
+    /*
     if (availableVolunteers.length < targetCount) {
         throw new Error(`Voluntarios insuficientes. Se requieren exactamente 7 voluntarios libres (1 jefe y 6 voluntarios) para conformar la cuadrilla, pero solo hay ${availableVolunteers.length} disponibles.`);
     }
+    */
 
     // 2. Validar stock de herramientas en el inventario
     const allTools = await toolRepo.find({
