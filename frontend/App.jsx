@@ -50,6 +50,8 @@ const showToast = (message, type = 'info') => {
 
 function App() {
 
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
   const isJwtValid = (token) => {
     if (!token) return false;
 
@@ -132,6 +134,30 @@ function App() {
     recentInventory: []
   });
   const [loadingStats, setLoadingStats] = useState(false);
+  const [closestAddress, setClosestAddress] = useState(null)
+  const [gpsStatus, setGpsStatus] = useState('idle')
+  const [gpsMessage, setGpsMessage] = useState('')
+
+  const calculateDistanceKm = (fromLat, fromLng, toLat, toLng) => {
+    const toRadians = (value) => value * (Math.PI / 180)
+    const earthRadiusKm = 6371
+    const dLat = toRadians(toLat - fromLat)
+    const dLng = toRadians(toLng - fromLng)
+    const lat1 = toRadians(fromLat)
+    const lat2 = toRadians(toLat)
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    return earthRadiusKm * c
+  }
+
+  const formatDistanceLabel = (distanceKm) => {
+    if (!Number.isFinite(distanceKm)) return ''
+    if (distanceKm < 1) return `${Math.round(distanceKm * 1000)} m`
+    return `${distanceKm.toFixed(1)} km`
+  }
 
   useEffect(() => {
     if (user && currentView === 'dashboard') {
@@ -152,6 +178,113 @@ function App() {
         });
     }
   }, [user, currentView]);
+
+  useEffect(() => {
+    if (!user || currentView !== 'dashboard') return
+
+    let cancelled = false
+
+    if (!navigator.geolocation) {
+      setClosestAddress(null)
+      setGpsStatus('unavailable')
+      setGpsMessage('Tu navegador no soporta geolocalización.')
+      return
+    }
+
+    const token = localStorage.getItem('token')
+    if (!token) {
+      setClosestAddress(null)
+      setGpsStatus('error')
+      setGpsMessage('No encontramos una sesión válida para consultar ubicaciones.')
+      return
+    }
+
+    setGpsStatus('loading')
+    setGpsMessage('Buscando tu ubicación...')
+
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const response = await fetch(`${API_BASE}/api/addresses`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+
+          if (!response.ok) throw new Error('No se pudieron cargar las ubicaciones del mapa.')
+
+          const payload = await response.json()
+          const source = Array.isArray(payload?.addresses) ? payload.addresses : []
+          const validAddresses = source
+            .map(addr => ({
+              ...addr,
+              latNum: Number(addr.lat),
+              lngNum: Number(addr.lng)
+            }))
+            .filter(addr => Number.isFinite(addr.latNum) && Number.isFinite(addr.lngNum))
+
+          if (cancelled) return
+
+          if (!validAddresses.length) {
+            setClosestAddress(null)
+            setGpsStatus('no-addresses')
+            setGpsMessage('No hay ubicaciones registradas todavía.')
+            return
+          }
+
+          const nearest = validAddresses.reduce((best, current) => {
+            const distanceKm = calculateDistanceKm(coords.latitude, coords.longitude, current.latNum, current.lngNum)
+            if (!best || distanceKm < best.distanceKm) {
+              return { ...current, distanceKm }
+            }
+            return best
+          }, null)
+
+          setClosestAddress(nearest)
+          setGpsStatus('ready')
+          setGpsMessage(`Lugar más cercano a ${formatDistanceLabel(nearest.distanceKm)} de ti.`)
+        } catch (err) {
+          if (cancelled) return
+          setClosestAddress(null)
+          setGpsStatus('error')
+          setGpsMessage(err.message || 'No fue posible obtener el lugar más cercano.')
+        }
+      },
+      (error) => {
+        if (cancelled) return
+
+        setClosestAddress(null)
+
+        if (error.code === error.PERMISSION_DENIED) {
+          setGpsStatus('denied')
+          setGpsMessage('Activa tu GPS para ver el lugar más cercano.')
+          return
+        }
+
+        if (error.code === error.POSITION_UNAVAILABLE) {
+          setGpsStatus('unavailable')
+          setGpsMessage('No pudimos detectar tu ubicación actual.')
+          return
+        }
+
+        if (error.code === error.TIMEOUT) {
+          setGpsStatus('error')
+          setGpsMessage('Tiempo de espera agotado al obtener tu ubicación.')
+          return
+        }
+
+        setGpsStatus('error')
+        setGpsMessage('Ocurrió un error al obtener tu ubicación.')
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 60000
+      }
+    )
+
+    return () => {
+      cancelled = true
+    }
+  }, [API_BASE, currentView, user])
 
   useEffect(() => {
     if (user && currentView === 'cuadrillas') {
@@ -686,8 +819,6 @@ function App() {
       ? { email, password }
       : { name, email, password }
 
-    const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
-
     try {
       const response = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
@@ -972,8 +1103,14 @@ function App() {
                         <MapPin size={24} className="pin red-pin" />
                       </div>
                       <div className="map-info">
-                        <h4>Foco Operativo - Valparaíso</h4>
-                        <p>Mayor densidad de cuadrillas hoy</p>
+                        <h4>{closestAddress ? `Foco Operativo - ${closestAddress.label || 'Sin nombre'}` : 'Foco Operativo'}</h4>
+                        <p>
+                          {gpsStatus === 'loading'
+                            ? 'Buscando tu ubicación...'
+                            : gpsStatus === 'ready' && closestAddress
+                              ? `Lugar más cercano a ${formatDistanceLabel(closestAddress.distanceKm)} de ti.`
+                              : gpsMessage || 'Activa tu GPS para ver el punto más cercano.'}
+                        </p>
                         <button className="btn-outline full-width mt-1" onClick={(e) => { e.preventDefault(); setCurrentView('map'); }}>Ver Mapa Interactivo</button>
                       </div>
                     </div>
