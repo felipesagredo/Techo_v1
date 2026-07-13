@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE, API_URL } from './config.js'
 import {
   Mail,
   Lock,
@@ -49,8 +50,6 @@ const showToast = (message, type = 'info') => {
 };
 
 function App() {
-
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
   const isJwtValid = (token) => {
     if (!token) return false;
@@ -162,7 +161,7 @@ function App() {
   useEffect(() => {
     if (user && currentView === 'dashboard') {
       setLoadingStats(true);
-      fetch('http://localhost:5000/api/dashboard/stats', {
+      fetch(`${API_URL}/dashboard/stats`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -289,7 +288,7 @@ function App() {
   useEffect(() => {
     if (user && currentView === 'cuadrillas') {
       setLoadingCuadrillas(true)
-      fetch('http://localhost:5000/api/cuadrillas', {
+      fetch(`${API_URL}/cuadrillas`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -310,10 +309,10 @@ function App() {
     if (user && currentView === 'herramientas') {
       setLoadingInventario(true)
       Promise.all([
-        fetch('http://localhost:5000/api/herramientas', {
+        fetch(`${API_URL}/herramientas`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         }).then(res => res.json()),
-        fetch('http://localhost:5000/api/materiales', {
+        fetch(`${API_URL}/materiales`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         }).then(res => res.json())
       ])
@@ -333,7 +332,7 @@ function App() {
     e.preventDefault();
     setCreatingCuadrilla(true);
     try {
-      const response = await fetch('http://localhost:5000/api/cuadrillas', {
+      const response = await fetch(`${API_URL}/cuadrillas`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -343,7 +342,7 @@ function App() {
       });
       if (response.ok) {
         // Fetch again to get updated list with count 0 and no capataz
-        const fetchRes = await fetch('http://localhost:5000/api/cuadrillas');
+        const fetchRes = await fetch(`${API_URL}/cuadrillas`);
         const data = await fetchRes.json();
         setCuadrillasList(data);
         setShowNewCuadrillaModal(false);
@@ -365,9 +364,9 @@ function App() {
 
     try {
       const [membersRes, usersRes, rolesRes] = await Promise.all([
-        fetch(`http://localhost:5000/api/cuadrillas/${cuadrilla.id}/miembros`),
-        fetch(`http://localhost:5000/api/users`),
-        fetch(`http://localhost:5000/api/cuadrillas/roles`)
+        fetch(`${API_URL}/cuadrillas/${cuadrilla.id}/miembros`),
+        fetch(`${API_URL}/users`),
+        fetch(`${API_URL}/cuadrillas/roles`)
       ]);
 
       const membersData = await membersRes.json();
@@ -391,7 +390,7 @@ function App() {
     setShowViewMembersModal(true);
 
     try {
-      const membersRes = await fetch(`http://localhost:5000/api/cuadrillas/${cuadrilla.id}/miembros`);
+      const membersRes = await fetch(`${API_URL}/cuadrillas/${cuadrilla.id}/miembros`);
       const membersData = await membersRes.json();
       setCurrentMembers(membersData);
     } catch (err) {
@@ -406,7 +405,7 @@ function App() {
 
     setAssigningMember(true);
     try {
-      const response = await fetch('http://localhost:5000/api/cuadrillas/add-member', {
+      const response = await fetch(`${API_URL}/cuadrillas/add-member`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -419,7 +418,7 @@ function App() {
       });
 
       if (response.ok) {
-        const membersRes = await fetch(`http://localhost:5000/api/cuadrillas/${selectedCuadrilla.id}/miembros`);
+        const membersRes = await fetch(`${API_URL}/cuadrillas/${selectedCuadrilla.id}/miembros`);
         setCurrentMembers(await membersRes.json());
       } else {
         const errorData = await response.json().catch(() => null);
@@ -436,7 +435,7 @@ function App() {
   const handleCloseAssignModal = async () => {
     setShowAssignModal(false);
     setSelectedCuadrilla(null);
-    const fetchRes = await fetch('http://localhost:5000/api/cuadrillas');
+    const fetchRes = await fetch(`${API_URL}/cuadrillas`);
     const data = await fetchRes.json();
     setCuadrillasList(data);
   };
@@ -468,7 +467,7 @@ function App() {
     const endpoint = itemType === 'herramienta' ? '/api/herramientas' : '/api/materiales'
 
     try {
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -482,8 +481,8 @@ function App() {
         setShowCreateItemModal(false)
         // Reload inventory
         const [herramientas, materiales] = await Promise.all([
-          fetch('http://localhost:5000/api/herramientas').then(r => r.json()),
-          fetch('http://localhost:5000/api/materiales').then(r => r.json())
+          fetch(`${API_URL}/herramientas`).then(r => r.json()),
+          fetch(`${API_URL}/materiales`).then(r => r.json())
         ])
         setHerramientasList(unwrapApiList(herramientas))
         setMaterialesList(unwrapApiList(materiales))
@@ -504,7 +503,7 @@ function App() {
     const endpoint = itemType === 'herramienta' ? `/api/herramientas/${selectedItem.id}` : `/api/materiales/${selectedItem.id}`
 
     try {
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -518,8 +517,8 @@ function App() {
         setShowEditItemModal(false)
         // Reload inventory
         const [herramientas, materiales] = await Promise.all([
-          fetch('http://localhost:5000/api/herramientas').then(r => r.json()),
-          fetch('http://localhost:5000/api/materiales').then(r => r.json())
+          fetch(`${API_URL}/herramientas`).then(r => r.json()),
+          fetch(`${API_URL}/materiales`).then(r => r.json())
         ])
         setHerramientasList(unwrapApiList(herramientas))
         setMaterialesList(unwrapApiList(materiales))
@@ -540,7 +539,7 @@ function App() {
     const endpoint = type === 'herramienta' ? `/api/herramientas/${id}` : `/api/materiales/${id}`
 
     try {
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -551,8 +550,8 @@ function App() {
         showToast(`${type === 'herramienta' ? 'Herramienta' : 'Material'} eliminado exitosamente`, 'success')
         // Reload inventory
         const [herramientas, materiales] = await Promise.all([
-          fetch('http://localhost:5000/api/herramientas').then(r => r.json()),
-          fetch('http://localhost:5000/api/materiales').then(r => r.json())
+          fetch(`${API_URL}/herramientas`).then(r => r.json()),
+          fetch(`${API_URL}/materiales`).then(r => r.json())
         ])
         setHerramientasList(unwrapApiList(herramientas))
         setMaterialesList(unwrapApiList(materiales))
@@ -608,7 +607,7 @@ function App() {
     try {
 
       const response = await fetch(
-        'http://localhost:5000/api/alimentos',
+        `${API_URL}/alimentos`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -650,7 +649,7 @@ function App() {
     try {
 
       await fetch(
-        'http://localhost:5000/api/alimentos',
+        `${API_URL}/alimentos`,
         {
           method: 'POST',
 
@@ -721,7 +720,7 @@ function App() {
 
       await fetch(
 
-        `http://localhost:5000/api/alimentos/${idEditar}`,
+        `${API_URL}/alimentos/${idEditar}`,
 
         {
 
@@ -779,7 +778,7 @@ function App() {
     try {
 
       await fetch(
-        `http://localhost:5000/api/alimentos/${id}`,
+        `${API_URL}/alimentos/${id}`,
         {
           method: 'DELETE',
 

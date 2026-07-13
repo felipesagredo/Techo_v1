@@ -27,8 +27,6 @@ dist-ssr
 GUIA*.md
 manual_integracion.md
 manual_git_ramas.md
-<<<<<<< HEAD
 backend/scratch
-=======
-server/scratch
->>>>>>> origin/ismael_5
+backend/.env
+frontend/.env
